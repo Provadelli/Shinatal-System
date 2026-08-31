@@ -4,7 +4,7 @@ import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.
 import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp,
-  onSnapshot, query, orderBy, limit, where
+  onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
 import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao } from "./ui-utils.js";
@@ -478,6 +478,31 @@ if (EH_ADMIN_OU_PRESIDENTE()) {
           <span class="text-label-sm whitespace-nowrap">${l.criadoEm ? formatarDataHora(l.criadoEm) : "—"}</span>
         </li>`;
     }).join("");
+  });
+
+  document.getElementById("btn-excluir-log").addEventListener("click", async () => {
+    const ok = await confirmarAcao({
+      titulo: "Excluir todo o log de atividade",
+      mensagem: "Isso apaga PERMANENTEMENTE todo o histórico de ações registradas (faltas, atrasos, advertências, avaliações, papéis, colaboradores). Esta ação não pode ser desfeita.",
+      textoConfirmar: "Excluir tudo",
+      perigo: true
+    });
+    if (!ok) return;
+    try {
+      const snap = await getDocs(collection(db, "logs"));
+      const docs = snap.docs;
+      for (let i = 0; i < docs.length; i += 450) {
+        const lote = writeBatch(db);
+        docs.slice(i, i + 450).forEach((d) => lote.delete(d.ref));
+        await lote.commit();
+      }
+      // Registrado DEPOIS de excluir — vira a primeira entrada do log novo, preservando quem/quando limpou.
+      await registrarLog("log_limpo", `Log de atividade excluído (${docs.length} registro(s) removido(s))`);
+      mostrarToast("Log de atividade excluído.", "sucesso");
+    } catch (erro) {
+      console.error("[Shinatal] Falha ao excluir o log:", erro);
+      mostrarToast("Não foi possível excluir o log.", "erro");
+    }
   });
 }
 

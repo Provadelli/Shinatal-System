@@ -172,12 +172,14 @@ service cloud.firestore {
     // advertências, avaliações, papel, criação/exclusão de colaborador — NÃO inclui histórico
     // de contratos, que já tem o seu próprio em contratosEmpresariais.historicoMovimentacoes,
     // nem a fila de solicitações, que já é seu próprio registro auditável). Só Admin/Presidente
-    // leem; imutável (sem update/delete) para preservar a trilha de auditoria.
+    // leem. Nunca é editável (falsificaria a trilha) — só Admin/Presidente podem excluir, para
+    // limpar o log quando quiserem (com confirmação na interface).
     // -------------------------------------------------------------
     match /logs/{id} {
       allow read: if emailVerificado() && ehAdminOuPresidente();
       allow create: if emailVerificado() && ehDpRhAdmin();
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if emailVerificado() && ehAdminOuPresidente();
     }
   }
 }

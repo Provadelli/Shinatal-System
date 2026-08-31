@@ -227,7 +227,12 @@
   <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
     <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
       <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">history</span> Log de atividade</h3>
-      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+      <div class="flex items-center gap-1">
+        <button id="btn-excluir-log" title="Excluir todo o log" aria-label="Excluir todo o log" class="text-christmas-red hover:opacity-70 transition-opacity p-1">
+          <span class="material-symbols-outlined">delete_sweep</span>
+        </button>
+        <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+      </div>
     </div>
     <div class="p-5 overflow-y-auto">
       <ul id="lista-log" class="space-y-1.5 font-body text-body-md text-on-surface-variant">Carregando...</ul>
