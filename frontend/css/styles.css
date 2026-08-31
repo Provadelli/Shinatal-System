@@ -239,58 +239,87 @@ h1, h2, h3, .font-display {
 .anim-entrada-5 { animation-delay: 0.49s; }
 
 /* ---------- Footer minimalista ---------- */
-/* Branco sólido, texto discreto e menor que o resto da UI — só o essencial (logo, contato,
-   copyright), sem competir com o conteúdo da página. Um único fio dourado no topo no lugar do
-   antigo filete arco-íris. As informações completas (colunas "Fale com a gente" + descrição)
-   ficam só na página inicial; as demais páginas usam a versão compacta (ver HTML). */
-.footer-shinatal {
+/* Fundo escuro (verde profundo → azul-noite), inspirado num estilo de agência: hierarquia
+   clara, bastante respiro, ícones discretos em vez de blocos coloridos — o oposto do resto da
+   UI (clara). Um único fio dourado no topo no lugar do antigo filete arco-íris. A versão
+   completa (.footer-shinatal-completo: colunas de navegação + contato) fica só na página
+   inicial; as demais páginas usam a versão compacta de uma linha só (.footer-shinatal), com a
+   mesma paleta escura para manter a identidade (ver HTML de cada página). */
+.footer-shinatal,
+.footer-shinatal-completo {
   position: relative;
   z-index: 10;
-  background: var(--shinatal-surface);
-  border-top: 1px solid var(--shinatal-borda);
-  color: var(--shinatal-ink-muted);
+  background: linear-gradient(160deg, var(--shinatal-verde-900) 0%, var(--shinatal-azul-900) 100%);
+  color: rgba(250, 246, 238, 0.6);
   font-size: 0.8rem;
   line-height: 1.4;
 }
-.footer-shinatal::before {
+.footer-shinatal::before,
+.footer-shinatal-completo::before {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: var(--shinatal-gold);
-  opacity: 0.6;
+  background: linear-gradient(90deg, transparent, var(--shinatal-gold) 50%, transparent);
+  opacity: 0.7;
 }
-.footer-shinatal .text-on-surface {
-  color: var(--shinatal-verde-escuro);
-  font-size: 0.85rem;
+.footer-shinatal .text-on-surface-variant,
+.footer-shinatal-completo .text-on-surface-variant {
+  color: rgba(250, 246, 238, 0.6);
 }
-.footer-shinatal .text-on-surface-variant {
-  color: var(--shinatal-ink-muted);
+/* Logo é um traço verde sólido sobre fundo transparente — vira branco para ler no fundo escuro. */
+.footer-logo-invertido {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
 }
 .footer-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  color: var(--shinatal-azul-escuro);
+  gap: 0.65rem;
+  color: rgba(250, 246, 238, 0.8);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 .footer-link:hover {
-  color: var(--shinatal-verde-escuro);
+  color: var(--shinatal-gold);
   transform: translateX(2px);
 }
-.footer-link .footer-icone {
+.footer-nav-link {
+  width: fit-content;
+  color: rgba(250, 246, 238, 0.65);
+  font-size: 0.85rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.footer-nav-link:hover {
+  color: var(--shinatal-gold);
+  transform: translateX(2px);
+}
+/* Círculo de ícone — usado tanto solto (footer reduzido) quanto dentro de .footer-link (footer
+   completo, onde o hover é disparado pelo link-pai). */
+.footer-icone {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.9rem;
+  height: 1.9rem;
   border-radius: 9999px;
-  background: var(--shinatal-bg);
-  border: 1px solid var(--shinatal-borda);
-  color: var(--shinatal-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(250, 246, 238, 0.85);
   flex-shrink: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+a.footer-icone:hover {
+  background: rgba(176, 141, 47, 0.18);
+  border-color: var(--shinatal-gold);
+  color: var(--shinatal-gold);
+  transform: translateY(-1px);
+}
+.footer-link:hover .footer-icone {
+  background: rgba(176, 141, 47, 0.18);
+  border-color: var(--shinatal-gold);
+  color: var(--shinatal-gold);
 }
 
 /* ---------- Formulários ---------- */
