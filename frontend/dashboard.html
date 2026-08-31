@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shinatal — Meu painel</title>
+<link rel="icon" href="assets/favicon-shinatal.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="gradient-natalino pagina-dashboard min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo pb-24 md:pb-0">
+
+<div id="bg-pao-acucar" aria-hidden="true"></div>
+
+<!-- ===== Nav superior (desktop) ===== -->
+<nav class="header-flutuante hidden md:flex">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
+    <a href="/dashboard" class="flex items-center gap-2.5 justify-self-start" aria-label="Painel do Shinatal">
+      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-8 w-auto" />
+    </a>
+    <div class="flex gap-6 items-center justify-self-center">
+      <button data-nav="home" class="nav-link nav-ativo font-body text-label-md py-1" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">Painel</button>
+      <button data-abrir-modal="modal-faltas" class="nav-link font-body text-label-md py-1">Faltas</button>
+      <button data-abrir-modal="modal-advertencias" class="nav-link font-body text-label-md py-1">Advertências</button>
+      <button data-abrir-modal="modal-regras" class="nav-link font-body text-label-md py-1">Regras do evento</button>
+      <button data-abrir-modal="modal-perfil" class="nav-link font-body text-label-md py-1">Perfil</button>
+    </div>
+    <div class="flex items-center gap-4 justify-self-end">
+      <button data-abrir-modal="modal-perfil" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <div id="avatar-desktop" class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-sm overflow-hidden">?</div>
+        <span id="nome-desktop" class="font-body text-label-md text-on-surface">Perfil</span>
+      </button>
+      <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
+        <span class="material-symbols-outlined">logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Header mobile ===== -->
+<header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
+  <a href="/dashboard" class="flex items-center gap-2" aria-label="Painel do Shinatal">
+    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-6 w-auto" />
+  </a>
+  <button data-abrir-modal="modal-perfil" id="avatar-mobile" class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-sm overflow-hidden">?</button>
+</header>
+
+<!-- ===== Conteúdo principal ===== -->
+<main id="topo" class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1">
+
+  <header class="mb-2 conteudo-sobre-fundo">
+    <p id="saudacao-data" class="font-body text-label-sm text-on-surface-variant uppercase tracking-wider mb-1"></p>
+    <h1 id="saudacao-nome" class="font-display text-headline-lg-mobile md:text-headline-lg text-on-surface">Bem-vindo(a)!</h1>
+    <p class="font-body text-body-md text-on-surface-variant mt-1">Acompanhe sua conduta e sua cota estimada para o Shinatal.</p>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+    <!-- Coluna principal -->
+    <div class="lg:col-span-8 flex flex-col gap-gutter">
+
+      <!-- Card centerpiece -->
+      <div id="card-cota" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] text-center">
+        <span class="material-symbols-outlined absolute top-5 right-5 text-festive-gold/60 text-3xl rotate-12">star</span>
+        <span class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5">Sua cota estimada hoje</span>
+        <div class="relative py-3 w-full flex items-center justify-center">
+          <h2 id="valor-cota" class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] skeleton w-48 h-12 relative px-2 whitespace-nowrap">&nbsp;</h2>
+        </div>
+        <div id="badge-status-cota" class="mt-6 flex items-center gap-2 bg-surface-glass px-4 py-2 rounded-full border border-outline-variant">
+          <span class="material-symbols-outlined text-secondary text-base">trending_up</span>
+          <span class="font-body text-label-sm text-secondary font-semibold">Calculando...</span>
+        </div>
+        <p class="font-body text-label-sm text-on-surface-variant mt-4 max-w-sm">
+          Este valor é recalculado automaticamente conforme novos contratos entram para o fundo Shinatal e conforme sua conduta ao longo do ano.
+        </p>
+      </div>
+
+      <!-- Card motivacional -->
+      <div id="card-motivacional" class="glass-panel rounded-xl p-6 flex flex-col sm:flex-row items-center gap-6 border-l-4 border-l-primary">
+        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-primary text-3xl">emoji_events</span>
+        </div>
+        <div>
+          <h3 id="motivacional-titulo" class="font-display text-headline-md text-on-surface mb-1">Continue assim!</h3>
+          <p id="motivacional-texto" class="font-body text-body-md text-on-surface-variant">
+            Zero faltas, zero atrasos e zero advertências até o fim do ano garantem +3% de bônus por excelência sobre sua cota (Seção 10 do regulamento).
+          </p>
+        </div>
+      </div>
+
+      <!-- Resumo das regras -->
+      <div class="glass-panel rounded-xl p-6">
+        <button class="w-full flex justify-between items-center" onclick="alternarAccordion('conteudo-regras-resumo','icone-regras-resumo')">
+          <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">gavel</span> Regras do Shinatal (resumo)
+          </h3>
+          <span id="icone-regras-resumo" class="material-symbols-outlined text-on-surface-variant transition-transform">expand_more</span>
+        </button>
+        <div id="conteudo-regras-resumo" class="hidden font-body text-body-md text-on-surface-variant space-y-3 pl-2 md:pl-8 border-l-2 border-outline-variant/30 mt-4">
+          <p><strong>Seção 7 — Faltas:</strong> cada falta injustificada desconta 1/30 da sua cota.</p>
+          <p><strong>Seção 8 — Atrasos:</strong> 6+ atrasos (≥20min) no mês geram 1 ponto; cada ponto = 1% de desconto (teto 12%).</p>
+          <p><strong>Seção 9 — Disciplina:</strong> advertências e suspensões reduzem sua cota; a 3ª suspensão zera o direito.</p>
+          <p><strong>Seção 10 — Bônus:</strong> conduta perfeita no ano garante +3% sobre a cota final.</p>
+          <button data-abrir-modal="modal-regras" class="inline-flex items-center gap-1 text-primary hover:underline font-body text-label-sm mt-1">
+            Ler regulamento completo <span class="material-symbols-outlined text-xs">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coluna lateral -->
+    <div class="lg:col-span-4 flex flex-col gap-gutter">
+      <div class="glass-card-active rounded-xl p-6 flex flex-col gap-4">
+        <h3 class="font-display text-headline-md text-on-surface border-b border-white/30 pb-3">Seu desempenho</h3>
+
+        <div class="bg-surface-glass rounded-lg p-4 border border-white/50 flex justify-between items-center">
+          <div>
+            <span class="font-body text-label-sm text-on-surface-variant block">Faltas injustificadas</span>
+            <span id="qtd-faltas" class="font-display text-headline-lg-mobile text-on-surface font-bold">—</span>
+          </div>
+          <div id="badge-faltas" class="px-3 py-1 rounded-full flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container">
+            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <span class="font-body text-label-sm">—</span>
+          </div>
+        </div>
+
+        <div class="bg-surface-glass rounded-lg p-4 border border-white/50 flex justify-between items-center">
+          <div>
+            <span class="font-body text-label-sm text-on-surface-variant block">Pontos de atraso</span>
+            <span id="qtd-atrasos" class="font-display text-headline-lg-mobile text-on-surface font-bold">—</span>
+          </div>
+          <div id="badge-atrasos" class="px-3 py-1 rounded-full flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container">
+            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <span class="font-body text-label-sm">—</span>
+          </div>
+        </div>
+
+        <div class="bg-surface-glass rounded-lg p-4 border border-white/50 flex justify-between items-center">
+          <div>
+            <span class="font-body text-label-sm text-on-surface-variant block">Medidas disciplinares</span>
+            <span id="qtd-disciplinar" class="font-display text-headline-lg-mobile text-on-surface font-bold">—</span>
+          </div>
+          <div id="badge-disciplinar" class="px-3 py-1 rounded-full flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container">
+            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <span class="font-body text-label-sm">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Valor do fundo -->
+      <div class="glass-panel rounded-xl p-6">
+        <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">savings</span> Valor do fundo
+        </h3>
+        <div class="bg-surface-glass rounded-lg p-4 border border-white/50 text-center">
+          <span id="valor-fundo-total" class="font-display text-headline-lg-mobile text-on-surface font-bold block">—</span>
+          <span class="font-body text-label-sm text-on-surface-variant">Saldo disponível do fundo Shinatal</span>
+        </div>
+      </div>
+
+      <!-- Status de contratos -->
+      <div class="glass-panel rounded-xl p-6">
+        <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">handshake</span> Status de contratos
+        </h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-surface-glass rounded-lg p-4 border border-white/50 text-center">
+            <span id="qtd-contratos-ativos" class="font-display text-headline-lg-mobile text-on-surface font-bold block">—</span>
+            <span class="font-body text-label-sm text-on-surface-variant">Ativos</span>
+          </div>
+          <div class="bg-surface-glass rounded-lg p-4 border border-white/50 text-center">
+            <span id="qtd-contratos-encerrados" class="font-display text-headline-lg-mobile text-on-surface font-bold block">—</span>
+            <span class="font-body text-label-sm text-on-surface-variant">Encerrados</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulador de impacto (autolimitado ao próprio colaborador) -->
+      <div class="glass-panel rounded-xl p-6">
+        <h3 class="font-display text-headline-md text-on-surface mb-1 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">insights</span> Simulador de impacto
+        </h3>
+        <p class="font-body text-label-sm text-on-surface-variant mb-4">Veja como faltas/atrasos extras afetariam a sua cota, sem gravar nada.</p>
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="label-shinatal">+ Faltas</label>
+              <input id="sim-faltas" type="number" min="0" value="0" class="input-shinatal !pl-3" />
+            </div>
+            <div>
+              <label class="label-shinatal">+ Pontos atraso</label>
+              <input id="sim-pontos" type="number" min="0" value="0" class="input-shinatal !pl-3" />
+            </div>
+          </div>
+          <div id="sim-resultado" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 hidden">
+            <div class="flex justify-between text-label-md mb-1"><span>Cota atual</span><span id="sim-atual" class="font-bold">—</span></div>
+            <div class="flex justify-between text-label-md text-christmas-red"><span>Cota simulada</span><span id="sim-simulada" class="font-bold">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Segurança / perfil resumido -->
+      <div class="glass-panel rounded-xl p-6">
+        <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">lock</span> Segurança
+        </h3>
+        <p class="font-body text-label-sm text-on-surface-variant mb-4">
+          Vamos enviar um link seguro para o seu e-mail institucional para você criar uma nova senha.
+        </p>
+        <button id="btn-trocar-senha" class="btn-fantasma w-full flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-lg">mail</span> Enviar link para trocar senha
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer-shinatal mt-4">
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
+    <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 items-center text-center sm:text-left">
+      <div class="flex items-center justify-center sm:justify-start gap-3">
+        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-9 w-auto shrink-0" />
+        <p class="font-body text-label-sm text-on-surface-variant">Shine Rio Serviços Ltda.</p>
+      </div>
+      <div class="flex justify-center sm:justify-start gap-3">
+        <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-link">
+          <span class="footer-icone"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
+          @shinerioservicos
+        </a>
+        <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-link">
+          <span class="footer-icone"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></span>
+          WhatsApp
+        </a>
+      </div>
+      <p class="font-body text-label-sm text-on-surface-variant sm:text-right">© 2026 Shine Rio Group · Feliz Natal 🎄</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== Dock inferior (mobile) ===== -->
+<nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-glass backdrop-blur-2xl border-t border-white/40 shadow-2xl rounded-t-xl">
+  <div class="flex justify-around items-center px-4 py-2 pb-safe">
+    <button data-nav="home" class="dock-item nav-ativo flex flex-col items-center px-3 py-1.5 rounded-xl" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">
+      <span class="material-symbols-outlined">home</span><span class="font-body text-label-sm mt-0.5">Painel</span>
+    </button>
+    <button data-abrir-modal="modal-faltas" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
+      <span class="material-symbols-outlined">event_busy</span><span class="font-body text-label-sm mt-0.5">Faltas</span>
+    </button>
+    <button data-abrir-modal="modal-advertencias" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
+      <span class="material-symbols-outlined">warning</span><span class="font-body text-label-sm mt-0.5">Advert.</span>
+    </button>
+    <button data-abrir-modal="modal-regras" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
+      <span class="material-symbols-outlined">gavel</span><span class="font-body text-label-sm mt-0.5">Regras</span>
+    </button>
+    <button data-abrir-modal="modal-perfil" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
+      <span class="material-symbols-outlined">person</span><span class="font-body text-label-sm mt-0.5">Perfil</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ===== Modal: Faltas ===== -->
+<div id="modal-faltas" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">event_busy</span> Minhas faltas</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div id="lista-faltas" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
+  </div>
+</div>
+
+<!-- ===== Modal: Advertências ===== -->
+<div id="modal-advertencias" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">warning</span> Minhas advertências</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div id="lista-advertencias" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
+  </div>
+</div>
+
+<!-- ===== Modal: Perfil ===== -->
+<div id="modal-perfil" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
+      <h3 class="font-display text-headline-md text-on-surface">Meu perfil</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="p-5 overflow-y-auto">
+      <div class="flex flex-col items-center gap-2 text-center mb-5">
+        <div id="avatar-perfil" class="w-20 h-20 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-2xl overflow-hidden">?</div>
+        <h4 id="perfil-nome" class="font-display text-headline-md text-on-surface">—</h4>
+        <p id="perfil-cargo" class="font-body text-label-sm text-on-surface-variant uppercase tracking-wide">—</p>
+        <p id="perfil-email" class="font-body text-body-md text-on-surface-variant">—</p>
+        <p id="perfil-admissao" class="font-body text-label-sm text-on-surface-variant">—</p>
+      </div>
+      <div id="perfil-detalhado"></div>
+      <button id="btn-sair-modal" class="btn-fantasma w-full mt-5 flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-lg">logout</span> Sair da conta
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Regras completas ===== -->
+<div id="modal-regras" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">gavel</span> Regulamento Interno — Shinatal</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="p-5 overflow-y-auto font-body text-body-md text-on-surface-variant space-y-4 text-sm leading-relaxed">
+      <p><strong class="text-on-surface">1. Objetivo.</strong> Prêmio anual por desempenho, comprometimento, disciplina e assiduidade, de natureza exclusivamente premial e liberal, sem incorporação ao contrato de trabalho.</p>
+      <p><strong class="text-on-surface">2. Fundo Shinatal.</strong> R$ 150,00 por colaborador ativado em contrato, creditados na ativação. Encerramento do contrato antes de 12 meses gera estorno proporcional: (150/12) × meses faltantes. Saldo zera após o pagamento anual; estornos continuam sendo contabilizados mesmo após a virada.</p>
+      <p><strong class="text-on-surface">3. Elegíveis.</strong> Operacionais, administrativos, gestores, estagiários, jovens aprendizes e demais colaboradores orgânicos ativos na data do pagamento.</p>
+      <p><strong class="text-on-surface">4. Proporcionalidade.</strong> Admissão até dia 15 = mês cheio; a partir do dia 16 = mês seguinte. Jornada: 8h=100%, 6h=75%, 4h=50%.</p>
+      <p><strong class="text-on-surface">5. Perda integral.</strong> Pedido de demissão ou demissão antes do pagamento, aviso prévio na data do pagamento, abandono de emprego, ou fraude/ato doloso.</p>
+      <p><strong class="text-on-surface">6. Distribuição.</strong> Valor líquido do fundo dividido pelos elegíveis, proporcional a avos e carga horária, com os redutores aplicados.</p>
+      <p><strong class="text-on-surface">7. Faltas injustificadas.</strong> Desconto = cota ÷ 30 × nº de faltas. Não contam férias, licença paternidade (até 5 dias), atestados e ausências legais da CLT, desde que não ultrapassem 15 dias/ano no total.</p>
+      <p><strong class="text-on-surface">8. Pontualidade.</strong> Até 5 atrasos/mês sem impacto. A partir de 6 atrasos (≥20min) no mês = 1 ponto. Cada ponto = 1% de desconto, teto de 12%.</p>
+      <p><strong class="text-on-surface">9. Disciplina.</strong> Advertência verbal formalizada 5%, escrita 10%, 1ª suspensão 25%, 2ª suspensão 50%, 3ª suspensão = perda integral.</p>
+      <p><strong class="text-on-surface">10. Bônus por excelência.</strong> +3% sobre a cota final para quem fechar o ano com zero faltas, zero pontos de atraso, zero advertências e zero suspensões.</p>
+      <p><strong class="text-on-surface">11. Avaliação de desempenho.</strong> Excelente +2%, Bom 0%, Regular −5%, Insatisfatório −15%, mediante avaliação do gestor validada pelo RH.</p>
+      <p><strong class="text-on-surface">12. Admitidos durante o ano.</strong> Seguem a proporcionalidade da Seção 4; não há tempo mínimo de empresa exigido.</p>
+      <p><strong class="text-on-surface">13. Pagamento.</strong> Parcela única, preferencialmente em dezembro, por folha, transferência ou outro meio definido pela diretoria.</p>
+      <p><strong class="text-on-surface">14. Natureza.</strong> Prêmio sem natureza salarial; não substitui salário, PLR, comissão ou benefício legal/convencional; não gera direito adquirido.</p>
+      <p><strong class="text-on-surface">15. Comissão de apuração.</strong> Diretoria Executiva, Financeiro e RH validam créditos/estornos, calculam cotas, aplicam redutores e homologam os valores finais.</p>
+      <p><strong class="text-on-surface">16. Acumulação.</strong> Redutores acumulam em no máximo dois índices (um maior + um menor) sobre a cota individual. Os adicionais (bônus de excelência + avaliação positiva) podem acumular entre si.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

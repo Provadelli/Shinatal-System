@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shinatal — Painel de gestão</title>
+<link rel="icon" href="assets/favicon-shinatal.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+
+<div id="bg-pao-acucar" aria-hidden="true"></div>
+
+<!-- ===== Nav superior (desktop) ===== -->
+<nav class="header-flutuante hidden md:flex">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
+    <a href="/gestao" class="flex items-center gap-2 justify-self-start" aria-label="Painel de Gestão do Shinatal">
+      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-8 w-auto" />
+      <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal">· Gestão</span>
+    </a>
+    <div class="flex gap-6 items-center justify-self-center">
+      <a href="/gestao" data-nav="gestao" class="nav-link nav-ativo font-body text-label-md py-1">Painel</a>
+      <a id="nav-contratos-desktop" href="/contratos" data-nav="contratos" class="nav-link font-body text-label-md py-1">Contratos</a>
+      <button id="nav-perfil-desktop" class="nav-link font-body text-label-md py-1">Perfil</button>
+      <button id="nav-log-desktop" data-abrir-modal="modal-log" class="hidden nav-link font-body text-label-md py-1">Atividade</button>
+      <button id="nav-solicitacoes-desktop" data-abrir-modal="modal-solicitacoes" class="hidden nav-link font-body text-label-md py-1 relative">
+        Solicitações
+        <span id="badge-solicitacoes-desktop" class="hidden absolute -top-2 -right-3 min-w-[1.3em] h-[1.3em] px-1 rounded-full bg-christmas-red text-white text-[10px] font-bold flex items-center justify-center">0</span>
+      </button>
+    </div>
+    <div class="flex items-center gap-4 justify-self-end">
+      <span id="badge-role" class="hidden md:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold">
+        <span class="material-symbols-outlined text-base">shield_person</span> —
+      </span>
+      <span id="nome-desktop" class="font-body text-label-md text-on-surface">—</span>
+      <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
+        <span class="material-symbols-outlined">logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
+  <a href="/gestao" class="flex items-center gap-2" aria-label="Painel de Gestão do Shinatal">
+    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-6 w-auto" />
+    <span class="font-body not-italic text-on-surface-variant font-normal text-sm">· Gestão</span>
+  </a>
+  <div class="flex items-center gap-4">
+    <a id="nav-contratos-mobile" href="/contratos" title="Contratos Empresariais" class="text-on-surface-variant hover:text-primary transition-colors">
+      <span class="material-symbols-outlined">apartment</span>
+    </a>
+    <button id="nav-perfil-mobile" title="Perfil" class="text-on-surface-variant hover:text-primary transition-colors">
+      <span class="material-symbols-outlined">person</span>
+    </button>
+    <button id="nav-log-mobile" data-abrir-modal="modal-log" title="Atividade" class="hidden text-on-surface-variant hover:text-primary transition-colors">
+      <span class="material-symbols-outlined">history</span>
+    </button>
+    <button id="nav-solicitacoes-mobile" data-abrir-modal="modal-solicitacoes" title="Solicitações" class="hidden text-on-surface-variant hover:text-primary transition-colors relative">
+      <span class="material-symbols-outlined">inbox</span>
+      <span id="badge-solicitacoes-mobile" class="hidden absolute -top-1 -right-1 min-w-[1.1em] h-[1.1em] px-1 rounded-full bg-christmas-red text-white text-[9px] font-bold flex items-center justify-center">0</span>
+    </button>
+    <button id="btn-sair-mobile" class="text-on-surface-variant"><span class="material-symbols-outlined">logout</span></button>
+  </div>
+</header>
+
+<main class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 relative z-10 flex-1">
+
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div class="conteudo-sobre-fundo">
+      <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-primary">Painel de Gestão</h1>
+      <p class="font-body text-body-md text-on-surface-variant mt-1">Contratos, faltas, advertências e a cota do Shinatal em tempo real.</p>
+    </div>
+    <button id="btn-novo-colaborador" data-abrir-modal="modal-novo-colaborador" class="hidden btn-primario items-center gap-2 whitespace-nowrap">
+      <span class="material-symbols-outlined text-lg">person_add</span> Novo colaborador
+    </button>
+  </header>
+
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-gutter">
+    <!-- Fundo total -->
+    <div class="glass-card-active glow-gold col-span-1 md:col-span-4 rounded-xl p-7 relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+      <span class="material-symbols-outlined absolute top-3 right-3 text-6xl text-festive-gold opacity-20">redeem</span>
+      <div>
+        <h2 class="font-display text-headline-md text-on-surface mb-1">Fundo do Shinatal</h2>
+        <p class="font-body text-label-sm text-on-surface-variant mb-4">Contratos ativos · R$150/cabeça</p>
+      </div>
+      <div class="relative">
+        <div id="fundo-saldo" class="font-display text-gradiente-valor font-extrabold text-3xl md:text-4xl skeleton w-40 h-9 relative whitespace-nowrap">&nbsp;</div>
+        <p id="fundo-detalhe" class="font-body text-label-sm text-on-surface-variant mt-2 relative">—</p>
+      </div>
+    </div>
+
+    <!-- Ações rápidas -->
+    <div class="glass-panel col-span-1 md:col-span-8 rounded-xl p-6">
+      <h2 class="font-display text-headline-md text-on-surface mb-4">Ações rápidas</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <button data-nova-acao="falta" data-roles="dp,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-primary-container hover:text-on-primary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-primary">
+          <span class="material-symbols-outlined text-2xl">event_busy</span><span class="font-body text-label-sm text-center">Lançar falta</span>
+        </button>
+        <button data-nova-acao="atraso" data-roles="dp,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-primary-container hover:text-on-primary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-primary">
+          <span class="material-symbols-outlined text-2xl">schedule</span><span class="font-body text-label-sm text-center">Lançar atraso</span>
+        </button>
+        <button data-nova-acao="advertencia" data-roles="dp,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-error-container hover:text-on-error-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-error">
+          <span class="material-symbols-outlined text-2xl">warning</span><span class="font-body text-label-sm text-center">Advertência</span>
+        </button>
+        <button data-nova-acao="avaliacao" data-roles="dp,rh,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-secondary-container hover:text-on-secondary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-secondary">
+          <span class="material-symbols-outlined text-2xl">rate_review</span><span class="font-body text-label-sm text-center">Avaliação</span>
+        </button>
+        <button data-nova-acao="ativar_contrato" data-roles="rh,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-primary-container hover:text-on-primary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-primary">
+          <span class="material-symbols-outlined text-2xl">contract</span><span class="font-body text-label-sm text-center">Ativar contrato</span>
+        </button>
+        <button data-nova-acao="encerrar_contrato" data-roles="rh,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-error-container hover:text-on-error-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-error">
+          <span class="material-symbols-outlined text-2xl">contract_delete</span><span class="font-body text-label-sm text-center">Encerrar contrato</span>
+        </button>
+        <button data-nova-acao="role" data-roles="admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-tertiary">
+          <span class="material-symbols-outlined text-2xl">admin_panel_settings</span><span class="font-body text-label-sm text-center">Alterar papel</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diretório -->
+  <div class="glass-panel rounded-xl p-6 mb-gutter">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-3">
+      <h2 class="font-display text-headline-md text-on-surface">Diretório de colaboradores</h2>
+      <div class="relative w-full md:w-72">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl">search</span>
+        <input id="busca-diretorio" class="input-shinatal !pl-10" type="text" placeholder="Buscar por nome ou cargo..." />
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse min-w-[640px]">
+        <thead>
+          <tr class="border-b border-outline-variant">
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant">Colaborador</th>
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant">Cargo</th>
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant text-center">Faltas</th>
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant text-center">Advertências</th>
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant text-center">Participação no fundo</th>
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant">Cota estimada</th>
+            <th class="py-3 px-3 font-body text-label-md text-on-surface-variant text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpo-diretorio">
+          <tr><td colspan="7" class="py-8 text-center font-body text-on-surface-variant">Carregando colaboradores...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+    <!-- Simulador -->
+    <div class="glass-panel rounded-xl p-6">
+      <h2 class="font-display text-headline-md text-on-surface mb-1">Simulador de impacto</h2>
+      <p class="font-body text-label-sm text-on-surface-variant mb-4">Veja como faltas/atrasos extras afetariam a cota de um colaborador, sem gravar nada.</p>
+      <div class="space-y-3">
+        <select id="sim-colaborador" class="input-shinatal !pl-3"><option value="">Selecione um colaborador...</option></select>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label-shinatal">+ Faltas</label>
+            <input id="sim-faltas" type="number" min="0" value="0" class="input-shinatal !pl-3" />
+          </div>
+          <div>
+            <label class="label-shinatal">+ Pontos atraso</label>
+            <input id="sim-pontos" type="number" min="0" value="0" class="input-shinatal !pl-3" />
+          </div>
+        </div>
+        <div id="sim-resultado" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 hidden">
+          <div class="flex justify-between text-label-md mb-1"><span>Cota atual</span><span id="sim-atual" class="font-bold">—</span></div>
+          <div class="flex justify-between text-label-md text-christmas-red"><span>Cota simulada</span><span id="sim-simulada" class="font-bold">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contratos -->
+    <div class="glass-panel rounded-xl p-6">
+      <h2 class="font-display text-headline-md text-on-surface mb-4">Status de contratos</h2>
+      <div id="resumo-contratos" class="space-y-3">
+        <div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
+          <span class="font-body text-label-md">Carregando...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer-shinatal mt-4">
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
+    <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 items-center text-center sm:text-left">
+      <div class="flex items-center justify-center sm:justify-start gap-3">
+        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-9 w-auto shrink-0" />
+        <p class="font-body text-label-sm text-on-surface-variant">Shine Rio Serviços Ltda.</p>
+      </div>
+      <div class="flex justify-center sm:justify-start gap-3">
+        <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-link">
+          <span class="footer-icone"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
+          @shinerioservicos
+        </a>
+        <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-link">
+          <span class="footer-icone"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></span>
+          WhatsApp
+        </a>
+      </div>
+      <p class="font-body text-label-sm text-on-surface-variant sm:text-right">© 2026 Shine Rio Group · Feliz Natal 🎄</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== Modal: Perfil ===== -->
+<div id="modal-perfil" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
+      <h3 id="perfil-modal-titulo" class="font-display text-headline-md text-on-surface">Perfil</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="p-5 overflow-y-auto">
+      <div id="perfil-detalhado">Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Log de atividade (só Admin) ===== -->
+<div id="modal-log" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
+      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">history</span> Log de atividade</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="p-5 overflow-y-auto">
+      <ul id="lista-log" class="space-y-1.5 font-body text-body-md text-on-surface-variant">Carregando...</ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Solicitações (só Presidente) ===== -->
+<div id="modal-solicitacoes" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
+      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">inbox</span> Solicitações pendentes</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="p-5 overflow-y-auto">
+      <ul id="lista-solicitacoes" class="space-y-3 font-body text-body-md text-on-surface-variant">Carregando...</ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Novo colaborador ===== -->
+<div id="modal-novo-colaborador" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-md overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 class="font-display text-headline-md text-on-surface">Novo colaborador</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="form-novo-colaborador" class="p-5 space-y-4" novalidate>
+      <div>
+        <label class="label-shinatal">Nome completo</label>
+        <input id="nc-nome" required class="input-shinatal !pl-3" type="text" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label-shinatal">Cargo</label>
+          <input id="nc-cargo" required class="input-shinatal !pl-3" type="text" />
+        </div>
+        <div>
+          <label class="label-shinatal">Jornada</label>
+          <select id="nc-carga" required class="input-shinatal !pl-3">
+            <option value="8">8h/dia</option><option value="6">6h/dia</option><option value="4">4h/dia</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label-shinatal">E-mail institucional</label>
+        <input id="nc-email" required class="input-shinatal !pl-3" type="email" placeholder="nome@shinerio.com" />
+      </div>
+      <div>
+        <label class="label-shinatal">Data de admissão</label>
+        <input id="nc-admissao" required class="input-shinatal !pl-3" type="date" />
+      </div>
+      <p class="font-body text-label-sm text-on-surface-variant bg-surface-container rounded-lg px-3 py-2">
+        Enviamos um e-mail de confirmação para o colaborador. Ele(a) deve clicar no link e depois usar "Esqueci minha senha" na tela de login para definir o próprio acesso — não existe senha padrão compartilhada.
+      </p>
+      <button type="submit" class="btn-primario w-full">Criar colaborador</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Modal: Editar colaborador ===== -->
+<div id="modal-editar-colaborador" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-md overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 class="font-display text-headline-md text-on-surface">Editar colaborador</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="form-editar-colaborador" class="p-5 space-y-4" novalidate>
+      <input type="hidden" id="ec-uid" />
+      <div>
+        <label class="label-shinatal">Nome completo</label>
+        <input id="ec-nome" required class="input-shinatal !pl-3" type="text" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label-shinatal">Cargo</label>
+          <input id="ec-cargo" required class="input-shinatal !pl-3" type="text" />
+        </div>
+        <div>
+          <label class="label-shinatal">Jornada</label>
+          <select id="ec-carga" required class="input-shinatal !pl-3">
+            <option value="8">8h/dia (100% da cota)</option><option value="6">6h/dia (75% da cota)</option><option value="4">4h/dia (50% da cota)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label-shinatal">Data de admissão</label>
+        <input id="ec-admissao" required class="input-shinatal !pl-3" type="date" />
+      </div>
+      <p class="font-body text-label-sm text-on-surface-variant bg-surface-container rounded-lg px-3 py-2">
+        O e-mail institucional não pode ser alterado por aqui, pois é a identidade de login do colaborador.
+      </p>
+      <button type="submit" class="btn-primario w-full">Salvar alterações</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Modal genérico: Nova ação ===== -->
+<div id="modal-nova-acao" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 id="acao-titulo" class="font-display text-headline-md text-on-surface">Nova ação</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="form-nova-acao" class="p-5 space-y-4 overflow-y-auto" novalidate>
+      <div>
+        <label class="label-shinatal">Tipo de ação</label>
+        <select id="acao-tipo" required class="input-shinatal !pl-3">
+          <option value="falta" data-roles="dp,admin,presidente">Lançar falta</option>
+          <option value="atraso" data-roles="dp,admin,presidente">Lançar atraso</option>
+          <option value="advertencia" data-roles="dp,admin,presidente">Advertência</option>
+          <option value="avaliacao" data-roles="dp,rh,admin,presidente">Avaliação de desempenho</option>
+          <option value="ativar_contrato" data-roles="rh,admin,presidente">Ativar contrato</option>
+          <option value="encerrar_contrato" data-roles="rh,admin,presidente">Encerrar contrato</option>
+          <option value="role" data-roles="admin,presidente">Alterar papel (role)</option>
+        </select>
+      </div>
+      <div>
+        <label class="label-shinatal">Colaborador</label>
+        <select id="acao-uid" required class="input-shinatal !pl-3"><option value="">Selecione...</option></select>
+      </div>
+
+      <div data-campo="data-generica">
+        <label class="label-shinatal">Data</label>
+        <input id="acao-data" class="input-shinatal !pl-3" type="date" />
+      </div>
+
+      <div data-campo="justificada" class="hidden">
+        <label class="label-shinatal flex items-center gap-2 !normal-case">
+          <input id="acao-justificada" type="checkbox" class="w-4 h-4" /> Falta justificada
+        </label>
+      </div>
+      <div data-campo="tipo-justificativa" class="hidden">
+        <label class="label-shinatal">Tipo de justificativa</label>
+        <select id="acao-tipo-justificativa" class="input-shinatal !pl-3">
+          <option value="">—</option>
+          <option value="ferias">Férias</option>
+          <option value="licencaPaternidade">Licença paternidade</option>
+          <option value="atestado">Atestado médico</option>
+          <option value="clt">Ausência legal (CLT)</option>
+        </select>
+      </div>
+      <div data-campo="motivo" class="hidden">
+        <label class="label-shinatal">Motivo</label>
+        <textarea id="acao-motivo" class="input-shinatal !pl-3" rows="2"></textarea>
+      </div>
+      <div data-campo="atraso-horarios" class="hidden grid grid-cols-2 gap-3">
+        <div>
+          <label class="label-shinatal">Entrada normal da empresa</label>
+          <input id="acao-horario-entrada" class="input-shinatal !pl-3" type="time" />
+        </div>
+        <div>
+          <label class="label-shinatal">Horário que chegou</label>
+          <input id="acao-horario-atraso" class="input-shinatal !pl-3" type="time" />
+        </div>
+      </div>
+      <div data-campo="tipo-advertencia" class="hidden">
+        <label class="label-shinatal">Tipo</label>
+        <select id="acao-tipo-advertencia" class="input-shinatal !pl-3">
+          <option value="verbal">Advertência verbal (5%)</option>
+          <option value="escrita">Advertência escrita (10%)</option>
+          <option value="suspensao1">1ª suspensão (25%)</option>
+          <option value="suspensao2">2ª suspensão (50%)</option>
+          <option value="suspensao3">3ª suspensão (perda integral)</option>
+        </select>
+      </div>
+      <div data-campo="avaliacao" class="hidden grid grid-cols-2 gap-3">
+        <div>
+          <label class="label-shinatal">Data</label>
+          <input id="acao-avaliacao-data" class="input-shinatal !pl-3" type="date" />
+        </div>
+        <div>
+          <label class="label-shinatal">Conceito</label>
+          <select id="acao-conceito" class="input-shinatal !pl-3">
+            <option value="excelente">Excelente (+2%)</option>
+            <option value="bom">Bom (0%)</option>
+            <option value="regular">Regular (−5%)</option>
+            <option value="insatisfatorio">Insatisfatório (−15%)</option>
+          </select>
+        </div>
+      </div>
+      <div data-campo="role" class="hidden">
+        <label class="label-shinatal">Novo papel</label>
+        <select id="acao-role" class="input-shinatal !pl-3">
+          <option value="colaborador">Colaborador</option>
+          <option value="dp">DP</option>
+          <option value="rh">RH</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div data-campo="contrato-ativo" class="hidden">
+        <label class="label-shinatal">Contrato ativo</label>
+        <select id="acao-contrato" class="input-shinatal !pl-3"><option value="">—</option></select>
+      </div>
+
+      <div id="acao-lancamentos-existentes" class="hidden border-t border-outline-variant/30 pt-3">
+        <p class="label-shinatal mb-2">Lançamentos existentes deste colaborador</p>
+        <div id="lista-lancamentos-existentes" class="space-y-2 max-h-40 overflow-y-auto"></div>
+      </div>
+
+      <button type="submit" class="btn-primario w-full">Salvar</button>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="js/gestao.js"></script>
+</body>
+</html>

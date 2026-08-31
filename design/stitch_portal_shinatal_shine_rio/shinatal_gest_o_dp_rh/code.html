@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shinatal Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#2e1500",
+                        "surface-glass": "rgba(255, 255, 255, 0.7)",
+                        "surface-container-low": "#eff5f6",
+                        "on-primary-fixed-variant": "#004e59",
+                        "error": "#ba1a1a",
+                        "on-tertiary": "#ffffff",
+                        "festive-gold": "#FBC02D",
+                        "on-primary-fixed": "#001f25",
+                        "surface-container": "#e9eff0",
+                        "surface-container-highest": "#dde3e5",
+                        "inverse-surface": "#2b3133",
+                        "tertiary-fixed-dim": "#ffb77b",
+                        "on-background": "#161d1e",
+                        "tertiary-container": "#f19640",
+                        "tertiary": "#8f4e00",
+                        "on-secondary-fixed-variant": "#005313",
+                        "surface-tint": "#006876",
+                        "on-tertiary-fixed-variant": "#6d3a00",
+                        "on-secondary-fixed": "#002204",
+                        "rio-deep-blue": "#1E61B7",
+                        "on-surface": "#161d1e",
+                        "surface-container-high": "#e3e9eb",
+                        "primary-container": "#00bcd4",
+                        "on-surface-variant": "#3c494c",
+                        "primary": "#006876",
+                        "tertiary-fixed": "#ffdcc2",
+                        "surface-variant": "#dde3e5",
+                        "background": "#f4fafc",
+                        "on-secondary-container": "#00731e",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#633400",
+                        "surface": "#f4fafc",
+                        "outline": "#6c797c",
+                        "secondary-fixed-dim": "#78dc77",
+                        "secondary-fixed": "#94f990",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006e1c",
+                        "secondary-container": "#91f78e",
+                        "primary-fixed": "#a1efff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#004650",
+                        "surface-dim": "#d5dbdd",
+                        "primary-fixed-dim": "#44d8f1",
+                        "outline-variant": "#bbc9cc",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f4fafc",
+                        "error-container": "#ffdad6",
+                        "christmas-red": "#C62828",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#ecf2f3",
+                        "inverse-primary": "#44d8f1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "48px",
+                        "gutter": "24px",
+                        "base": "8px",
+                        "container-max": "1200px"
+                    },
+                    "fontFamily": {
+                        "headline-xl": ["Montserrat"],
+                        "headline-lg": ["Montserrat"],
+                        "headline-md": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Montserrat"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-xl": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        .bg-rio-pattern {
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><path d="M0 50 Q 25 25, 50 50 T 100 50" fill="none" stroke="rgba(0, 188, 212, 0.1)" stroke-width="2"/></svg>');
+            background-size: 100px 100px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col relative overflow-x-hidden bg-rio-pattern">
+<!-- TopNavBar (Web) -->
+<nav class="hidden md:flex w-full px-margin-desktop py-4 max-w-container-max mx-auto bg-surface-glass dark:bg-surface-glass/20 docked full-width top-0 sticky backdrop-blur-xl border-b border-white/20 dark:border-white/10 shadow-sm z-50 justify-between items-center">
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed tracking-tight">
+            Shinatal
+        </div>
+<div class="flex gap-6 font-label-md text-label-md">
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Rewards</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Performance</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Rules</a>
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary pb-1 Active: scale-95 opacity-80 transition-all" href="#">Admin</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-primary dark:text-primary-fixed font-label-md text-label-md">Profile</button>
+<button class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md">Notifications</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">settings</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">help</span>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 relative z-10">
+<!-- Header Section -->
+<header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+<div>
+<h1 class="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-primary mb-2">Management Dashboard</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage Shinatal event metrics, personnel, and contracts.</p>
+</div>
+<div class="inline-flex items-center gap-2 bg-primary-container text-on-primary-container px-4 py-2 rounded-full font-label-md text-label-md">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shield_person</span>
+<span>Acesso: Recursos Humanos</span>
+</div>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-8">
+<!-- Total Fund Monitor -->
+<div class="glass-card col-span-1 md:col-span-4 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between">
+<div class="absolute top-0 right-0 p-4 opacity-20">
+<span class="material-symbols-outlined text-6xl text-festive-gold">redeem</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1">Total Event Fund</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-6">Active Contracts (R$ 150/head)</p>
+</div>
+<div>
+<div class="font-headline-xl text-headline-xl text-festive-gold">R$ 145,500</div>
+<div class="flex items-center gap-2 mt-2 font-label-sm text-label-sm text-secondary">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+R$ 1,500 this week</span>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="glass-card col-span-1 md:col-span-8 rounded-xl p-6">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4">Quick Actions</h2>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<button class="bg-surface-container-highest hover:bg-primary-container text-on-surface hover:text-on-primary-container transition-colors p-4 rounded-lg flex flex-col items-center justify-center gap-2 border border-outline-variant hover:border-primary">
+<span class="material-symbols-outlined text-3xl">person_add</span>
+<span class="font-label-md text-label-md">Add Employee</span>
+</button>
+<button class="bg-surface-container-highest hover:bg-error-container text-on-surface hover:text-on-error-container transition-colors p-4 rounded-lg flex flex-col items-center justify-center gap-2 border border-outline-variant hover:border-error">
+<span class="material-symbols-outlined text-3xl">warning</span>
+<span class="font-label-md text-label-md">Register Absence/Warning</span>
+</button>
+<button class="bg-surface-container-highest hover:bg-secondary-container text-on-surface hover:text-on-secondary-container transition-colors p-4 rounded-lg flex flex-col items-center justify-center gap-2 border border-outline-variant hover:border-secondary">
+<span class="material-symbols-outlined text-3xl">contract</span>
+<span class="font-label-md text-label-md">Manage Contracts</span>
+</button>
+</div>
+</div>
+<!-- Employee Directory -->
+<div class="glass-card col-span-1 md:col-span-12 rounded-xl p-6">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+<h2 class="font-headline-md text-headline-md text-on-surface">Employee Directory</h2>
+<div class="relative w-full md:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" placeholder="Search employees..." type="text"/>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant">
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant font-semibold">Name</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant font-semibold">Department</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant font-semibold">Status</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant font-semibold">Cota Est.</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant font-semibold text-right">Actions</th>
+</tr>
+</thead>
+<tbody>
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">AS</div>
+<span class="font-body-md text-body-md font-medium text-on-surface">Ana Silva</span>
+</div>
+</td>
+<td class="py-4 px-4 font-body-md text-body-md text-on-surface-variant">Operations</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1 bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span> Active
+                                    </span>
+</td>
+<td class="py-4 px-4 font-body-md text-body-md text-on-surface">100%</td>
+<td class="py-4 px-4 text-right">
+<button class="text-primary hover:text-primary-fixed-dim transition-colors p-1" title="Edit Performance"><span class="material-symbols-outlined">edit</span></button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="py-4 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-bold">JP</div>
+<span class="font-body-md text-body-md font-medium text-on-surface">João Pedro</span>
+</div>
+</td>
+<td class="py-4 px-4 font-body-md text-body-md text-on-surface-variant">Sales</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1 bg-error-container text-on-error-container px-2 py-1 rounded-full font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">warning</span> 1 Warning
+                                    </span>
+</td>
+<td class="py-4 px-4 font-body-md text-body-md text-error">-15%</td>
+<td class="py-4 px-4 text-right">
+<button class="text-primary hover:text-primary-fixed-dim transition-colors p-1" title="Edit Performance"><span class="material-symbols-outlined">edit</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Dynamic Calculation Simulator -->
+<div class="glass-card col-span-1 md:col-span-6 rounded-xl p-6">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4">Cota Impact Simulator</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Preview how an infraction affects an employee's final bonus cota.</p>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 mb-4">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-md text-label-md text-on-surface">Base Cota</span>
+<span class="font-body-md text-body-md font-bold text-on-surface">100%</span>
+</div>
+<div class="flex justify-between items-center mb-2 text-error">
+<span class="font-label-md text-label-md">- 1 Unjustified Absence</span>
+<span class="font-body-md text-body-md font-bold">- 20%</span>
+</div>
+<div class="border-t border-outline-variant pt-2 mt-2 flex justify-between items-center">
+<span class="font-label-md text-label-md text-on-surface font-bold">Projected Final Cota</span>
+<span class="font-headline-md text-headline-md text-primary">80%</span>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">Apply Penalty</button>
+</div>
+<!-- Contract Management Summary -->
+<div class="glass-card col-span-1 md:col-span-6 rounded-xl p-6">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4">Contract Status</h2>
+<div class="space-y-4">
+<div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
+<div>
+<div class="font-label-md text-label-md font-bold text-on-surface">Active Contracts</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Currently contributing to fund</div>
+</div>
+<div class="font-headline-md text-headline-md text-primary">970</div>
+</div>
+<div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
+<div>
+<div class="font-label-md text-label-md font-bold text-on-surface">Canceled Contracts</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Pending proportional estorno (Item 2.2)</div>
+</div>
+<div class="font-headline-md text-headline-md text-error">30</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden docked full-width bottom-0 fixed backdrop-blur-2xl rounded-t-xl bg-surface-glass dark:bg-surface-glass/30 border-t border-white/30 shadow-2xl z-50 fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest transition-all p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest transition-all p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined">redeem</span>
+<span class="font-label-sm text-label-sm">Gifts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest transition-all p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-sm text-label-sm">Status</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container/40 dark:bg-primary-container text-on-primary-container rounded-xl px-3 py-1 Active: scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shield_person</span>
+<span class="font-label-sm text-label-sm font-bold">Admin</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="w-full py-12 px-margin-mobile md:px-margin-desktop flex flex-col items-center gap-6 text-center bg-surface-container dark:bg-inverse-surface mt-auto border-t border-outline-variant">
+<div class="font-headline-md text-headline-md text-primary dark:text-primary-fixed">Shinatal</div>
+<div class="flex gap-4 font-label-sm text-label-sm">
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Terms of Service</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Contact HR</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Sustainability</a>
+</div>
+<div class="font-body-md text-body-md text-on-surface dark:text-inverse-on-surface">© 2024 Shine Rio Group. Merry Christmas and Happy New Year!</div>
+</footer>
+</body></html>

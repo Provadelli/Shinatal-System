@@ -1,0 +1,183 @@
+rules_version = '2';
+
+// Shinatal — Firestore Security Rules
+// Estas regras são a verdadeira camada de segurança do sistema: o cliente (navegador)
+// nunca decide sozinho o que pode ler/escrever, o Firestore recusa qualquer operação que
+// fuja destas regras, mesmo que alguém manipule o JavaScript da página ou a aba Network.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaLogado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function papel() {
+      return estaLogado() ? perfil().role : null;
+    }
+
+    // Presidente: acima do Admin — única conta que grava contratos/avaliações direto, sem
+    // passar pela fila de solicitações (ver `solicitacoes/{id}` abaixo).
+    function ehPresidente() { return papel() == 'presidente'; }
+    function ehAdminOuPresidente() { return papel() in ['admin', 'presidente']; }
+    // "Equipe" ampla (qualquer papel de gestão) — usada em leituras compartilhadas (diretório,
+    // agregados) que não implicam poder de escrita.
+    function ehDpRhAdmin() { return papel() in ['dp', 'rh', 'admin', 'presidente']; }
+    // Dono de faltas/atrasos/advertências (DP assumiu advertências nesta revisão).
+    function ehDp() { return papel() in ['dp', 'admin', 'presidente']; }
+    // Quem participa de avaliação de desempenho (DP e RH dividem esse tópico).
+    function podeAvaliar() { return papel() in ['dp', 'rh', 'admin', 'presidente']; }
+
+    // E-mail institucional (defesa em profundidade — o token do Firebase Auth não pode ser
+    // falsificado pelo cliente, ao contrário de uma checagem só em JavaScript).
+    function emailInstitucional() {
+      return estaLogado() && request.auth.token.email.matches('.*@shinerio[.]com$');
+    }
+
+    // E-mail confirmado (link de verificação clicado). Não é exigido para criar/ler o próprio
+    // perfil (usuarios/{uid}) porque o perfil nasce ANTES da confirmação — é exigido nas
+    // coleções operacionais, como segunda barreira caso alguém contorne a tela de login.
+    function emailVerificado() {
+      return estaLogado() && request.auth.token.email_verified == true;
+    }
+
+    // -------------------------------------------------------------
+    // usuarios/{uid} — perfil de cada colaborador (nunca contém senha)
+    // -------------------------------------------------------------
+    match /usuarios/{uid} {
+      allow read: if estaLogado() && (request.auth.uid == uid || ehDpRhAdmin());
+
+      // Autocadastro (cadastro.html) OU criação por Admin/Presidente (via app Firebase
+      // secundário): em ambos os casos o novo registro só pode nascer como 'colaborador', e
+      // quem está autenticado no momento da escrita precisa ter e-mail @shinerio.com —
+      // restrição de domínio aplicada no token do servidor, não só no formulário.
+      allow create: if emailInstitucional()
+        && request.resource.data.role == 'colaborador'
+        && request.resource.data.keys().hasAll(['nome', 'email', 'cargaHoraria', 'status'])
+        && (request.auth.uid == uid || ehAdminOuPresidente());
+
+      // O próprio usuário só edita nome/foto. Só Admin/Presidente editam outros perfis
+      // (DP/RH perderam "editar colaborador" nesta revisão) — e ninguém, nem Admin, consegue
+      // se autopromover a 'presidente' por aqui: só uma sessão já-presidente pode conceder
+      // esse papel (na prática, só existe via scripts/seed-usuarios.js).
+      allow update: if estaLogado() && (
+        (request.auth.uid == uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64'])) ||
+        (ehAdminOuPresidente() &&
+          (request.resource.data.role != 'presidente' || ehPresidente()))
+      );
+
+      allow delete: if emailVerificado() && ehAdminOuPresidente();
+    }
+
+    // -------------------------------------------------------------
+    // contratos/{id} — ativação/encerramento simples por colaborador (Seção 2). Passa pela
+    // fila de solicitações para todo mundo, exceto o Presidente (ver solicitacoes/{id}).
+    // -------------------------------------------------------------
+    match /contratos/{id} {
+      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
+      allow create, update: if emailVerificado() && ehPresidente();
+      allow delete: if emailVerificado() && ehAdminOuPresidente();
+    }
+
+    // -------------------------------------------------------------
+    // contratosEmpresariais/{id} — Contratos com empresas-cliente, por CNPJ. Leitura liberada
+    // a DP/RH/Admin/Presidente (o card "Status de contratos" de todo Painel depende disso);
+    // toda ESCRITA (criar, editar prazo/status, entradas/saídas, excluir) só pelo Presidente —
+    // é a mesma fila de solicitações da seção acima, mesmo para o Admin.
+    // -------------------------------------------------------------
+    match /contratosEmpresariais/{id} {
+      allow read: if emailVerificado() && ehDpRhAdmin();
+      allow create, update, delete: if emailVerificado() && ehPresidente();
+    }
+
+    // -------------------------------------------------------------
+    // faltas/{id} e atrasos/{id} — Seções 7 e 8. DP/Admin/Presidente lançam e também podem
+    // apagar um lançamento feito por engano.
+    // -------------------------------------------------------------
+    match /faltas/{id} {
+      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
+      allow create, update, delete: if emailVerificado() && ehDp();
+    }
+    match /atrasos/{id} {
+      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
+      allow create, update, delete: if emailVerificado() && ehDp();
+    }
+
+    // -------------------------------------------------------------
+    // advertencias/{id} — Seção 9. Agora é o DP quem lança (antes era RH), e pode apagar por
+    // engano. RH não participa mais deste tópico.
+    // -------------------------------------------------------------
+    match /advertencias/{id} {
+      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
+      allow create, update, delete: if emailVerificado() && ehDp();
+    }
+
+    // -------------------------------------------------------------
+    // avaliacoes/{id} — Seção 11. Criar/editar passa pela fila de solicitações — só o
+    // Presidente grava de verdade. Apagar um lançamento já existente (por engano) continua
+    // liberado a quem participa do tópico (DP e RH), sem precisar de aprovação — é uma
+    // correção, não uma decisão de negócio nova.
+    // -------------------------------------------------------------
+    match /avaliacoes/{id} {
+      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
+      allow create, update: if emailVerificado() && ehPresidente();
+      allow delete: if emailVerificado() && podeAvaliar();
+    }
+
+    // -------------------------------------------------------------
+    // solicitacoes/{id} — fila de aprovação do Presidente para contratos e avaliações.
+    // Qualquer gestor (DP/RH/Admin) cria um pedido pendente; só o Presidente lê a fila
+    // completa e só ele pode aceitar/rejeitar (mudar de "pendente" para outro status) — o
+    // solicitante também pode ler o próprio pedido, para acompanhar o status. Imutável depois
+    // de resolvido (nada além do próprio Presidente muda "pendente" -> "aceita"/"rejeitada").
+    // -------------------------------------------------------------
+    match /solicitacoes/{id} {
+      allow read: if emailVerificado() && (ehPresidente() || resource.data.solicitadoPorUid == request.auth.uid);
+      allow create: if emailVerificado() && papel() in ['dp', 'rh', 'admin']
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.solicitadoPorUid == request.auth.uid;
+      allow update: if emailVerificado() && ehPresidente()
+        && resource.data.status == 'pendente'
+        && request.resource.data.status in ['aceita', 'rejeitada'];
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------
+    // fundo/{ano} — agregado público (saldo do fundo, soma de pesos).
+    // Lido por todos os colaboradores autenticados; DP/RH/Admin/Presidente recalculam (é um
+    // republicar de dados já protegidos acima, não uma decisão de negócio nova).
+    // -------------------------------------------------------------
+    match /fundo/{ano} {
+      allow read: if emailVerificado();
+      allow write: if emailVerificado() && ehDpRhAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // estatisticas/publico — agregado público (só os 2 números da landing page,
+    // sem login: valor arrecadado e quantidade de colaboradores). Nunca contém
+    // PII — para isso, use sempre a coleção `usuarios`, que já é protegida acima.
+    // -------------------------------------------------------------
+    match /estatisticas/publico {
+      allow read: if true;
+      allow write: if emailVerificado() && ehDpRhAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // logs/{id} — log de auditoria das ações de DP/RH/Admin/Presidente (faltas, atrasos,
+    // advertências, avaliações, papel, criação/exclusão de colaborador — NÃO inclui histórico
+    // de contratos, que já tem o seu próprio em contratosEmpresariais.historicoMovimentacoes,
+    // nem a fila de solicitações, que já é seu próprio registro auditável). Só Admin/Presidente
+    // leem; imutável (sem update/delete) para preservar a trilha de auditoria.
+    // -------------------------------------------------------------
+    match /logs/{id} {
+      allow read: if emailVerificado() && ehAdminOuPresidente();
+      allow create: if emailVerificado() && ehDpRhAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,396 @@
+/* Shinatal — folha de estilos compartilhada.
+   Design tokens em js/tailwind-config.js. Paleta clara e elegante: branco, bege e dourado,
+   com azul e verde escuros usados só como detalhe (identidade Shine Rio preservada). */
+
+:root {
+  --shinatal-primary: #0E3B2E;
+  --shinatal-verde-escuro: #0E3B2E;
+  --shinatal-azul-escuro: #14304F;
+  --shinatal-gold: #B08D2F;
+  --shinatal-gold-soft: #E8D9AE;
+  --shinatal-red: #6E2430;
+  --shinatal-verde-900: #03170d;
+  --shinatal-azul-900: #051c33;
+  --shinatal-bg: #FAF6EE;
+  --shinatal-surface: #FFFFFF;
+  --shinatal-borda: #E4DCC8;
+  --shinatal-ink: #23201B;
+  --shinatal-ink-muted: #6B6255;
+  --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #14304F 100%);
+  --shinatal-gradiente-valor: linear-gradient(135deg, #8A6A2F 0%, #B08D2F 100%);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: var(--shinatal-bg);
+  color: var(--shinatal-ink);
+}
+
+h1, h2, h3, .font-display {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+}
+
+/* Fonte de assinatura para a marca no header — diferencial premium frente ao restante da UI. */
+.font-premium {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Marca e números de destaque: cor sólida, sem gradient-clip ---------- */
+.text-gradiente-marca {
+  color: var(--shinatal-verde-escuro);
+}
+
+.text-gradiente-valor {
+  color: var(--shinatal-gold);
+}
+
+/* ---------- Cards: sólidos, com sombra suave em vez de vidro/blur ---------- */
+.glass-panel {
+  background: var(--shinatal-surface);
+  border: 1px solid var(--shinatal-borda);
+  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.05), 0 8px 20px rgba(35, 32, 27, 0.05);
+}
+
+.glass-card-active {
+  background: var(--shinatal-surface);
+  border: 1px solid var(--shinatal-borda);
+  box-shadow: 0 2px 4px rgba(35, 32, 27, 0.06), 0 12px 28px rgba(35, 32, 27, 0.07);
+}
+
+.glow-gold {
+  box-shadow: 0 0 0 1px rgba(176, 141, 47, 0.3), 0 0 20px rgba(176, 141, 47, 0.12);
+}
+
+/* ---------- Emblema do logo (o PNG é uma marca branca, precisa de um fundo sólido escuro) ---------- */
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--shinatal-verde-escuro);
+  border-radius: 0.85rem;
+  box-shadow: 0 4px 14px rgba(14, 59, 46, 0.25);
+}
+.logo-badge img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  padding: 14%;
+}
+
+/* ---------- Fundo: marfim claro, com a foto do Pão de Açúcar como marca d'água discreta ---------- */
+.gradient-natalino {
+  background:
+    radial-gradient(1100px 650px at 12% -10%, rgba(176, 141, 47, 0.06), transparent 60%),
+    var(--shinatal-bg);
+  min-height: 100dvh;
+}
+
+/* ---------- Seção verde/dourado: vitrine visual (home) ---------- */
+.fundo-verde-dourado {
+  background: linear-gradient(135deg, var(--shinatal-verde-escuro) 0%, var(--shinatal-verde-900) 60%, var(--shinatal-gold) 145%);
+}
+
+/* Deriva muito lenta (Ken Burns sutil) — desativada com prefers-reduced-motion mais abaixo. */
+@keyframes deriva-pao-acucar {
+  0%, 100% { transform: scale(1) translateY(-50%); }
+  50% { transform: scale(1.05) translateY(-51%); }
+}
+#bg-pao-acucar {
+  position: fixed;
+  left: -14%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(52vw, 680px);
+  aspect-ratio: 3 / 4;
+  z-index: -2;
+  pointer-events: none;
+  background-image: url("../assets/pao-de-acucar.webp");
+  background-size: cover;
+  background-position: 30% 45%;
+  opacity: 0.24;
+  filter: sepia(0.35) saturate(1.1) brightness(1.08);
+  -webkit-mask-image: radial-gradient(65% 85% at 30% 50%, black 30%, transparent 80%);
+  mask-image: radial-gradient(65% 85% at 30% 50%, black 30%, transparent 80%);
+  animation: deriva-pao-acucar 26s ease-in-out infinite;
+}
+@media (max-width: 767px) {
+  #bg-pao-acucar { width: min(85vw, 420px); opacity: 0.16; left: -20%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ---------- Header fixo, quadrado e translúcido ---------- */
+/* Fixo no topo (não sticky) para se manter sempre visível; cantos retos ("quadrado"); único
+   elemento do sistema com efeito de transparência — e mínimo (o resto da UI usa cards sólidos).
+   Todas as páginas somam padding-top equivalente (ver .pt-header-fixo) para o conteúdo não
+   ficar coberto. */
+.header-flutuante {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: none;
+  border-bottom: 1px solid var(--shinatal-borda);
+  box-shadow: 0 2px 12px rgba(35, 32, 27, 0.05);
+}
+
+/* Compensa a altura do header fixo — aplicar no <body> de cada página (a altura real vem
+   de min-h-14/min-h-12 na barra interna do header em cada HTML). */
+.pt-header-fixo { padding-top: 3.5rem; }
+@media (max-width: 767px) {
+  .pt-header-fixo { padding-top: 3rem; }
+}
+
+/* ---------- Navegação ---------- */
+.nav-link {
+  position: relative;
+  color: var(--shinatal-ink-muted);
+  transition: color 0.2s ease;
+}
+.nav-link:hover, .nav-link.nav-ativo {
+  color: var(--shinatal-primary);
+}
+.nav-link.nav-ativo::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -8px;
+  height: 2px;
+  background: var(--shinatal-primary);
+  border-radius: 9999px;
+}
+
+/* ---------- Selo de papel (Administrador/DP/RH) no header do painel ---------- */
+.badge-papel {
+  background: var(--shinatal-verde-escuro);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(14, 59, 46, 0.24);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Abas dentro do modal de Contrato Empresarial ---------- */
+.tab-contrato {
+  color: #8A7F68;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.tab-contrato:hover:not(:disabled) {
+  color: var(--shinatal-primary);
+}
+.tab-contrato.tab-contrato-ativo {
+  color: var(--shinatal-primary);
+  border-color: var(--shinatal-primary);
+  font-weight: 600;
+}
+.tab-contrato:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dock-item {
+  color: #8A7F68;
+  transition: all 0.15s ease;
+}
+.dock-item.nav-ativo {
+  color: var(--shinatal-primary);
+  background: var(--shinatal-gold-soft);
+}
+
+/* ---------- Selo "Programa de Premiação" ---------- */
+.selo-premiacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--shinatal-surface);
+  border: 1px solid var(--shinatal-gold-soft);
+  color: var(--shinatal-verde-escuro);
+  border-radius: 9999px;
+  padding: 0.4rem 0.9rem;
+  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.05);
+}
+
+/* ---------- Entrada de texto ao carregar a página ---------- */
+@keyframes entrada-texto {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim-entrada {
+  animation: entrada-texto 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.anim-entrada-1 { animation-delay: 0.05s; }
+.anim-entrada-2 { animation-delay: 0.16s; }
+.anim-entrada-3 { animation-delay: 0.27s; }
+.anim-entrada-4 { animation-delay: 0.38s; }
+.anim-entrada-5 { animation-delay: 0.49s; }
+
+/* ---------- Footer minimalista ---------- */
+/* Branco sólido, texto discreto e menor que o resto da UI — só o essencial (logo, contato,
+   copyright), sem competir com o conteúdo da página. Um único fio dourado no topo no lugar do
+   antigo filete arco-íris. As informações completas (colunas "Fale com a gente" + descrição)
+   ficam só na página inicial; as demais páginas usam a versão compacta (ver HTML). */
+.footer-shinatal {
+  position: relative;
+  z-index: 10;
+  background: var(--shinatal-surface);
+  border-top: 1px solid var(--shinatal-borda);
+  color: var(--shinatal-ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.footer-shinatal::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--shinatal-gold);
+  opacity: 0.6;
+}
+.footer-shinatal .text-on-surface {
+  color: var(--shinatal-verde-escuro);
+  font-size: 0.85rem;
+}
+.footer-shinatal .text-on-surface-variant {
+  color: var(--shinatal-ink-muted);
+}
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--shinatal-azul-escuro);
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.footer-link:hover {
+  color: var(--shinatal-verde-escuro);
+  transform: translateX(2px);
+}
+.footer-link .footer-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 9999px;
+  background: var(--shinatal-bg);
+  border: 1px solid var(--shinatal-borda);
+  color: var(--shinatal-primary);
+  flex-shrink: 0;
+}
+
+/* ---------- Formulários ---------- */
+.input-shinatal {
+  width: 100%;
+  background: var(--shinatal-surface);
+  border: 1px solid var(--shinatal-borda);
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem 0.65rem 2.5rem;
+  font-size: 16px;
+  color: var(--shinatal-ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-shinatal:focus {
+  outline: none;
+  border-color: var(--shinatal-primary);
+  box-shadow: 0 0 0 3px rgba(14, 59, 46, 0.12);
+}
+.input-shinatal::placeholder { color: #A69A82; }
+.input-shinatal:disabled {
+  background: rgba(0, 0, 0, 0.04);
+  color: #7A7060;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.label-shinatal {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--shinatal-ink-muted);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+/* ---------- Botões ---------- */
+.btn-primario {
+  background: var(--shinatal-verde-escuro);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.08);
+  transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.btn-primario:hover {
+  background: #123527;
+  border-color: var(--shinatal-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(35, 32, 27, 0.14);
+}
+.btn-primario:active { transform: translateY(0) scale(0.98); }
+.btn-primario:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-fantasma {
+  background: transparent;
+  border: 1.5px solid var(--shinatal-gold);
+  color: var(--shinatal-verde-escuro);
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+.btn-fantasma:hover {
+  background: var(--shinatal-gold-soft);
+  border-color: var(--shinatal-gold);
+  transform: translateY(-1px);
+}
+.btn-fantasma:active { transform: translateY(0) scale(0.98); }
+
+/* ---------- Scrollbar discreta ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--shinatal-borda); border-radius: 9999px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- Toast ---------- */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Foco visível para acessibilidade ---------- */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--shinatal-primary);
+  outline-offset: 2px;
+}
+
+/* Safe-area para dock inferior em iOS */
+.pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+
+/* Skeleton de carregamento */
+.skeleton {
+  background: linear-gradient(90deg, #EFE8D6 25%, #F7F2E6 37%, #EFE8D6 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: 0.5rem;
+}
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}

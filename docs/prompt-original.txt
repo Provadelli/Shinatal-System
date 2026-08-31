@@ -1,0 +1,619 @@
+
+
+
+
+
+
+Persona:
+Adote o papel de um Engenheiro de Sotware Sênior, 
+especialista em criar sistemas e UX/UI modernos.
+
+Design:
+Desenvolva um sistema de um Evento da empresa Shine Rio, cujo o nome do Evento é Shinatal,
+no arquivo anexado é possível ver as diretrizes deste evento, com todas as instruções, sinta-se livre 
+para criar o design de forma inovadora mas mantendo a identidade da Shine Rio, sendo verde e azul, e coisas
+que remetam a epoca do natal, como as cores vermelhas e a imagem do pão de açucar.
+utilize os arquivos anexados na aba assets/ para se inspirar no design.
+
+Divisão de telas:
+
+Tela de login: Nesta tela, serão divididos os logins e os acessos de cada login conforme o usuário, 
+sendo o admin tendo acesso a todo o sistema de forma integral e os logins de DP e RH, com permições de 
+criar usuários, contabilizar faltas entre outros, sendo como o monitor de todos os usuários seguindo as regras
+do escopo do projeto, sobre as faltas, advertências e etc. Desejo que quando estes setores darem as advertências e as faltas
+seguindo o escopo, apareçam para o usuário sua quantidade de faltas e advertências.
+
+Além de ter login, crie um espaço para cadastrar-se, no ato do cadastro, peça os campos, nome completo, cargo ou área de atuação,
+tempo de trabalho(sendo um menu de opções com 8,6,4 ), foto do colaborador(opicional), Email institucional shinerio, e senha e confirmação de senha.
+
+Abaixo coloque os meios de recuperação do usuário, sendo: esqueci a senha.
+sendo possivel recuperar por código do email.
+
+
+Usuários e logins especiais:
+
+Admin ti@shinerio.com
+DP dp@shinerio.com
+Rh rh@shinerio.com
+
+coloque todos inicialmente com a senha padrão 1234 apenas para começar, sendo possível mudar depois.
+Faça uma boa segurança do sistema para que as informações inportantes não vazem na aba network do terminal, utilize json para
+fazer este chaveamento de logins e senhas em geral
+
+Dashboard principal: nesta tela, terá o valor total a ser dividido no centro da tela com um aspecto chamativo, sensível ao cursor seguindo a identidade visual
+da empresa tendo as opções de perfil, header com as opções de faltas, advertências , regras do evento, tendo responsividade para aparelhos móveis.
+Além de ter uma aba de perfil do usuário, onde o mesmo pode fazer a alteração da senha, mas antes de trocar, utilize um codigo do email.
+
+Para setores específicos adicione as opções, como dp e RH adicione as opções que são necessárias com base no escopo.
+para que o usuário veja sua quantidade de faltas e advertências e o valor futuro que o mesmo irá ganhar se manter com a boa conduta
+, para que o usuário tenha controle e tenha uma certa motivação para produzir mais.
+Para este valor, utilize o calculo com base no escopo, conforme outras cotações forem sendo adicionadas e o valor arrecadado receber um aumento,
+o valor a ser arrecadado futuramente pelo colaborador mudará fazendo  novo calculo com base na nova cotação
+
+Tecnologias utilizadas: Seja livre para criar nas tecnologias HTML, CSS E JavaScript, use  google firebase para criar o backend e se necessário utilize
+outras tecnologias.
+
+Use os anexos como base para construir o design do sistema, fazendo algo responsivo para todos os tipos de aparelho(moveis e desktop/notebook/macbook)
+efeitos de movimento voltados a experiência do usuário. Foque na identidade visual da ShineRio, deixando algo mais orgânico, usando o pão de açucar, as cores verde e azul
+mas não tão estravagante, adicione elementos que remetam ao natal, como frases de efeito, e elementos inovadores, mas mantendo a fluidez
+e a otimização
+
+ESCOPO DO PROJETO: 
+REGULAMENTO INTERNO – SHINATAL
+Shine Rio Serviços Ltda.
+
+
+1. Objetivo
+O Shinatal é um programa interno de premiação anual por desempenho, comprometimento, disciplina, assiduidade e contribuição para os resultados da Shine Rio Serviços Ltda.
+
+O programa possui natureza exclusivamente premial, concedido por liberalidade da empresa, não se incorporando ao contrato de trabalho, não gerando habitualidade, direito adquirido ou obrigação de pagamento em exercícios futuros, podendo ser alterado, suspenso ou cancelado pela diretoria a qualquer tempo, conforme critérios administrativos e disponibilidade financeira da empresa.
+
+2. Formação do Fundo Shinatal
+O fundo do Shinatal será formado pela seguinte regra:
+
+R$ 150,00 para cada funcionário ativado em contrato conquistado pela Shine Rio.
+2.1 Crédito antecipado
+O valor de R$ 150,00 será lançado integralmente no caixa do Shinatal no momento da ativação do colaborador no contrato.
+
+2.2 Encerramento antecipado de contrato
+Caso o contrato seja encerrado antes de completar 12 meses, será realizado estorno proporcional por avos, conforme a fórmula:
+
+Valor a descontar = (R$ 150,00 ÷ 12) × quantidade de meses faltantes para completar 12 meses
+
+Exemplo:
+
+Crédito inicial: R$ 150,00
+Contrato durou: 5 meses
+Meses faltantes: 7
+Desconto do caixa Shinatal: 7/12 de R$ 150,00 = R$ 87,50
+Se o contrato atingir 12 meses completos ou mais, não haverá qualquer estorno.
+
+2.3 Virada de exercício
+O saldo do caixa Shinatal será zerado ao final de cada exercício anual, após o pagamento da premiação.
+
+Entretanto, os estornos proporcionais de contratos encerrados continuarão sendo contabilizados normalmente, ainda que ocorram após a mudança do ano-calendário.
+
+3. Participantes Elegíveis
+Terão direito ao Shinatal:
+
+empregados operacionais;
+empregados administrativos;
+gestores;
+estagiários;
+jovens aprendizes;
+demais colaboradores orgânicos vinculados à estrutura da Shine Rio na data do pagamento.
+4. Critério de Proporcionalidade
+A premiação será calculada de forma proporcional aos avos trabalhados e à carga horária contratual.
+
+4.1 Contagem dos avos
+Admissão até o dia 15: o mês será contado integralmente.
+Admissão a partir do dia 16: a contagem terá início no mês seguinte.
+4.2 Proporcionalidade da jornada
+O valor da premiação será convertido em valor-hora, considerando a jornada padrão de 8 horas diárias.
+
+
+
+Jornada
+
+Percentual da cota
+
+8h/dia
+
+100%
+
+6h/dia
+
+75%
+
+4h/dia
+
+50%
+
+O cálculo final observará simultaneamente:
+
+avos trabalhados;
+carga horária contratual.
+5. Hipóteses de Perda Integral do Direito
+Perderá integralmente o direito ao Shinatal o colaborador que:
+
+pedir demissão antes da data de pagamento;
+for demitido antes da data de pagamento;
+estiver cumprindo aviso prévio, trabalhado ou indenizado, na data do pagamento;
+abandonar o emprego;
+praticar fraude, falsificação, desvio de conduta ética ou ato doloso que cause prejuízo à empresa ou ao cliente.
+6. Critério de Distribuição
+O valor líquido disponível no fundo será dividido entre os colaboradores elegíveis, observando-se:
+
+proporcionalidade de avos;
+proporcionalidade de carga horária;
+aplicação dos redutores disciplinares e de assiduidade previstos neste regulamento.
+O resultado corresponderá à cota individual ajustada de cada participante.
+
+7. Assiduidade – Faltas Injustificadas
+As faltas injustificadas gerarão desconto financeiro direto sobre a cota individual.
+
+7.1 Fórmula
+Valor do desconto por falta = Cota Individual ÷ 30
+
+7.2 Aplicação
+
+
+Faltas
+
+Desconto
+
+1
+
+1/30 da cota
+
+2
+
+2/30 da cota
+
+3
+
+3/30 da cota
+
+n
+
+n/30 da cota
+
+Exemplo:
+
+Cota individual: R$ 1.500,00
+Valor do dia: R$ 50,00
+3 faltas injustificadas: R$ 150,00 de desconto
+7.3 Não serão consideradas faltas para fins de desconto
+férias;
+licença paternidade, desde que não ultrapasse o prazo máximo de 5 dias;
+atestados médicos válidos entregues no prazo interno, desde que não ultrapassem o prazo máximo anual de 15 dias no total.
+ausências legalmente justificadas pela CLT, desde que não ultrapasse o prazo máximo anual de 15 dias no total.
+8. Pontualidade – Atrasos
+8.1 Tolerância mensal
+O colaborador poderá ter até 5 atrasos no mês sem qualquer impacto no Shinatal.
+
+8.2 Geração de pontos
+A partir de 6 atrasos no mesmo mês, o colaborador receberá 1 ponto de atraso referente àquele mês.
+
+Cada mês com 6 atrasos ou mais equivale a 1 ponto, independentemente da quantidade superior de atrasos ocorridos no período.
+
+8.3 Conversão em desconto
+Cada ponto acumulado corresponderá a 1% de desconto sobre a cota individual.
+
+
+
+Pontos acumulados no ano
+
+Desconto
+
+1
+
+1%
+
+2
+
+2%
+
+6
+
+6%
+
+12
+
+12%
+
+O limite máximo de desconto por pontualidade será de 12% da cota individual.
+
+8.4 Conceito de atraso
+Para fins de apuração do Shinatal, será considerado atraso o registro de entrada ocorrido a partir de 20 (vinte) minutos após o horário contratual, inclusive.
+
+Atrasos inferiores a 20 minutos não serão computados para efeito de pontuação prevista neste regulamento.
+
+9. Medidas Disciplinares
+As penalidades disciplinares aplicadas formalmente pelo RH gerarão os seguintes redutores:
+
+
+
+Ocorrência
+
+Desconto
+
+Advertência verbal formalizada
+
+5%
+
+Advertência escrita
+
+10%
+
+Suspensão disciplinar
+
+25%
+
+Segunda suspensão disciplinar
+
+50%
+
+Terceira suspensão disciplinar
+
+Perda integral
+
+Os percentuais serão aplicados sobre a cota individual proporcional do colaborador.
+
+10. Bônus por Excelência
+Com o objetivo de valorizar os colaboradores com histórico exemplar durante o exercício, será concedido bônus adicional de 3% sobre a cota individual proporcional ao colaborador que, cumulativamente, apresentar:
+
+zero faltas injustificadas;
+zero pontos de atraso durante todo o ano;
+zero advertências, verbais formalizadas ou escritas;
+zero suspensões disciplinares.
+O percentual de 3% será acrescido após a aplicação de todos os demais cálculos de proporcionalidade e redutores eventualmente existentes, incidindo sobre o valor final da cota individual do colaborador.
+
+Exemplo:
+
+Cota individual final: R$ 1.800,00
+Bônus por excelência (3%): R$ 54,00
+Total a receber: R$ 1.854,00
+11. Avaliação de Desempenho
+O gestor imediato poderá atribuir avaliação anual de desempenho, desde que justificada por escrito e validada pelo RH.
+
+
+
+Conceito
+
+Redutor/adicional
+
+Excelente
+
++2%
+
+Bom
+
+0%
+
+Regular
+
+-5%
+
+Insatisfatório
+
+-15%
+
+12. Colaboradores Admitidos Durante o Ano
+A participação observará exclusivamente as regras de proporcionalidade previstas no item 4, considerando:
+
+data de admissão;
+regra do dia 15;
+avos efetivamente trabalhados;
+carga horária contratual.
+Não haverá exigência de tempo mínimo de empresa para participação no Shinatal.
+
+13. Forma e Data de Pagamento
+O Shinatal será pago em parcela única, preferencialmente no mês de dezembro, em data definida pela diretoria da Shine Rio.
+
+O pagamento poderá ocorrer por:
+
+folha de pagamento identificada como Prêmio Shinatal;
+transferência bancária específica;
+outro meio definido pela administração.
+14. Natureza do Programa
+O Shinatal:
+
+constitui prêmio por desempenho e comprometimento;
+não possui natureza salarial;
+não substitui salário, gratificação legal, PLR, comissão ou qualquer benefício previsto em lei ou convenção coletiva;
+não gera incorporação ao contrato de trabalho;
+não cria expectativa de direito para exercícios futuros.
+15. Comissão de Apuração
+A apuração anual do Shinatal será realizada pela:
+
+Diretoria Executiva;
+Departamento Financeiro;
+Recursos Humanos.
+Compete à comissão:
+
+validar os créditos e estornos do fundo;
+calcular as cotas proporcionais;
+aplicar os redutores previstos;
+homologar os valores finais para pagamento.
+As decisões da comissão terão caráter administrativo definitivo no âmbito do programa.
+
+16. Disposição Final
+O presente regulamento entra em vigor na data de sua divulgação interna e aplica-se ao programa Shinatal da Shine Rio Serviços Ltda.
+
+Os redutores terão carácter acumulativo em no máximo dois índices (um maior + um menor), eles incidirão sobre a cota individual; já os adicionais poderão ser acumulativos em seus dois itens.
+
+A participação no programa pressupõe ciência e concordância com todos os critérios aqui estabelecidos
+
+
+NEW DESIGN:
+
+Adote o papel de um designer grafico especialista em efeitos especiais e experiência do usuário.
+
+Com base no sistema atual da shinerio, chamado Shinatal, desejo algo mais inovador, uma fonte premium e específica,
+efeitos especiais, uso da logo sem fundo para um melhor profissionalismo.
+No sistema, desejo um header flutuante e redondo acima, coisas relacionadas ao pão de açucar, utilização das cores azul e verde como 
+linear gradient, e as regras na mesma landing page, mas abaixo, seja livre para criar nestes parâmetros, desejo algo mais profissional.
+Quanto ao card do valor e a quantidade de colaboradores, preciso de suporte de como posso modifica-los e desejo que aumente o tamanho, a fonte
+para algo mais chamativo, mas não estravagante, também sensivel ao mouse, siga estas instruções de melhorias para as demais páginas do projeto.
+Pois o modelo atual é muito simples e amador, desejo algo mais profissional, inovador e que desperte a atenção dos usuários, dando mais credibilidade ao sistema.
+
+E me indique o que falta mudar para a mensagem de erro sumir acima.
+
+
+
+RESEDESIGN:
+
+Adote o papel de um engenheiro de software perfeccionista, especialista em SEO, UX/UI e em Design profissional atual
+
+Você recebe a missão de fazer o redesign de um sistema, cujo é utilizado para o sistema de recompensas de natal da Shine Rio
+o Shinatal. É necessário apenas fazer ajustes no design. Como no header, faça um header fixo, quadrado, com
+uma transparência e mais fino, faça algo profissional que desperte a atenção do usuário, sobre as opções do header, coloque um design mais moderno.
+diversificando mais as cores, pois atualmente se trata de algo sem cor, troque a logo escrita pela logo que está e assets/img/logo-header.webp.
+
+Sobre a página inicial, enquadre melhor os elementos pois estão abaixo do esperádo, faça um efeito com a imagem do pão de açucar que está anexada 
+na pasta assets/pao-de-acucar.webp , dê mais cores ao design, pois está algo morto atualmente, quero um design um pouco mais colorido, mas não estravagante,
+desejo efeitos nas fontes ao abrir o site e mais diversificação nas cores, sendo entre branco, verde escuro, azul escuro, dourado, algo que passe uma melhor 
+credibilidade.
+Além de mudar o jeito que está escrito "Porgrama de premiação 2026", trocando esta cor vermelha por outra que se enquadre de uma melhor forma
+retire a logo que está atualmente na página inicial e APENAS use-a no header.
+Mude também como é mostrado as instruções do Shinatal, com um melhor design neste card
+No footer, faça um footer de respeito, com a logo da ShineRio, contatos como: email, instagram e whatsapp, faça algo mais profissional, seguindo o desig esperado.
+
+Sobre a página de login, siga as mesmas instruções da página inicial: mudança do header, uso da logo sem fundo, uso de mais cores de forma 
+profissional, footer de respeito, retirar a logo da página e usa-la somente no header e mudança da cor e da fonte na mensagem: "Porgrama de premiação 2026"
+Além de melhor enquadramento e responsividade para todo tipo de aparelho, isso vale para todo o sistema, ter
+um layout que se enquadra em vários tipos de dispositivos de forma correta.
+
+No painel de gestão, siga o mesmo design mencionado anteriormente, mas mude como está a logistica de lançar faltas, advetências e coisas neste sentido,
+faça uma logística mais facil, que tenha uma planilha onde apareçam o total de faltas, advertencias de cada colaborador, mas apenas no painel da gestão
+ou seja: RH/DP/Admin.
+
+APENAS NO PAINEL DO ADMIN, coloque uma seção onde será possivel adicionar/ retirar novos contratos.
+Ou seja, para adicionar, basta colocar o valor cheio do contrato ex: 10.000, a quantidade de funcionários do contrato, ex: 55.
+e faça o cálculo automático com base nas regras do ShineRio, para que quando adicionado, será feito o calculo automático de quanto ficará
+na caixa para o Shinatal, e atualize automaticamente o valor arrecadado que aparece na tela inicial do sistema e o numero de colaboradores,
+além de ter uma seção onde é possivel ver todos os contratos, tendo as informações como: Nome da empresa, quantidade de funcionários, tempo de contrato e valor, tendo a opção de remover o contrato.
+
+
+REDEREDESIGN:
+Persona:
+Adote o papel de um Arquiteto de Software Sênior e Engenheiro Full Stack orientado a produto.
+
+E com base neste projeto do Shinatal, inciado por outro dispositivo, neste momento, será feita a reestruturação do design do sistema.
+As mudanças serão feitas em todos os setores do sistema, trazendo maior profissionalidade e priozirando a experiência do usuário.
+
+Na tela inicial e nas demais telas, é necessário realizar uma mudança no background, para algo mais caracteristico da Shine Rio, visto que o atual apresenta 
+uma pequena parte do pão de açucar, foram anexadas demais referencias de imagem para serem utilizadas na construção deste background, é interessante utilizar
+as cores azul verde, mas no tom escuro, tendo um linear gradient e uma mesclagem entre eles, juntando com a imagem do pão de açucar que é a marca registrada da Shine rio.
+
+No footer, deixe com a cor sólida, mas um pouco mais escurecido com um fade branco, na aba de login, ele precisa preencher a largura da tela assim como está na tela incial.
+
+retire um pouco a transparência dos elementos no dashboard.
+
+Agora falando sobre funções, nos contratos empresariais, crie uma opção para que seja possível editar os contratos ja adicionados a planilha.
+Linke as informações dos contratos com o card  de 'status de contrato'.
+
+Na aba da gestão, admin, rh, dp, adicione a opção de editar as informações dos usuários da plataforma, como carga horaria e outras informações,
+coloque o valor da cota conforme a carga horaria do funcionario, ou seja, assim como está na planilha, os colaboradores com carga horaria de 8h receberão 100% da cota deles
+6h receberao 75% e de 4h receberao 50% da cota. siga as instruções acima e reorganize se necessario algumas informações nas seções acima deste documento.
+
+
+Repactuação do sistema, funções:
+
+-cadastro de empresaras CNPJ VALIDADO
+-Cadastro de funcionários - FUNÇÃO - NOME - DATA DE ADMIÇÃO.
+-INFORMAÇÕES SOBRE O INCIO DO CONTRATO - VALOR DESCONTADO -  DATA DE ENCERRAMENTO (DEPENDENTE DOS 12 MESES)
+
+Persona: 
+Adote o papel de um Arquiteto de Software Sênior e Engenheiro Full Stack orientado a produto.
+
+Você recebe a missão de reconstruir o backend de um sistema, para um evento de natal de uma empresa Shine Rio.
+Com base no arquivo anexado, siga estritamente as instruções e as regras do programa, vale ressaltar que o valor dos R$ 150 é adiantado nos 12 meses, assim como está prescrito no documento.
+Siga as intruções quanto ao valor em porcentagem da cota por carga horária.
+
+O cadastro dos contratos no sistema funcionará da seguinte forma:
+para o cadastro, será necessário: nome da empresa, CNPJ com verificação de validação, data de incio do contrato(dia/mes/ano), data de encerramento do contrato no mesmo formato.
+Caso um contrato que está previsto para encerrar em 12 meses, e acabar encerrando em 6 meses, será cortado 50% do valor por não completar o total de meses do contrato, assim como está no documento.
+Caso o contrato faça 12 meses ou mais, não será descontado verba do fundo Shinatal.
+vale ressaltar que caso o contrato acabe antes, é possivel ter uma opção de encerrar contrato, onde aparecerá o valor de que será descontado caso o contrato acabe antes dos 12 meses. Assim como está na clausula 2.2.
+Caso o contrato permaneça, mas alguns funcionários saiam no decorrer, será descontado R$ 12, 50 do fundo por funcionário, e que tenha a informação da data que estes funcionários saíram do contrato.
+Do mesmo modo que se houver o ingresso de mais funcionários ao decorrer do contrato será a operação inversa, acrescentando 12,50 por funcionário.
+
+Vale ressaltar que os funcionários adicionais valem a partir da data de adimição em diante.
+
+Para este dashboard é necessário mais uma tela no sistema do admin apenas, com a opção editável. E visual tendo todas as informações mas sem a opção de edição para os setores rh e dp.
+tenha em mente as opções que serão necessárias.
+contendo filtros de pesquisa de forma acessivel e barra de pesquisa.
+Lembre-se que as informações necessárias de um contrato são:
+Nome da empresa/CNPJ (Com verificação) / data de inicio/ data prevista para encerramento / valor descontado (caso acabe antes)/ valor descontado (por funcionário)/valor acrescido(por funcionário).
+Na aba de funcionários da empresa:
+Nome e sobrenome / cargo / data de adimição / data de saida (caso saia) / data de entrada (caso entre no meio do contrato).
+
+Faça mantendo o design da Shine Rio.
+
+Com base no design atual, remova os elementos criados por código e dê mais enfase na imagem de fundo.
+Ajuste as bordas do quadro dos valores na página inicial para ficar equevalente a borda.
+
+Na seção 'como funciona o programa' é necessário fazer um redesign em geral de como é mostrado.
+faça uma sintese minima de como funciona o programa, despertando curiosidade ao usuário.
+
+Já na aba dos usuários/gestores.
+crie a aba Regras, onde estará explicitamente como o programa funciona para não gerar dúvidas os desavenças relacionadas.
+
+
+
+Perfeito, agora, faltam apenas uns retoques em determinados setores.
+
+Em questões de funções do sistema, adote o papel de um engenheiro de software sênio, especialista em design e backend.
+Na aba dos contratos, falta informação nos contratos, Pois no momento do cadastro, não é coletada a informação de quantos funcionários serão contratados,
+para o calculo da cota do Shinatal, além de ser necessário adicionar um campo para adicionar os nomes, cargos, data de admição no contrato, para o melhor controle.
+
+Falando sobre design:
+
+Na pagina inicial, deixe o card do valor quadrado, na mesma proporção das bordas.
+
+ no header Retire a logo da Shine RIO, e mantenha apenas a escrita Shinatal. deixe menos transparênte, além de mudar o design da escrita administrador e centralizar os elementos 
+ das opções de páginas
+
+ No footer, coloque-o branco sólido e que ele tenha as informações completas apenas na  aba inicial, colado ao final da página respeitando a responsividade e o tamanho de cada dispositivo.
+ Coloque as escritas em verde e azul para a identidade visual da marca.
+
+ -------------
+
+Adote o papel de um especialista em calculos de sistema de arrecadações e dinheiro, com base na adição de um novo contrato a plataforma,
+quando o contrato é adicionado, a quantidade de meses não está entrando no calculo do fundo Shinatal, mas deveria, quando é selecionado a data de inicio e fim do contrato,
+faça o calculo de quantos meses está previsto para ficar em vigência, adicione a quantidade de meses a formula, sendo:
+[(150 * Qtd funcionarios)/12]*meses vigentes do contrato. Siga esta formula para a montagem do fundo shinatal no sistema.
+
+Sempre que um contrato for colocado no sistema, não deve ser possível mudar os dados originais, terão opções para mudar o tempo do contrato,
+afetando diretamente assim como no documento que foi anexado anteriormente, e a mudança na quantidade de funcionários. Lembrando que,
+o monitoramento dos funcionários será feito da seguinte forma: será mostrado a quantidade de funcionários que foram adicionados junto ao contrato e os funcionarios que foram sendo adicionados ao longo do contrato,
+assim será possivel saber onde editar a quantidade de funcionários com base no ingresso.
+
+Sobre o painel, faça a configuração correta dos colaboradores, sobre a divisão do premio seguindo oas instruções do documento adicionado ao corpo do projeto. Faça isso e consulte este documento.
+
+------------
+Perfeito, mas prossiga com estas alteraçoes:
+Sobre todo o sistema, no footer, diminua o tamanho das fontes e deixe algo mais minimalista, mas mantendo a beleza 
+e otimização, tire a 'Cara de AI' deste sistema, deixe algo único e profissional, seja livre para profissionalizar este sistema
+em questões de design, em uma pegada elegante e profissional, algo que passe profissionalismo, seriedade e respeito, utilize cores claras, como branco, bege e dourado para detalhes, e minimamente o azul e o verde 
+escuros para não comprometer a identidade visual. Mas faça uma repaginação geral no design deste sistema, tire os elementos genériocos, organize melhor os elememtos.
+utilize mais solidez para os cards, deixe apenas o header com um efeito minímo de transparência, e seja livre
+para criar um design perfeito.
+
+Em questões de funcionalidades, remova o usuário danilo de rh,
+na aba de cadastro de contratos, sobre os dados que aparecem sobre os contratos registrados na plataforma,
+adicione para a visualização de cada contrato: O valor que ele está contribuindo com o fundo.
+Sempre atualizar quando qualquer valor é descontado ou acrescido no contrato, não só em questões de funcionários,
+mas sim sobre tempo de contrato. E tendo o histórico de movimentações sobre entrada e saída de valores dos contratos, com data e hora de cada movimentação,
+para melhor controle.
+
+No card de adição de funcionários ou remoção, melhore a apresentação deste card para algo mais acessível.
+
+Sempre que uma alteração for feita em um contrato, sobre qualquer assunto, adicione um botão de confirmação que aparece na tela, com uma breve descrição do que será alterado,
+para que nada seja alterado por engano.
+
+---------------------------
+Adote o papel de um engenheiro de sotware sênior, especialista em webdesign e Cybersecurity
+
+Preciso que você coloque todos os .html em pastas para que a URL do site não fique com o .html ao final ao mudar de página, não deixe os nomes dos arquivos .html aparecerem,
+coloque uma URL amigável.
+
+Faça uma revisão no banco de dados, presando a segurança dos dados do sistema, ao criar uma conta @shinerio.com, antes de liberar para login logo em seguida,
+mande um código de verificação para o E-mail que foi cadastrado, lembrando que são somente os E-mail's @shinerio.com, revise essa segurança e deixe ao maximo da melhor forma.
+
+Em questões sobre faltas de funcionários, advertencias e avaliações, faça uma revisão nos valores e nos cálculos, baseando-se no arquivo que está anexado com as regras
+do shinatal, priorizando a regra do dia 15, que é: caso o funcionario seja adimitido antes do dia 15 do mês, o mês que ele ingressou já contará no fundo dele no evento,
+caso seja entre os dias 16-31, o evento conta a partir do proximo mês somente.
+
+Em questões de contratos, houve um erro no cálculo sobre a saida e entrada de funcionários no meio do contrato.
+A regra é, ao invés de descontar ou adicionar 12,50 por funcionário, será descontado ou adicionado 150 por funcionário do contrato,
+por exemplo: funcionário saiu no meio do contrato, será descontado 150 por funcionário demitido, e o mesmo vale para os admitidos.
+
+Sobre o registro de contratos, desejo que ao adicionar o CNPJ da empresa, seja consultado na Receita federal, puxando os demais dados (nome), e se é realmente válido 
+na receita.
+ Em questões de design, é possível perceber que ao abrir o sistema em um desktop, o footer da aba de contratos, sobre e fica fora do lugar, dito isso, revise a responsividade do site em geral.
+
+Resumo:
+verifique a segurança do sistema e deixe o mais seguro possivel, adicione verificação ao cadastrar e organize o banco de dados no firebase,
+para que não haja vazamento de dados.
+Faça uma verificação geral no sistema, pois estou dando os retoques finais.
+E troque as logos dos footers e do header pela nova logo anexada em assets, remova a escrita "shinatal".
+coloque a logo assets/logoshinatal, no lugar onde está escrito Shinatal na página inicial e no login.
+
+-------------------
+
+Adote o papel de um engenheiro de software sênior que recebeu as seguintes instruções de ajustes:
+
+Sobre pontos de atraso, conforme o arquivo:
+Da maneira que está agora, está como cada atraso seja 1 ponto que acaba descontando do colaborador.
+A maneira que deve ser feita é: 
+O colaborador apenas recebe ponto de atraso, caso ele receba 6 astrasos (ou seja, até 5 atrasos, nada será descontado do fundo) será 1 ponto ou seja 1% de desconto, 2 pontos, ou seja 12 atrasos, será 2% de desconto, 6 pontos,
+ou seja, 36 pontos de atraso, será 6% e para 12 pontos, ou seja 72 pontos de atraso, 12% da cota, sendo travado ate 12 pontos, não podendo aumentar mais.
+vale ressaltar que isso vale para cada mês.
+
+O atraso só valerá a partir de 20 minutos após o horario de entrada, ou seja, o horario de entrada é 13:00h, o colaborador chegou 13:19h não está atrasado, se chegou 13:21 já está atrasado.
+Para fazer esse registro dos atrasos, o gestor deve ter o campo de horario e data de entrada normal da empresa, ex: 13h30, e horario de atraso do colaborador.
+
+
+Para faltas, siga o quadro de faltas injustificadas presente no quadro de faltas do documento.  
+No card de lançamento de faltas do sistema, é interessante que as demais opções de faltas justificadas fiquem disponíveis para acessar APENAS quando
+o gestor marcar a opção de falta justificada, tendo acesso ao tipo de justificativa e não descontando do fundo.
+
+No card de avaliação, apenas troque o campo 'Ano' por data, para uma informação completa.
+
+Crie uma aba no header de todos os usuários, sendo o perfil. Contendo todas as informações como: cargo, status, faltas, atrasos, pontos de atraso, advertencias sendo dividadas nas categorias do arquivo anexado,
+participação com o fundo, carga horaria, cota estimada e conta descontada ou acrescida conforme o colaborador receber faltas, atrasos ou advertências.
+ou seja, todas as informações e estatísticas importantes, incluindo data de admição.
+
+Cada um terá acesso ao seu próprio perfil, exeto o admin e os gestores (rh, dp) que terão acesso a ver o perfil de todos os usuários, para controle ou revisão.
+
+Para melhores manutenções e identificações de ações em tempo real, APENAS no painel do admin, terá uma log completa de todas as ações que são feitas pelos gestores e pelo proprpio admin,
+contendo data e hora e quem fez essa ação, como: registro de faltas injustificadas e justificadas, pontos de atraso(apenas pontos), e fatores nesse sentido, não sendo necessário incluir histórico de contratos nessa log.
+
+Em questões de Design gerais:
+
+todos os lugares que está escrito 'Bem-vindo ao Shinatal', troque apenas a palavra 'Shinatal', pela logo da Shintal.
+Troque a foto do icon head pela nova logo, mas com ela em um fundo branco.
+deixe o quadro do valor arrecadado com arredondamento nas bordas, mas que a borda também acompanhe este formato.
+
+retire um pouco da transparência da imagem do background e deixe-a um pouco mais aparente.
+
+Em questões de design específico:
+
+deixe o quadro do valor arrecadado com arredondamento nas bordas na página inicial, mas que a borda também acompanhe este formato.
+Ainda na página inicial, crie mais seções abaixo, com um fundo verde escuro e dourado, com linear gradient, mantendo o aspecto da elegância,
+utilize as novas fotos que foram anexadas a pasta assets/ e seja livre para criar seções com estas imagens, tendo textos que remetem ao Shinatal.
+Seja livre para criar um design elegante com esses elementos, troque o card que explica brevemete sobre o shinatal por coisas mais visíveis usando os elementos.
+
+------------
+Ainda adotando o mesmo papel:
+Precisa-se criar um novo usuário na plataforma, que terá acesso geral assim como o admin, terá o nome de presidente.
+com o E-mail 'shinerio@shinerio.com' com a mesma senha dos demais.
+Esse acesso, terá mais poder do que o acesso de admin, tendo todas as funções, tendo uma aba de solicitações, tendo notificação de solicitações,
+essas solicitações são sobre: qualquer tipo de alteração nos contratos, bem como: criar, encerrar, mudar o número de colaboradores e coisas nessa linha,
+essas coisas apenas serão alteradas caso o Presidente aceite a solicitação de mudança, essas solicitações terão: data, hora e qual solicitação.
+Após aceitas, os dados mudarão automaticamente.
+essa solititação também vale para a aba de avaliação, só será aceita se o presidente aceitar a solicitação, sendo alterada logo após aceita.
+Caso o proprio Presidente precisar fazer alterações, não será necessário solicitações.
+vale ressaltar que este tipo de método de solititação vale APENAS PARA OS TÓPICOS MENCIONADOS.
+
+
+Mude os tipos de funções e permissões dos gestores rh e dp:
+ambos não podem ver o perfil de outro usuário.
+
+DP: o dp apenas terá acesso a : lançar falta, lançar atraso, advertencias e avaliação.
+
+RH: Ativar contrato, encerrar contrato e avaliação.
+Apenas isso, o perfil de RH e DP, não terão acesso a aba de contratos.
+será possivel remover falas, atrasos, advertencias e avaliações caso sejam feitas por engano.
+
+Remova a opção status do colaborador de todos os usuários, pois está redundante.
+um usuário comum não tem acesso a nada disso, apenas ao seu próprio perfil, valor do fundo, valor da propria cota, o card de status de contratos e o simulador de impacto, tendo apenas seu usuário como opção.
+no diretorio de colaboradores aparecerá apenas o proprio.
+
+aumente conforme os contratos são ativados ou  encerrados, atualize o card de status de contratos. caso o contrato seja excluido, ele sumirá
+não entrando em nenhum dos dois filtros, para isso, coloque uma mensagem em caixa alta dizendo essas instruções quando alguém for excluir um contrato.
+
+

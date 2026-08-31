@@ -1,0 +1,12 @@
+{
+  "name": "shinatal-scripts",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Scripts administrativos locais do Shinatal (não implantados).",
+  "scripts": {
+    "seed": "node seed-usuarios.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.5.0"
+  }
+}

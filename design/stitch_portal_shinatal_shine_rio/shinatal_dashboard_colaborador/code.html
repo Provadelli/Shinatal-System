@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shinatal - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Montserrat:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#2e1500",
+                      "surface-glass": "rgba(255, 255, 255, 0.7)",
+                      "surface-container-low": "#eff5f6",
+                      "on-primary-fixed-variant": "#004e59",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "festive-gold": "#FBC02D",
+                      "on-primary-fixed": "#001f25",
+                      "surface-container": "#e9eff0",
+                      "surface-container-highest": "#dde3e5",
+                      "inverse-surface": "#2b3133",
+                      "tertiary-fixed-dim": "#ffb77b",
+                      "on-background": "#161d1e",
+                      "tertiary-container": "#f19640",
+                      "tertiary": "#8f4e00",
+                      "on-secondary-fixed-variant": "#005313",
+                      "surface-tint": "#006876",
+                      "on-tertiary-fixed-variant": "#6d3a00",
+                      "on-secondary-fixed": "#002204",
+                      "rio-deep-blue": "#1E61B7",
+                      "on-surface": "#161d1e",
+                      "surface-container-high": "#e3e9eb",
+                      "primary-container": "#00bcd4",
+                      "on-surface-variant": "#3c494c",
+                      "primary": "#006876",
+                      "tertiary-fixed": "#ffdcc2",
+                      "surface-variant": "#dde3e5",
+                      "background": "#f4fafc",
+                      "on-secondary-container": "#00731e",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#633400",
+                      "surface": "#f4fafc",
+                      "outline": "#6c797c",
+                      "secondary-fixed-dim": "#78dc77",
+                      "secondary-fixed": "#94f990",
+                      "on-error-container": "#93000a",
+                      "secondary": "#006e1c",
+                      "secondary-container": "#91f78e",
+                      "primary-fixed": "#a1efff",
+                      "on-secondary": "#ffffff",
+                      "on-primary-container": "#004650",
+                      "surface-dim": "#d5dbdd",
+                      "primary-fixed-dim": "#44d8f1",
+                      "outline-variant": "#bbc9cc",
+                      "on-primary": "#ffffff",
+                      "surface-bright": "#f4fafc",
+                      "error-container": "#ffdad6",
+                      "christmas-red": "#C62828",
+                      "on-error": "#ffffff",
+                      "inverse-on-surface": "#ecf2f3",
+                      "inverse-primary": "#44d8f1"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "margin-desktop": "48px",
+                      "gutter": "24px",
+                      "base": "8px",
+                      "container-max": "1200px"
+              },
+              "fontFamily": {
+                      "headline-xl": [
+                              "Montserrat"
+                      ],
+                      "headline-lg": [
+                              "Montserrat"
+                      ],
+                      "headline-md": [
+                              "Montserrat"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Montserrat"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-xl": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .glass-card-active {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        
+        .bg-rio-waves {
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCwTOU2RiDkKdnTb_trSl8-zb7KLGDdiZ8gPQhFAMsQY-nFP89pgRES1WndqSxZkm1a-EAvVwkpmKzpROo2K1KEeXlbOYK1Z1YLoFgzd-zm0oVDLVMQxoR63cw-pcUr0ohLUq5jN3Me5s5Fpd7P6x3WZEOVeqj3tO5AvH2cXIOFg1tNYKp2QuakBEt78ApMOtSkL8LrKFQTh9e1AhmL73FxqQLDfebvlwL8e0wONV077hGWPp7bQyzFZSDL59TupsvX5sI');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .tilt-card {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .glow-effect {
+            box-shadow: 0 0 20px rgba(251, 192, 45, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<div class="bg-rio-waves"></div>
+<!-- TopNavBar -->
+<nav class="bg-surface-glass dark:bg-surface-glass/20 border-b border-white/20 dark:border-white/10 shadow-sm docked full-width top-0 sticky backdrop-blur-xl z-50">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="flex items-center gap-6">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed tracking-tight">Shinatal</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Rewards</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Performance</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200" href="#">Rules</a>
+</div>
+</div>
+<div class="flex items-center gap-4 text-primary dark:text-primary-fixed">
+<button class="hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200">
+<span class="material-symbols-outlined text-2xl">settings</span>
+</button>
+<button class="hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200">
+<span class="material-symbols-outlined text-2xl">help</span>
+</button>
+<button class="font-label-md text-label-md hover:text-primary dark:hover:text-primary-fixed transition-colors duration-200 hidden md:block">Notifications</button>
+<div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+<img alt="User profile with role badge" class="w-8 h-8 rounded-full border border-primary/20 object-cover" data-alt="A small circular avatar placeholder image showing a generic user silhouette or professional corporate portrait headshot." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYx4xt4xH082CSPm6QxAIvt38gqIdF9SHckJNnurI6O8doTLPu0854nloC07isIfbwncR4lNBWebTF29opVg2xjFUcabC7Vy_n8gHlveNPJ0mydBrdWdW4qBZnREf3HBdu0k9NMyv3LFQ5TvQkHqq9uwcRJ79GdIxvsVJmGPEcWpjNBh_mVEsW4u2IUfLgiW-9fBFUrFOcGY7W60aIFbYkWzJ0PXERB4BFZbYcz8BJdX3h5IaJDpRHuQ"/>
+<span class="font-label-md text-label-md hidden md:block">Profile</span>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter z-10 relative">
+<!-- Decorative Elements -->
+<span class="material-symbols-outlined absolute top-4 right-4 text-festive-gold opacity-50 text-4xl transform rotate-12 pointer-events-none">star</span>
+<span class="material-symbols-outlined absolute bottom-20 left-10 text-primary opacity-20 text-5xl pointer-events-none">ac_unit</span>
+<header class="mb-4">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Bem-vindo, João!</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Acompanhe seu status para a premiação do Shinatal 2024.</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left Column: Main Metric & Motivational -->
+<div class="lg:col-span-8 flex flex-col gap-gutter">
+<!-- Centerpiece Dynamic Card -->
+<div class="glass-card-active rounded-xl p-8 relative overflow-hidden tilt-card glow-effect flex flex-col items-center justify-center min-h-[250px]" id="premioCard">
+<!-- Subtle background decoration -->
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-festive-gold/10 rounded-full blur-2xl"></div>
+<div class="absolute -left-10 -bottom-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-4">Sua Premiação Estimada</span>
+<h2 class="font-headline-xl text-headline-xl text-festive-gold drop-shadow-sm mb-2" id="valorPremio">R$ 1.500,00</h2>
+<div class="mt-6 flex items-center gap-2 bg-surface-glass px-4 py-2 rounded-full border border-white/40">
+<span class="material-symbols-outlined text-secondary text-sm">trending_up</span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Projeção Máxima Atingida</span>
+</div>
+</div>
+<!-- Motivational Card -->
+<div class="glass-panel rounded-xl p-6 flex flex-col sm:flex-row items-center gap-6 border-l-4 border-l-primary">
+<div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-3xl">emoji_events</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Quase lá!</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Mantenha a boa conduta e assiduidade para garantir 100% da sua cota na celebração.</p>
+</div>
+</div>
+<!-- Rules Quick Access -->
+<div class="glass-panel rounded-xl p-6 mt-4">
+<div class="flex justify-between items-center mb-4 cursor-pointer" onclick="toggleRules()">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">gavel</span>
+                            Regras do Shinatal (Resumo)
+                        </h3>
+<span class="material-symbols-outlined text-on-surface-variant transition-transform" id="rulesIcon">expand_more</span>
+</div>
+<div class="hidden font-body-md text-body-md text-on-surface-variant space-y-3 pl-8 border-l-2 border-outline-variant/30" id="rulesContent">
+<p><strong>7. Faltas:</strong> Faltas injustificadas reduzem a cota final.</p>
+<p><strong>8. Atrasos:</strong> Pontos de atraso acumulados impactam a elegibilidade.</p>
+<p><strong>9. Disciplina:</strong> Medidas disciplinares podem desclassificar o colaborador.</p>
+<p><strong>10. Elegibilidade:</strong> É necessário estar ativo na data do evento.</p>
+<a class="inline-flex items-center gap-1 text-primary hover:underline font-label-sm mt-2" href="#">Ler regulamento completo <span class="material-symbols-outlined text-xs">arrow_forward</span></a>
+</div>
+</div>
+</div>
+<!-- Right Column: Status Grid & Profile Settings -->
+<div class="lg:col-span-4 flex flex-col gap-gutter">
+<!-- Status Sidebar -->
+<div class="glass-card-active rounded-xl p-6 flex flex-col gap-4">
+<h3 class="font-headline-md text-headline-md text-on-surface border-b border-white/30 pb-2 mb-2">Seu Desempenho</h3>
+<!-- Metric 1: Faltas -->
+<div class="bg-surface-glass rounded-lg p-4 border border-white/40 flex justify-between items-center">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Faltas Injustificadas</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">0</span>
+</div>
+<div class="bg-secondary-container/30 text-secondary px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+<span class="font-label-sm text-label-sm">Excelente</span>
+</div>
+</div>
+<!-- Metric 2: Atrasos -->
+<div class="bg-surface-glass rounded-lg p-4 border border-white/40 flex justify-between items-center">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Atrasos (Pontos)</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">12</span>
+</div>
+<div class="bg-tertiary-container/20 text-tertiary px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span class="font-label-sm text-label-sm">Atenção</span>
+</div>
+</div>
+<!-- Metric 3: Disciplina -->
+<div class="bg-surface-glass rounded-lg p-4 border border-white/40 flex justify-between items-center">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Medidas Disciplinares</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">0</span>
+</div>
+<div class="bg-secondary-container/30 text-secondary px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+<span class="font-label-sm text-label-sm">Limpo</span>
+</div>
+</div>
+</div>
+<!-- Profile Tab (Password Reset) -->
+<div class="glass-panel rounded-xl p-6">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">lock</span>
+                        Segurança
+                    </h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-4">Atualize sua senha de acesso ao portal.</p>
+<form class="flex flex-col gap-3">
+<div class="relative">
+<label class="font-label-sm text-label-sm text-on-surface-variant absolute -top-2 left-2 bg-surface px-1 text-[10px]">Nova Senha</label>
+<input class="w-full bg-surface-glass/50 border border-outline-variant/50 rounded-lg px-4 py-2 text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" placeholder="••••••••" type="password"/>
+</div>
+<div class="relative">
+<label class="font-label-sm text-label-sm text-on-surface-variant absolute -top-2 left-2 bg-surface px-1 text-[10px]">Código Email</label>
+<div class="flex gap-2">
+<input class="flex-grow bg-surface-glass/50 border border-outline-variant/50 rounded-lg px-4 py-2 text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" placeholder="123456" type="text"/>
+<button class="bg-surface-variant text-on-surface-variant px-3 rounded-lg font-label-sm hover:bg-surface-dim transition-colors" type="button">Enviar</button>
+</div>
+</div>
+<button class="mt-2 w-full bg-primary text-on-primary font-label-md py-2 rounded-lg hover:bg-primary/90 transition-colors relative overflow-hidden group" type="submit">
+<span class="relative z-10 flex items-center justify-center gap-2">Atualizar Senha</span>
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
+</button>
+</form>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="bg-surface-glass dark:bg-surface-glass/30 text-primary dark:text-primary-fixed border-t border-white/30 shadow-2xl docked full-width bottom-0 fixed backdrop-blur-2xl rounded-t-xl md:hidden z-50">
+<div class="flex justify-around items-center px-4 py-2 pb-safe">
+<button class="flex flex-col items-center justify-center bg-primary-container/40 dark:bg-primary-container text-on-primary-container rounded-xl px-3 py-1 hover:bg-surface-container-highest transition-all scale-90 duration-150">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest transition-all rounded-xl px-3 py-1">
+<span class="material-symbols-outlined text-2xl">redeem</span>
+<span class="font-label-sm text-label-sm mt-1">Gifts</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest transition-all rounded-xl px-3 py-1">
+<span class="material-symbols-outlined text-2xl">analytics</span>
+<span class="font-label-sm text-label-sm mt-1">Status</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-highest transition-all rounded-xl px-3 py-1">
+<span class="material-symbols-outlined text-2xl">shield_person</span>
+<span class="font-label-sm text-label-sm mt-1">Admin</span>
+</button>
+</div>
+</nav>
+<!-- Footer -->
+<footer class="bg-surface-container dark:bg-inverse-surface text-on-surface dark:text-inverse-on-surface border-t border-outline-variant flat full-width mt-auto relative z-10 hidden md:flex">
+<div class="w-full py-12 px-margin-mobile md:px-margin-desktop flex flex-col items-center gap-6 text-center">
+<div class="font-headline-md text-headline-md text-primary dark:text-primary-fixed">Shinatal</div>
+<div class="flex gap-4 font-label-sm text-label-sm">
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Terms of Service</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Contact HR</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-300" href="#">Sustainability</a>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">© 2024 Shine Rio Group. Merry Christmas and Happy New Year!</p>
+</div>
+</footer>
+<script>
+        // Rules toggle logic
+        function toggleRules() {
+            const content = document.getElementById('rulesContent');
+            const icon = document.getElementById('rulesIcon');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Tilt effect for the main card
+        const card = document.getElementById('premioCard');
+        
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = ((y - centerY) / centerY) * -5; // Max 5 degrees
+            const rotateY = ((x - centerX) / centerX) * 5;
+
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+        });
+    </script>
+</body></html>
