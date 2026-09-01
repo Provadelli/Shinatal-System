@@ -19,7 +19,7 @@
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop min-h-12 md:min-h-14 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-7 md:h-8 w-auto" />
+        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-7 md:h-8 w-auto" />
         <span class="font-body text-[9px] md:text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
@@ -32,11 +32,11 @@
 
 <div class="flex-1 w-full flex items-center justify-center py-8 px-margin-mobile md:px-margin-desktop">
 <main class="w-full max-w-md relative z-10">
-  <div class="glass-card-active rounded-xl p-6 sm:p-8 relative overflow-hidden">
+  <div class="glass-card-active rounded-xl p-6 sm:p-8 relative overflow-hidden anim-entrada">
     <div class="absolute -top-6 -right-6 w-28 h-28 bg-primary/15 rounded-full blur-2xl pointer-events-none"></div>
 
     <div class="flex flex-col items-center text-center mb-6 relative">
-      <span class="material-symbols-outlined text-4xl text-primary mb-1">mail_lock</span>
+      <span class="material-symbols-outlined text-4xl text-christmas-red mb-1">mail_lock</span>
       <h1 class="font-display text-headline-md text-primary">Recuperar senha</h1>
       <p class="font-body text-body-md text-on-surface-variant mt-1">
         Informe seu e-mail institucional. Enviaremos um link para você criar uma nova senha.
@@ -98,7 +98,9 @@
 
 <script type="module">
   import { enviarLinkRedefinicaoSenha } from "./js/auth.js";
-  import { mostrarToast } from "./js/ui-utils.js";
+  import { mostrarToast, ativarRevelacaoAoRolar } from "./js/ui-utils.js";
+
+  ativarRevelacaoAoRolar();
 
   const form = document.getElementById("form-recuperar");
   const btn = document.getElementById("btn-enviar");

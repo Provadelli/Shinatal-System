@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -21,11 +21,15 @@ const EH_PRESIDENTE = () => perfil.role === "presidente";
 const EH_ADMIN_OU_PRESIDENTE = () => perfil.role === "admin" || perfil.role === "presidente";
 
 const perfil = await exigirAutenticacao(["admin", "dp", "rh", "presidente"]);
+ativarRevelacaoAoRolar();
 document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
 
-const state = { usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {}, fundo: { saldoDisponivel: 0, somaPesos: 0 } };
+const state = {
+  usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {},
+  fundo: { saldoDisponivel: 0, somaPesos: 0, totalContratosAtivos: null, totalContratosEncerrados: null, estornos: null }
+};
 
 // Envolvido em try/catch: uma falha aqui (ex.: rede, regra do Firestore) não pode impedir o
 // resto do script — abaixo — de rodar e ligar os botões/modais da página.
@@ -104,7 +108,7 @@ function renderFundoCard() {
   const el = document.getElementById("fundo-saldo");
   el.classList.remove("skeleton", "w-40", "h-9");
   animarNumero(el, state.fundo.saldoDisponivel, { formatador: formatarMoeda });
-  const ativos = state.contratos.filter((c) => c.status === "ativo").length;
+  const ativos = state.fundo.totalContratosAtivos ?? state.contratos.filter((c) => c.status === "ativo").length;
   document.getElementById("fundo-detalhe").textContent = `${ativos} contratos ativos · Exercício ${ANO_EXERCICIO}`;
 }
 
@@ -179,9 +183,9 @@ function renderDiretorio(filtro = "") {
 /* Linka o card "Status de contratos" com a tela dedicada de Contratos Empresariais
    (contratos.html): mostra a contagem e o total líquido creditado por eles, com atalho. */
 function renderContratosResumo() {
-  const ativos = state.contratos.filter((c) => c.status === "ativo").length;
-  const encerrados = state.contratos.filter((c) => c.status === "encerrado").length;
-  const { estornos } = calcularFundo(state.contratos);
+  const ativos = state.fundo.totalContratosAtivos ?? state.contratos.filter((c) => c.status === "ativo").length;
+  const encerrados = state.fundo.totalContratosEncerrados ?? state.contratos.filter((c) => c.status === "encerrado").length;
+  const estornos = state.fundo.estornos ?? calcularFundo(state.contratos).estornos;
 
   const totalContratosEmp = state.contratosEmpresariais.length;
   const totalCreditadoEmp = state.contratosEmpresariais.reduce(
@@ -441,6 +445,33 @@ document.getElementById("corpo-diretorio").addEventListener("click", (e) => {
 
 document.getElementById("nav-perfil-desktop").addEventListener("click", () => abrirPerfil(perfil.uid));
 document.getElementById("nav-perfil-mobile").addEventListener("click", () => abrirPerfil(perfil.uid));
+
+/* ------------------------------------------------------------------ */
+/* Status de contratos — ao vivo, pra não depender de recarregar a     */
+/* página quando outra aba/sessão ativa, encerra ou edita um contrato. */
+/* ------------------------------------------------------------------ */
+
+// Só leitura: nunca dispara recalcularEPublicarFundo()/gravações a partir daqui, senão várias
+// abas abertas ao mesmo tempo entrariam em disputa de escrita redundante no mesmo agregado.
+onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
+  if (!snap.exists()) return;
+  const dados = snap.data();
+  state.fundo = {
+    saldoDisponivel: dados.saldoDisponivel || 0,
+    somaPesos: dados.somaPesos || 0,
+    totalContratosAtivos: dados.totalContratosAtivos ?? 0,
+    totalContratosEncerrados: dados.totalContratosEncerrados ?? 0,
+    estornos: dados.estornos || 0
+  };
+  renderFundoCard();
+  renderContratosResumo();
+  renderDiretorio(document.getElementById("busca-diretorio")?.value || "");
+});
+
+onSnapshot(collection(db, "contratosEmpresariais"), (snap) => {
+  state.contratosEmpresariais = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  renderContratosResumo();
+});
 
 /* ------------------------------------------------------------------ */
 /* Log de atividade — só Admin (ver filtrarAcoesPorRole)                */

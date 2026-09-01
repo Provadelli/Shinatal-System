@@ -6,7 +6,7 @@ import {
 import { exigirAutenticacao, fazerLogout, enviarLinkRedefinicaoSenha } from "./auth.js";
 import {
   formatarMoeda, formatarData, mostrarToast,
-  iniciarContagemReenvio, alternarAccordion, animarNumero
+  iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
@@ -17,6 +17,7 @@ window.alternarAccordion = alternarAccordion;
 const ANO_EXERCICIO = new Date().getFullYear();
 
 const perfil = await exigirAutenticacao(["colaborador"]);
+ativarRevelacaoAoRolar();
 renderizarPerfil(perfil);
 
 const dados = await carregarRegistrosDoColaborador(perfil.uid);

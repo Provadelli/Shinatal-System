@@ -19,7 +19,7 @@
 <nav class="header-flutuante hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
     <a href="/gestao" class="flex items-center gap-2 justify-self-start" aria-label="Painel de Gestão do Shinatal">
-      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-8 w-auto" />
+      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
       <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal">· Gestão</span>
     </a>
     <div class="flex gap-6 items-center justify-self-center">
@@ -41,7 +41,7 @@
 
 <header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
   <a href="/gestao" class="flex items-center gap-2" aria-label="Painel de Gestão do Shinatal">
-    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-6 w-auto" />
+    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto" />
     <span class="font-body not-italic text-on-surface-variant font-normal text-sm">· Contratos</span>
   </a>
   <div class="flex items-center gap-4">
@@ -57,7 +57,7 @@
 
 <main class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 relative z-10 flex-1">
 
-  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 anim-entrada">
     <div class="conteudo-sobre-fundo">
       <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-primary">Contratos Empresariais</h1>
       <p id="subtitulo-pagina" class="font-body text-body-md text-on-surface-variant mt-1">Empresas-cliente com CNPJ validado, prazo de 12 meses e o quadro de funcionários de cada contrato.</p>
@@ -69,7 +69,7 @@
 
   <!-- Filtros -->
   <div class="glass-panel rounded-xl p-5 mb-gutter">
-    <div class="flex flex-col md:flex-row gap-3 md:items-center">
+    <div data-reveal class="flex flex-col md:flex-row gap-3 md:items-center">
       <div class="relative flex-1">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl">search</span>
         <input id="busca-contratos" class="input-shinatal !pl-10" type="text" placeholder="Buscar por nome da empresa ou CNPJ..." />
@@ -84,7 +84,7 @@
 
   <!-- Tabela de contratos -->
   <div class="glass-panel rounded-xl p-6 mb-gutter">
-    <div class="overflow-x-auto">
+    <div data-reveal class="overflow-x-auto">
       <table class="w-full text-left border-collapse min-w-[1260px]">
         <thead>
           <tr class="border-b border-outline-variant">

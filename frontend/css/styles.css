@@ -5,7 +5,7 @@
 :root {
   --shinatal-primary: #0E3B2E;
   --shinatal-verde-escuro: #0E3B2E;
-  --shinatal-azul-escuro: #14304F;
+  --shinatal-azul-escuro: #625237;
   --shinatal-gold: #B08D2F;
   --shinatal-gold-soft: #E8D9AE;
   --shinatal-red: #6E2430;
@@ -16,7 +16,7 @@
   --shinatal-borda: #E4DCC8;
   --shinatal-ink: #23201B;
   --shinatal-ink-muted: #6B6255;
-  --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #14304F 100%);
+  --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #B08D2F 100%);
   --shinatal-gradiente-valor: linear-gradient(135deg, #8A6A2F 0%, #B08D2F 100%);
 }
 
@@ -96,6 +96,14 @@ h1, h2, h3, .font-display {
 /* ---------- Seção verde/dourado: vitrine visual (home) ---------- */
 .fundo-verde-dourado {
   background: linear-gradient(135deg, var(--shinatal-verde-escuro) 0%, var(--shinatal-verde-900) 60%, var(--shinatal-gold) 145%);
+}
+
+/* ---------- Seção bege com iluminação dourada suave ("Como funciona" + "Nossos valores", unificadas) ---------- */
+.fundo-bege-dourado-suave {
+  background:
+    radial-gradient(650px 420px at 10% -10%, rgba(176, 141, 47, 0.18), transparent 70%),
+    radial-gradient(550px 380px at 90% 110%, rgba(176, 141, 47, 0.14), transparent 70%),
+    #F0E9D8;
 }
 
 /* Deriva muito lenta (Ken Burns sutil) — desativada com prefers-reduced-motion mais abaixo. */
@@ -238,6 +246,17 @@ h1, h2, h3, .font-display {
 .anim-entrada-4 { animation-delay: 0.38s; }
 .anim-entrada-5 { animation-delay: 0.49s; }
 
+/* ---------- Revelar ao rolar (seções abaixo da dobra) ---------- */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ---------- Footer minimalista ---------- */
 /* Fundo escuro (verde profundo → azul-noite), inspirado num estilo de agência: hierarquia
    clara, bastante respiro, ícones discretos em vez de blocos coloridos — o oposto do resto da
@@ -271,6 +290,12 @@ h1, h2, h3, .font-display {
 .footer-logo-invertido {
   filter: brightness(0) invert(1);
   opacity: 0.94;
+}
+
+/* Mesma logo (traço sólido sobre fundo transparente), agora recolorida para o vermelho natalino
+   --shinatal-red (#6E2430) — valores calculados numericamente para reproduzir a cor exata. */
+.logo-vermelho {
+  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%);
 }
 .footer-link {
   display: inline-flex;
@@ -358,7 +383,7 @@ a.footer-icone:hover {
 
 /* ---------- Botões ---------- */
 .btn-primario {
-  background: var(--shinatal-verde-escuro);
+  background: var(--shinatal-red);
   color: #fff;
   font-weight: 600;
   border-radius: 0.75rem;
@@ -368,7 +393,7 @@ a.footer-icone:hover {
   transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .btn-primario:hover {
-  background: #123527;
+  background: #551b23;
   border-color: var(--shinatal-gold);
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(35, 32, 27, 0.14);

@@ -19,7 +19,7 @@
 <nav class="header-flutuante hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
     <a href="/dashboard" class="flex items-center gap-2.5 justify-self-start" aria-label="Painel do Shinatal">
-      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-8 w-auto" />
+      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
     </a>
     <div class="flex gap-6 items-center justify-self-center">
       <button data-nav="home" class="nav-link nav-ativo font-body text-label-md py-1" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">Painel</button>
@@ -43,7 +43,7 @@
 <!-- ===== Header mobile ===== -->
 <header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
   <a href="/dashboard" class="flex items-center gap-2" aria-label="Painel do Shinatal">
-    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-6 w-auto" />
+    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto" />
   </a>
   <button data-abrir-modal="modal-perfil" id="avatar-mobile" class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-sm overflow-hidden">?</button>
 </header>
@@ -51,7 +51,7 @@
 <!-- ===== Conteúdo principal ===== -->
 <main id="topo" class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1">
 
-  <header class="mb-2 conteudo-sobre-fundo">
+  <header class="mb-2 conteudo-sobre-fundo anim-entrada anim-entrada-1">
     <p id="saudacao-data" class="font-body text-label-sm text-on-surface-variant uppercase tracking-wider mb-1"></p>
     <h1 id="saudacao-nome" class="font-display text-headline-lg-mobile md:text-headline-lg text-on-surface">Bem-vindo(a)!</h1>
     <p class="font-body text-body-md text-on-surface-variant mt-1">Acompanhe sua conduta e sua cota estimada para o Shinatal.</p>
@@ -62,7 +62,7 @@
     <div class="lg:col-span-8 flex flex-col gap-gutter">
 
       <!-- Card centerpiece -->
-      <div id="card-cota" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] text-center">
+      <div id="card-cota" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] text-center anim-entrada anim-entrada-2">
         <span class="material-symbols-outlined absolute top-5 right-5 text-festive-gold/60 text-3xl rotate-12">star</span>
         <span class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5">Sua cota estimada hoje</span>
         <div class="relative py-3 w-full flex items-center justify-center">
@@ -79,10 +79,10 @@
 
       <!-- Card motivacional -->
       <div id="card-motivacional" class="glass-panel rounded-xl p-6 flex flex-col sm:flex-row items-center gap-6 border-l-4 border-l-primary">
-        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <div data-reveal class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <span class="material-symbols-outlined text-primary text-3xl">emoji_events</span>
         </div>
-        <div>
+        <div data-reveal>
           <h3 id="motivacional-titulo" class="font-display text-headline-md text-on-surface mb-1">Continue assim!</h3>
           <p id="motivacional-texto" class="font-body text-body-md text-on-surface-variant">
             Zero faltas, zero atrasos e zero advertências até o fim do ano garantem +3% de bônus por excelência sobre sua cota (Seção 10 do regulamento).
@@ -92,6 +92,7 @@
 
       <!-- Resumo das regras -->
       <div class="glass-panel rounded-xl p-6">
+        <div data-reveal>
         <button class="w-full flex justify-between items-center" onclick="alternarAccordion('conteudo-regras-resumo','icone-regras-resumo')">
           <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2">
             <span class="material-symbols-outlined text-primary">gavel</span> Regras do Shinatal (resumo)

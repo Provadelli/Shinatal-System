@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Foto da equipe Shine Rio (imagem provisória)">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FAF6EE" />
+      <stop offset="100%" stop-color="#EBDDB8" />
+    </linearGradient>
+    <linearGradient id="moldura" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8A6A2F" />
+      <stop offset="100%" stop-color="#B08D2F" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="640" height="480" fill="url(#fundo)" />
+  <rect x="16" y="16" width="608" height="448" rx="18" fill="none" stroke="url(#moldura)" stroke-width="2" stroke-opacity="0.55" />
+
+  <g transform="translate(320,196)" fill="none" stroke="#B08D2F" stroke-width="6" stroke-linecap="round" stroke-opacity="0.85">
+    <circle cx="0" cy="-28" r="34" />
+    <path d="M -66 78 C -66 20 -34 -6 0 -6 C 34 -6 66 20 66 78" />
+  </g>
+
+  <text x="320" y="322" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-size="27" font-weight="700" fill="#0E3B2E">Equipe Shine Rio</text>
+  <text x="320" y="352" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="1.5" fill="#6B6255">FOTO PROVISORIA · SUBSTITUA POR UMA FOTO REAL</text>
+</svg>

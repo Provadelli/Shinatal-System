@@ -8,7 +8,7 @@ import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar } from "./ui-utils.js";
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
@@ -28,6 +28,7 @@ const ROTULOS_STATUS_CONTRATO = {
 
 // Esta página só é acessível a Admin/Presidente (DP/RH perderam acesso à aba Contratos).
 const perfil = await exigirAutenticacao(["admin", "presidente"]);
+ativarRevelacaoAoRolar();
 const ehPresidente = perfil.role === "presidente";
 // "podeGerenciar" é sempre true aqui (só admin/presidente chegam nesta página); quem
 // realmente grava direto ou só solicita aprovação é decidido por `ehPresidente`, dentro de

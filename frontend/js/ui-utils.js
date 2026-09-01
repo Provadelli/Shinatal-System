@@ -166,6 +166,35 @@ function animarNumero(elemento, valorFinal, { duracaoMs = 1200, formatador = (v)
   requestAnimationFrame(passo);
 }
 
+/**
+ * Revela com fade + leve subida os elementos que casam com `seletor` conforme entram na tela
+ * (usa IntersectionObserver, uma única vez por elemento). Se o usuário preferir menos movimento,
+ * mostra tudo de uma vez, sem observar nada.
+ */
+function ativarRevelacaoAoRolar(seletor = "[data-reveal]") {
+  const elementos = document.querySelectorAll(seletor);
+  if (!elementos.length) return;
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    elementos.forEach((el) => el.classList.add("is-visible"));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entradas, obs) => {
+    entradas.forEach((entrada) => {
+      if (entrada.isIntersecting) {
+        entrada.target.classList.add("is-visible");
+        obs.unobserve(entrada.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  elementos.forEach((el) => {
+    el.classList.add("reveal-on-scroll");
+    observer.observe(el);
+  });
+}
+
 export {
   formatarMoeda,
   formatarData,
@@ -176,5 +205,6 @@ export {
   marcarNavAtiva,
   alternarAccordion,
   iniciarContagemReenvio,
-  animarNumero
+  animarNumero,
+  ativarRevelacaoAoRolar
 };

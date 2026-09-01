@@ -1,5 +1,6 @@
 // Shinatal — Design tokens compartilhados (Tailwind CDN config)
-// Paleta clara/elegante (branco, bege, dourado — azul e verde escuros como detalhe mínimo).
+// Paleta clara/elegante e natalina: bege/branco de base, com vermelho, dourado e verde como
+// destaque (sem azul — "secondary"/"rio-deep-blue" viraram um bronze/bege escuro).
 // Carregar DEPOIS do <script src="https://cdn.tailwindcss.com">.
 tailwind.config = {
   theme: {
@@ -20,11 +21,11 @@ tailwind.config = {
         "on-background": "#23201B",
         "tertiary-container": "#EBDDB8",
         "tertiary": "#8A6A2F",
-        "on-secondary-fixed-variant": "#123456",
+        "on-secondary-fixed-variant": "#554730",
         "surface-tint": "#0E3B2E",
         "on-tertiary-fixed-variant": "#6B5321",
-        "on-secondary-fixed": "#08192B",
-        "rio-deep-blue": "#14304F",
+        "on-secondary-fixed": "#272116",
+        "rio-deep-blue": "#625237",
         "on-surface": "#23201B",
         "surface-container-high": "#ECE3CC",
         "primary-container": "#D6E3D9",
@@ -33,16 +34,16 @@ tailwind.config = {
         "tertiary-fixed": "#F0E2BE",
         "surface-variant": "#E7DCC0",
         "background": "#FAF6EE",
-        "on-secondary-container": "#123456",
+        "on-secondary-container": "#413725",
         "surface-container-lowest": "#ffffff",
         "on-tertiary-container": "#5C4620",
         "surface": "#FAF6EE",
         "outline": "#8A7F68",
-        "secondary-fixed-dim": "#9FB4CB",
-        "secondary-fixed": "#D3DEEA",
+        "secondary-fixed-dim": "#c8b89d",
+        "secondary-fixed": "#e9e3d8",
         "on-error-container": "#5A1620",
-        "secondary": "#14304F",
-        "secondary-container": "#D6E0EA",
+        "secondary": "#625237",
+        "secondary-container": "#e9e3d8",
         "primary-fixed": "#B9D4C3",
         "on-secondary": "#ffffff",
         "on-primary-container": "#123527",

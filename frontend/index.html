@@ -34,20 +34,58 @@
 
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
-<!-- ===================== HEADER FIXO ===================== -->
-<header class="header-flutuante">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop min-h-12 md:min-h-14 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
+<!-- ===================== HEADER FIXO (desktop: opções centralizadas) ===================== -->
+<nav class="header-flutuante hidden md:flex">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
+    <a href="/" class="flex items-center gap-2.5 shrink-0 justify-self-start" aria-label="Página inicial do Shinatal">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-7 md:h-8 w-auto" />
-        <span class="font-body text-[9px] md:text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
+        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
+        <span class="font-body text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
 
-    <nav class="flex items-center gap-1.5 sm:gap-2.5">
-      <a href="#como-funciona" class="btn-fantasma !border-0 !py-2 !px-3 sm:!px-4 flex items-center gap-1.5 text-sm">
+    <div class="flex items-center gap-6 justify-self-center">
+      <a href="#sobre-nos" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-lg">history_edu</span> Quem somos
+      </a>
+      <a href="#como-funciona" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-lg">menu_book</span> Sobre
+      </a>
+      <a href="#nossos-valores" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-lg">workspace_premium</span> Valores
+      </a>
+    </div>
+
+    <div class="flex items-center gap-2.5 justify-self-end">
+      <a href="/login" class="btn-fantasma !py-2 !px-4 flex items-center gap-1.5 text-sm">
+        <span class="material-symbols-outlined text-lg">login</span> Login
+      </a>
+      <a href="/cadastro" class="btn-primario !py-2 !px-4 flex items-center gap-1.5 text-sm">
+        <span class="material-symbols-outlined text-lg">person_add</span> Cadastro
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HEADER FIXO (mobile) ===================== -->
+<header class="header-flutuante md:hidden">
+  <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
+      <span class="flex flex-col leading-none gap-0.5">
+        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-7 w-auto" />
+        <span class="font-body text-[9px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
+      </span>
+    </a>
+
+    <nav class="flex items-center gap-1 sm:gap-2">
+      <a href="#sobre-nos" title="Quem somos" aria-label="Quem somos" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
+        <span class="material-symbols-outlined text-lg">history_edu</span>
+      </a>
+      <a href="#como-funciona" title="Sobre" aria-label="Sobre" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
         <span class="material-symbols-outlined text-lg">menu_book</span>
-        <span class="hidden sm:inline">Sobre</span>
+      </a>
+      <a href="#nossos-valores" title="Valores" aria-label="Valores" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
+        <span class="material-symbols-outlined text-lg">workspace_premium</span>
       </a>
       <a href="/login" class="btn-fantasma !py-2 !px-3 sm:!px-4 flex items-center gap-1.5 text-sm">
         <span class="material-symbols-outlined text-lg">login</span>
@@ -70,7 +108,7 @@
         <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação 2026
       </p>
       <h1 class="font-display text-headline-lg-mobile md:text-headline-xl leading-[1.05] anim-entrada anim-entrada-2">
-        Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
+        Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
       </h1>
       <p class="font-body text-body-lg text-on-surface-variant max-w-md anim-entrada anim-entrada-3">
         A magia do Natal encontra o espírito do Rio: acompanhe sua premiação, sua conduta e a
@@ -92,35 +130,73 @@
     </div>
 
     <!-- Card do fundo arrecadado -->
-    <div id="card-fundo" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full max-w-2xl min-h-[340px] mx-auto text-center flex flex-col items-center justify-center anim-entrada anim-entrada-3">
-      <div class="absolute top-0 left-0 right-0 h-1.5" style="background: linear-gradient(90deg, var(--shinatal-verde-escuro), var(--shinatal-azul-escuro) 50%, var(--shinatal-gold));"></div>
-      <p class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5 relative flex items-center justify-center gap-2">
-        <span class="material-symbols-outlined text-festive-gold text-lg">savings</span>
-        Fundo Shinatal já arrecadado
-      </p>
+    <div class="relative w-full max-w-2xl mx-auto anim-entrada anim-entrada-3">
+      <div id="card-fundo" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">
+        <div class="absolute top-0 left-0 right-0 h-1.5" style="background: linear-gradient(90deg, var(--shinatal-red) 0%, var(--shinatal-red) 65%, var(--shinatal-gold) 100%);"></div>
+        <p class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5 relative flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-festive-gold text-lg">savings</span>
+          Fundo Shinatal já arrecadado
+        </p>
 
-      <div class="relative py-3 w-full flex items-center justify-center">
-        <!-- Para ajustar o tamanho do número: mude as classes text-5xl/6xl/7xl abaixo.
-             Para trocar as cores do degradê: edite --shinatal-gradiente-valor em css/styles.css. -->
-        <p class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] relative px-2 whitespace-nowrap">
-          <span id="valor-arrecadado"><span class="skeleton inline-block w-48 h-12 align-middle rounded-lg"></span></span>
+        <div class="relative py-3 w-full flex items-center justify-center">
+          <!-- Para ajustar o tamanho do número: mude as classes text-5xl/6xl/7xl abaixo.
+               Para trocar as cores do degradê: edite --shinatal-gradiente-valor em css/styles.css. -->
+          <p class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] relative px-2 whitespace-nowrap">
+            <span id="valor-arrecadado"><span class="skeleton inline-block w-48 h-12 align-middle rounded-lg"></span></span>
+          </p>
+        </div>
+
+        <p id="qtd-colaboradores" class="font-body text-body-lg text-on-surface-variant mt-6 relative flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-primary text-xl">groups</span>
+          <span class="skeleton inline-block w-40 h-5 align-middle rounded"></span>
+        </p>
+
+        <p class="font-body text-label-sm text-outline mt-6 relative max-w-sm">
+          Valor atualizado conforme novos contratos são ativados pela Shine Rio.
         </p>
       </div>
 
-      <p id="qtd-colaboradores" class="font-body text-body-lg text-on-surface-variant mt-6 relative flex items-center justify-center gap-2">
-        <span class="material-symbols-outlined text-primary text-xl">groups</span>
-        <span class="skeleton inline-block w-40 h-5 align-middle rounded"></span>
-      </p>
+      <!-- Chapéu de natal pendurado na quina do card, como se estivesse realmente apoiado ali -->
+      <img src="assets/chapeu-natal.png" alt="" aria-hidden="true"
+        class="absolute -top-8 -right-7 sm:-top-10 sm:-right-9 w-16 sm:w-20 h-auto rotate-12 z-20 drop-shadow-lg pointer-events-none select-none anim-entrada anim-entrada-4" />
+    </div>
+  </section>
 
-      <p class="font-body text-label-sm text-outline mt-6 relative max-w-sm">
-        Valor atualizado conforme novos contratos são ativados pela Shine Rio.
-      </p>
+  <!-- ===================== SOBRE NÓS (história da Shine Rio) ===================== -->
+  <section id="sobre-nos" class="bg-surface-container-low border-y border-outline-variant/40 py-14 md:py-20 scroll-mt-24">
+    <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid md:grid-cols-2 gap-10 items-center">
+      <div class="order-2 md:order-1">
+        <!-- Foto provisória: troque o src abaixo por uma foto real da equipe/loja quando disponível. -->
+        <img src="assets/sobre-nos-placeholder.svg" alt="Foto da equipe Shine Rio (imagem provisória)"
+          class="rounded-xl w-full h-auto glass-card-active" loading="lazy" />
+        <p class="font-body text-label-sm text-outline mt-3 text-center">Nossa equipe, em construção — em breve, novas fotos por aqui.</p>
+      </div>
+      <div class="order-1 md:order-2">
+        <p class="font-display text-label-md text-festive-gold uppercase tracking-widest mb-2 flex items-center gap-2">
+          <span class="material-symbols-outlined text-base">history_edu</span> Nossa história
+        </p>
+        <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-4">Quem somos</h2>
+        <p class="font-body text-body-lg text-on-surface-variant mb-4">
+          A Shine Rio nasceu do compromisso de tratar cada colaborador como parte essencial de uma mesma equipe.
+          Ao longo do nosso caminho, aprendemos que reconhecimento e cuidado constroem histórias — e é esse espírito
+          que carregamos em cada contrato, em cada turno e em cada conquista.
+        </p>
+        <p class="font-body text-body-lg text-on-surface-variant mb-4">
+          Acreditamos que dedicação merece ser celebrada. O Shinatal nasceu dessa crença: transformar o esforço diário
+          de quem faz a Shine Rio acontecer em um gesto concreto de gratidão, no espírito generoso que o Natal carioca
+          sempre inspirou.
+        </p>
+        <p class="font-body text-body-lg text-on-surface-variant">
+          Mais do que um programa de premiação, o Shinatal é a nossa forma de dizer obrigado — com a energia do Rio
+          de Janeiro e o brilho de uma época que celebra o que realmente importa: as pessoas.
+        </p>
+      </div>
     </div>
   </section>
 
   <!-- ===================== SOBRE O SHINATAL (vitrine visual, seção de página inteira) ===================== -->
   <section id="como-funciona" class="fundo-verde-dourado relative overflow-hidden py-14 md:py-20 scroll-mt-24">
-    <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
+    <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
       <p class="font-display text-label-md text-festive-gold uppercase tracking-widest mb-2 flex items-center gap-2">
         <span class="material-symbols-outlined text-base">menu_book</span> Sobre o Shinatal
       </p>
@@ -156,9 +232,9 @@
     </div>
   </section>
 
-  <!-- ===================== COMO FUNCIONA (fatos rápidos, seção de página inteira) ===================== -->
-  <section class="relative bg-surface-container border-y border-outline-variant/50 py-14 md:py-20">
-    <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+  <!-- ===================== COMO FUNCIONA + NOSSOS VALORES (unificadas, bege com iluminação dourada suave) ===================== -->
+  <section class="relative fundo-bege-dourado-suave border-y border-outline-variant/40 py-14 md:py-20">
+    <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
       <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-6">Como funciona o programa</h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -198,6 +274,37 @@
         </a>
       </div>
     </div>
+
+    <div id="nossos-valores" data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative mt-14 md:mt-20 pt-14 md:pt-20 border-t border-outline-variant/40 scroll-mt-24">
+      <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-6">Nossos valores</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
+          <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <span class="material-symbols-outlined text-xl">workspace_premium</span>
+          </span>
+          <p class="font-body text-body-md text-on-surface-variant">Dedicação reconhecida em cada detalhe do trabalho.</p>
+        </div>
+        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
+          <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
+            <span class="material-symbols-outlined text-xl">diversity_3</span>
+          </span>
+          <p class="font-body text-body-md text-on-surface-variant">Comunidade: crescemos juntos, como uma só equipe.</p>
+        </div>
+        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
+          <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
+            <span class="material-symbols-outlined text-xl">trending_up</span>
+          </span>
+          <p class="font-body text-body-md text-on-surface-variant">Crescimento constante, para a empresa e para quem faz parte dela.</p>
+        </div>
+        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
+          <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
+            <span class="material-symbols-outlined text-xl">redeem</span>
+          </span>
+          <p class="font-body text-body-md text-on-surface-variant">Espírito natalino: gratidão e generosidade o ano inteiro.</p>
+        </div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -219,7 +326,9 @@
         <p class="font-display text-label-md text-white uppercase tracking-widest mb-4">Navegação</p>
         <nav class="flex flex-col items-center sm:items-start gap-2.5">
           <a href="/" class="footer-nav-link">Início</a>
+          <a href="#sobre-nos" class="footer-nav-link">Quem somos</a>
           <a href="#como-funciona" class="footer-nav-link">Sobre o Shinatal</a>
+          <a href="#nossos-valores" class="footer-nav-link">Nossos valores</a>
           <a href="/login" class="footer-nav-link">Login</a>
           <a href="/cadastro" class="footer-nav-link">Criar cadastro</a>
         </nav>
@@ -252,7 +361,9 @@
 <script type="module">
   import { db } from "./js/firebase-init.js";
   import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { formatarMoeda, animarNumero } from "./js/ui-utils.js";
+  import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar } from "./js/ui-utils.js";
+
+  ativarRevelacaoAoRolar();
 
   // Spotlight que acompanha o cursor no card do fundo (só em dispositivos com mouse).
   const cardFundo = document.getElementById("card-fundo");

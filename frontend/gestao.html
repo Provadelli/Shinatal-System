@@ -19,7 +19,7 @@
 <nav class="header-flutuante hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
     <a href="/gestao" class="flex items-center gap-2 justify-self-start" aria-label="Painel de Gestão do Shinatal">
-      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-8 w-auto" />
+      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
       <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal">· Gestão</span>
     </a>
     <div class="flex gap-6 items-center justify-self-center">
@@ -46,7 +46,7 @@
 
 <header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
   <a href="/gestao" class="flex items-center gap-2" aria-label="Painel de Gestão do Shinatal">
-    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-6 w-auto" />
+    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto" />
     <span class="font-body not-italic text-on-surface-variant font-normal text-sm">· Gestão</span>
   </a>
   <div class="flex items-center gap-4">
@@ -69,7 +69,7 @@
 
 <main class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 relative z-10 flex-1">
 
-  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 anim-entrada">
     <div class="conteudo-sobre-fundo">
       <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-primary">Painel de Gestão</h1>
       <p class="font-body text-body-md text-on-surface-variant mt-1">Contratos, faltas, advertências e a cota do Shinatal em tempo real.</p>
@@ -124,14 +124,14 @@
 
   <!-- Diretório -->
   <div class="glass-panel rounded-xl p-6 mb-gutter">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-3">
+    <div data-reveal class="flex flex-col md:flex-row justify-between items-start md:items-center mb-5 gap-3">
       <h2 class="font-display text-headline-md text-on-surface">Diretório de colaboradores</h2>
       <div class="relative w-full md:w-72">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl">search</span>
         <input id="busca-diretorio" class="input-shinatal !pl-10" type="text" placeholder="Buscar por nome ou cargo..." />
       </div>
     </div>
-    <div class="overflow-x-auto">
+    <div data-reveal class="overflow-x-auto">
       <table class="w-full text-left border-collapse min-w-[640px]">
         <thead>
           <tr class="border-b border-outline-variant">
@@ -177,8 +177,8 @@
 
     <!-- Contratos -->
     <div class="glass-panel rounded-xl p-6">
-      <h2 class="font-display text-headline-md text-on-surface mb-4">Status de contratos</h2>
-      <div id="resumo-contratos" class="space-y-3">
+      <h2 data-reveal class="font-display text-headline-md text-on-surface mb-4">Status de contratos</h2>
+      <div id="resumo-contratos" data-reveal class="space-y-3">
         <div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
           <span class="font-body text-label-md">Carregando...</span>
         </div>
