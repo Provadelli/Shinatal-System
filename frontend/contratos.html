@@ -26,6 +26,11 @@
       <a href="/gestao" data-nav="gestao" class="nav-link font-body text-label-md py-1">Painel</a>
       <a href="/contratos" data-nav="contratos" class="nav-link nav-ativo font-body text-label-md py-1">Contratos</a>
       <button id="nav-perfil-desktop" class="nav-link font-body text-label-md py-1">Perfil</button>
+      <a id="nav-log-desktop" href="/gestao?abrir=log" class="hidden nav-link font-body text-label-md py-1">Atividade</a>
+      <a id="nav-solicitacoes-desktop" href="/gestao?abrir=solicitacoes" class="hidden nav-link font-body text-label-md py-1 relative">
+        Solicitações
+        <span id="badge-solicitacoes-desktop" class="hidden absolute -top-2 -right-3 min-w-[1.3em] h-[1.3em] px-1 rounded-full bg-christmas-red text-white text-[10px] font-bold flex items-center justify-center">0</span>
+      </a>
     </div>
     <div class="flex items-center gap-4 justify-self-end">
       <span id="badge-role" class="hidden md:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold">
@@ -51,6 +56,13 @@
     <button id="nav-perfil-mobile" title="Perfil" class="text-on-surface-variant hover:text-primary transition-colors">
       <span class="material-symbols-outlined">person</span>
     </button>
+    <a id="nav-log-mobile" href="/gestao?abrir=log" title="Atividade" class="hidden text-on-surface-variant hover:text-primary transition-colors">
+      <span class="material-symbols-outlined">history</span>
+    </a>
+    <a id="nav-solicitacoes-mobile" href="/gestao?abrir=solicitacoes" title="Solicitações" class="hidden text-on-surface-variant hover:text-primary transition-colors relative">
+      <span class="material-symbols-outlined">inbox</span>
+      <span id="badge-solicitacoes-mobile" class="hidden absolute -top-1 -right-1 min-w-[1.1em] h-[1.1em] px-1 rounded-full bg-christmas-red text-white text-[9px] font-bold flex items-center justify-center">0</span>
+    </a>
     <button id="btn-sair-mobile" class="text-on-surface-variant"><span class="material-symbols-outlined">logout</span></button>
   </div>
 </header>
@@ -77,6 +89,7 @@
       <select id="filtro-status-contrato" class="input-shinatal !pl-3 md:w-56">
         <option value="">Todos os status</option>
         <option value="ativo">Somente ativos</option>
+        <option value="pausado">Somente pausados</option>
         <option value="encerrado">Somente encerrados</option>
       </select>
     </div>
@@ -211,8 +224,19 @@
           <label class="label-shinatal">Status do contrato</label>
           <select id="ce-status" class="input-shinatal !pl-3">
             <option value="ativo">Ativo</option>
+            <option value="pausado">Pausado</option>
             <option value="encerrado">Encerrado</option>
           </select>
+        </div>
+        <p id="ce-info-pausado" class="hidden font-body text-label-sm text-on-tertiary-container bg-tertiary-container/40 rounded-lg px-3 py-2"></p>
+        <div id="ce-bloco-pausa" class="hidden">
+          <label class="label-shinatal">Data da pausa</label>
+          <input id="ce-data-pausa" class="input-shinatal !pl-3" type="date" />
+          <p class="font-body text-label-sm text-on-surface-variant mt-1.5">O tempo pausado não conta para os 12 meses de vigência do contrato (Seção 2.2).</p>
+        </div>
+        <div id="ce-bloco-retomada" class="hidden">
+          <label class="label-shinatal">Data de retomada</label>
+          <input id="ce-data-retomada" class="input-shinatal !pl-3" type="date" />
         </div>
         <div id="ce-bloco-encerramento" class="hidden space-y-3">
           <div>

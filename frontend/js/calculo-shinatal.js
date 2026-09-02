@@ -251,12 +251,26 @@ function calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, d
   return { acrescido, descontado };
 }
 
-/** Estorno proporcional se o contrato encerrar (ou estiver projetado a encerrar) antes dos meses previstos. */
-function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, dataReferenciaISO, valorCreditadoAteAData) {
+/** Soma os meses em que o contrato ficou pausado até a data de referência — uma pausa ainda
+ * aberta (dataRetomada null) conta até a própria data de referência. Tempo pausado não conta
+ * como tempo efetivo de execução do contrato (ver "Pausar contrato" abaixo). */
+function calcularMesesPausados(pausas, dataReferenciaISO) {
+  return (pausas || []).reduce((soma, p) => {
+    if (!p.dataPausa || p.dataPausa > dataReferenciaISO) return soma;
+    const fim = p.dataRetomada && p.dataRetomada < dataReferenciaISO ? p.dataRetomada : dataReferenciaISO;
+    return soma + Math.max(0, mesesEntreDatas(p.dataPausa, fim));
+  }, 0);
+}
+
+/** Estorno proporcional se o contrato encerrar (ou estiver projetado a encerrar) antes dos meses
+ * previstos. `mesesDecorridos` é o tempo EFETIVO de execução — exclui qualquer período em que o
+ * contrato esteve pausado (ver `calcularMesesPausados`), já que pausas não contam para os 12 meses. */
+function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, dataReferenciaISO, valorCreditadoAteAData, pausas = []) {
   if (!dataInicioISO || valorCreditadoAteAData <= 0) return 0;
   const mesesAlvo = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
   if (mesesAlvo <= 0) return 0;
-  const mesesDecorridos = Math.max(0, mesesEntreDatas(dataInicioISO, dataReferenciaISO));
+  const mesesBrutos = Math.max(0, mesesEntreDatas(dataInicioISO, dataReferenciaISO));
+  const mesesDecorridos = Math.max(0, mesesBrutos - calcularMesesPausados(pausas, dataReferenciaISO));
   if (mesesDecorridos >= mesesAlvo) return 0;
   const mesesFaltantes = mesesAlvo - mesesDecorridos;
   return Math.min(valorCreditadoAteAData, (valorCreditadoAteAData / mesesAlvo) * mesesFaltantes);
@@ -297,12 +311,14 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOS
   const acrescido = acrescidoFuncionarios + Math.max(0, ajustePrazo);
   const descontado = descontadoFuncionarios + Math.max(0, -ajustePrazo);
   const totalCreditado = creditoInicial + acrescidoFuncionarios - descontadoFuncionarios;
-  const estorno = calcularEstornoContratoEmpresarial(contrato.dataInicio, contrato.dataFimPrevista, dataReferencia, totalCreditado);
+  const pausas = contrato.pausas || [];
+  const estorno = calcularEstornoContratoEmpresarial(contrato.dataInicio, contrato.dataFimPrevista, dataReferencia, totalCreditado, pausas);
   const totalCreditadoFundo = contrato.status === "encerrado" ? Math.max(0, totalCreditado - estorno) : totalCreditado;
   const saidasIniciaisQtd = saidasIniciais.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
   const entradasAtivasQtd = entradasContrato.filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
   const qtdAtual = Math.max(0, (contrato.quantidadeFuncionariosIniciais || 0) - saidasIniciaisQtd) + entradasAtivasQtd;
-  return { creditoInicial, acrescido, descontado, ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia, qtdAtual };
+  const mesesPausados = calcularMesesPausados(pausas, dataReferencia);
+  return { creditoInicial, acrescido, descontado, ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia, qtdAtual, mesesPausados };
 }
 
 /* ------------------------------------------------------------------ */
@@ -553,5 +569,6 @@ export {
   calcularCreditoInicialContratoEmpresarial,
   calcularAjustesFuncionariosContrato,
   calcularEstornoContratoEmpresarial,
-  calcularResumoContratoEmpresarial
+  calcularResumoContratoEmpresarial,
+  calcularMesesPausados
 };

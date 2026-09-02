@@ -5,7 +5,7 @@
 // no documento do contrato — nenhum funcionário precisa ser nomeado, só contado e datado.
 import { db } from "./firebase-init.js";
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
 import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar } from "./ui-utils.js";
@@ -23,6 +23,7 @@ const ANO_EXERCICIO = new Date().getFullYear();
 const ROTULOS_ROLE = { admin: "Administrador", dp: "Departamento Pessoal", rh: "Recursos Humanos", presidente: "Presidente" };
 const ROTULOS_STATUS_CONTRATO = {
   ativo: { texto: "Ativo", classe: "bg-secondary-container/40 text-on-secondary-container" },
+  pausado: { texto: "Pausado", classe: "bg-tertiary-container/40 text-on-tertiary-container" },
   encerrado: { texto: "Encerrado", classe: "bg-surface-container-highest text-on-surface-variant" }
 };
 
@@ -45,6 +46,23 @@ if (podeGerenciar) {
   const btnNovo = document.getElementById("btn-novo-contrato-emp");
   btnNovo.classList.remove("hidden");
   btnNovo.classList.add("flex");
+}
+
+// Mesmas opções de header do Painel de Gestão (Atividade/Solicitações) — os modais em si só
+// existem em gestao.js; aqui só mostramos os links (com o badge de pendentes ao vivo) e eles
+// levam para /gestao já abrindo o modal certo (ver "abrir=" em gestao.js).
+document.getElementById("nav-log-desktop").classList.toggle("hidden", !podeGerenciar);
+document.getElementById("nav-log-mobile").classList.toggle("hidden", !podeGerenciar);
+document.getElementById("nav-solicitacoes-desktop").classList.toggle("hidden", !ehPresidente);
+document.getElementById("nav-solicitacoes-mobile").classList.toggle("hidden", !ehPresidente);
+if (ehPresidente) {
+  onSnapshot(query(collection(db, "solicitacoes"), where("status", "==", "pendente")), (snap) => {
+    const qtd = snap.size;
+    [document.getElementById("badge-solicitacoes-desktop"), document.getElementById("badge-solicitacoes-mobile")].forEach((b) => {
+      b.textContent = String(qtd);
+      b.classList.toggle("hidden", qtd === 0);
+    });
+  });
 }
 
 const state = { usuarios: [], contratosBase: [], contratosEmpresariais: [] };
@@ -122,7 +140,19 @@ async function recalcularEPublicarFundo() {
 /* Tabela de contratos                                                 */
 /* ------------------------------------------------------------------ */
 
+/** Atualiza o texto das opções de status do filtro com a contagem real de contratos cadastrados
+ * em cada status — sem mexer no "value" da option, pra não perder o filtro já selecionado. */
+function atualizarContadoresFiltroStatus() {
+  const contagens = { ativo: 0, pausado: 0, encerrado: 0 };
+  state.contratosEmpresariais.forEach((c) => { if (contagens[c.status] !== undefined) contagens[c.status]++; });
+  const select = document.getElementById("filtro-status-contrato");
+  select.querySelector('option[value="ativo"]').textContent = `Somente ativos (${contagens.ativo})`;
+  select.querySelector('option[value="pausado"]').textContent = `Somente pausados (${contagens.pausado})`;
+  select.querySelector('option[value="encerrado"]').textContent = `Somente encerrados (${contagens.encerrado})`;
+}
+
 function renderTabela() {
+  atualizarContadoresFiltroStatus();
   const termo = document.getElementById("busca-contratos").value.trim().toLowerCase();
   const statusFiltro = document.getElementById("filtro-status-contrato").value;
 
@@ -171,7 +201,10 @@ function renderTabela() {
           ${formatarData(c.dataFimPrevista)}
           <span class="block text-label-sm">${duracaoPrevista} meses previstos</span>
         </td>
-        <td class="py-3 px-3"><span class="inline-flex items-center px-2 py-1 rounded-full font-body text-label-sm ${status.classe}">${status.texto}</span></td>
+        <td class="py-3 px-3">
+          <span class="inline-flex items-center px-2 py-1 rounded-full font-body text-label-sm ${status.classe}">${status.texto}</span>
+          ${resumo.mesesPausados ? `<span class="block text-label-sm text-on-surface-variant mt-1">${resumo.mesesPausados} ${resumo.mesesPausados === 1 ? "mês pausado" : "meses pausados"}</span>` : ""}
+        </td>
         <td class="py-3 px-3 font-body text-body-md text-right whitespace-nowrap ${resumo.descontado ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.descontado)}</td>
         <td class="py-3 px-3 font-body text-body-md text-right whitespace-nowrap ${resumo.acrescido ? "text-secondary font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.acrescido)}</td>
         <td class="py-3 px-3 text-right whitespace-nowrap">
@@ -425,6 +458,9 @@ function resetarModalContrato() {
   document.getElementById("ce-cnpj-status").textContent = "";
   document.getElementById("ce-duracao-prevista").textContent = "";
   document.getElementById("ce-bloco-status").classList.add("hidden");
+  document.getElementById("ce-bloco-pausa").classList.add("hidden");
+  document.getElementById("ce-bloco-retomada").classList.add("hidden");
+  document.getElementById("ce-info-pausado").classList.add("hidden");
   document.getElementById("ce-bloco-encerramento").classList.add("hidden");
   esconderFormSaidaInicial();
   esconderFormNovaEntrada();
@@ -438,13 +474,35 @@ function resetarModalContrato() {
   alternarTabContrato("dados");
 }
 
+/** A partir do status selecionado agora e do estado salvo do contrato, monta a lista de pausas
+ * atualizada — usada tanto na prévia ao vivo (atualizarPreviewEstornoContrato) quanto no submit.
+ * Retorna null se uma transição pausar/retomar está em andamento mas a data ainda não foi
+ * preenchida (não é um erro fora dessas transições: aí devolve a lista sem mudança nenhuma). */
+function montarPausasAtualizadas(statusSelecionado) {
+  const pausas = contratoEmEdicao?.pausas || [];
+  const estavaPausado = contratoEmEdicao?.status === "pausado";
+  if (statusSelecionado === "pausado" && !estavaPausado) {
+    const dataPausa = document.getElementById("ce-data-pausa").value;
+    if (!dataPausa) return null;
+    return [...pausas, { dataPausa, dataRetomada: null }];
+  }
+  if (estavaPausado && statusSelecionado !== "pausado") {
+    const dataRetomada = document.getElementById("ce-data-retomada").value;
+    if (!dataRetomada) return null;
+    return pausas.map((p, i) => (i === pausas.length - 1 ? { ...p, dataRetomada } : p));
+  }
+  return pausas;
+}
+
 function atualizarPreviewEstornoContrato() {
   if (!contratoEmEdicao) return;
   const dataInicio = document.getElementById("ce-inicio").value;
   const dataFimPrevista = document.getElementById("ce-fim-previsto").value || contratoEmEdicao.dataFimPrevista;
   const dataFimReal = document.getElementById("ce-fim-real").value || new Date().toISOString().slice(0, 10);
+  const statusSelecionado = document.getElementById("ce-status").value;
+  const pausas = montarPausasAtualizadas(statusSelecionado) ?? contratoEmEdicao.pausas;
   const resumo = calcularResumoContratoEmpresarial(
-    { ...contratoEmEdicao, status: "encerrado", dataInicio, dataFimPrevista, dataEncerramentoReal: dataFimReal }
+    { ...contratoEmEdicao, status: "encerrado", dataInicio, dataFimPrevista, dataEncerramentoReal: dataFimReal, pausas }
   );
   document.getElementById("ce-preview-estorno").textContent = formatarMoeda(resumo.estorno);
 }
@@ -562,6 +620,15 @@ function prepararModalContrato(contrato, tabInicial) {
     document.getElementById("ce-fim-real").value = contrato.dataEncerramentoReal || "";
     atualizarPreviewEstornoContrato();
   }
+  if (contrato.status === "pausado") {
+    const resumo = calcularResumoContratoEmpresarial(contrato);
+    const pausaAberta = [...(contrato.pausas || [])].reverse().find((p) => !p.dataRetomada);
+    const rotuloMeses = `${resumo.mesesPausados} ${resumo.mesesPausados === 1 ? "mês pausado" : "meses pausados"}`;
+    document.getElementById("ce-info-pausado").textContent = pausaAberta
+      ? `Pausado desde ${formatarData(pausaAberta.dataPausa)} — ${rotuloMeses} até agora (não contam para os 12 meses de vigência).`
+      : `${rotuloMeses} até agora (não contam para os 12 meses de vigência).`;
+    document.getElementById("ce-info-pausado").classList.remove("hidden");
+  }
   habilitarTabFuncionarios(true);
   renderQuadroInicial();
   renderEntradasContrato();
@@ -587,16 +654,38 @@ document.getElementById("ce-fim-previsto").addEventListener("input", () => {
 });
 
 document.getElementById("ce-status").addEventListener("change", (e) => {
-  const bloco = document.getElementById("ce-bloco-encerramento");
-  const mostrar = e.target.value === "encerrado";
-  bloco.classList.toggle("hidden", !mostrar);
-  if (mostrar) {
+  const status = e.target.value;
+  const estavaPausado = contratoEmEdicao?.status === "pausado";
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  const mostrarEncerramento = status === "encerrado";
+  document.getElementById("ce-bloco-encerramento").classList.toggle("hidden", !mostrarEncerramento);
+  if (mostrarEncerramento) {
     const fimReal = document.getElementById("ce-fim-real");
-    if (!fimReal.value) fimReal.value = new Date().toISOString().slice(0, 10);
-    atualizarPreviewEstornoContrato();
+    if (!fimReal.value) fimReal.value = hoje;
   }
+
+  // "Data da pausa" só aparece ao entrar em pausado agora; "Data de retomada" só ao sair de
+  // pausado — nunca as duas juntas (ver montarPausasAtualizadas).
+  const mostrarPausa = status === "pausado" && !estavaPausado;
+  document.getElementById("ce-bloco-pausa").classList.toggle("hidden", !mostrarPausa);
+  if (mostrarPausa) {
+    const dataPausa = document.getElementById("ce-data-pausa");
+    if (!dataPausa.value) dataPausa.value = hoje;
+  }
+
+  const mostrarRetomada = estavaPausado && status !== "pausado";
+  document.getElementById("ce-bloco-retomada").classList.toggle("hidden", !mostrarRetomada);
+  if (mostrarRetomada) {
+    const dataRetomada = document.getElementById("ce-data-retomada");
+    if (!dataRetomada.value) dataRetomada.value = hoje;
+  }
+
+  atualizarPreviewEstornoContrato();
 });
 document.getElementById("ce-fim-real").addEventListener("input", atualizarPreviewEstornoContrato);
+document.getElementById("ce-data-pausa").addEventListener("input", atualizarPreviewEstornoContrato);
+document.getElementById("ce-data-retomada").addEventListener("input", atualizarPreviewEstornoContrato);
 
 document.getElementById("form-contrato-empresarial").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -637,8 +726,13 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
   const statusVisivel = !document.getElementById("ce-bloco-status").classList.contains("hidden");
   if (statusVisivel) {
     const status = document.getElementById("ce-status").value;
+    const pausas = montarPausasAtualizadas(status);
+    if (pausas === null) {
+      return mostrarToast(`Informe a data de ${status === "pausado" ? "pausa" : "retomada"}.`, "erro");
+    }
     dados.status = status;
     dados.dataEncerramentoReal = status === "encerrado" ? (document.getElementById("ce-fim-real").value || null) : null;
+    dados.pausas = pausas;
   }
 
   try {
@@ -653,9 +747,20 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
         partesDescricao.push(`Prazo previsto alterado de ${duracaoAntiga} para ${dados.duracaoMesesPrevista} meses`);
       }
       if (statusVisivel && dados.status !== contratoEmEdicao.status) {
-        partesDescricao.push(dados.status === "encerrado"
-          ? `Contrato encerrado em ${formatarData(dados.dataEncerramentoReal)}`
-          : "Contrato reaberto (status voltou para Ativo)");
+        const eraPausado = contratoEmEdicao.status === "pausado";
+        if (dados.status === "pausado") {
+          const dataPausa = dados.pausas[dados.pausas.length - 1]?.dataPausa;
+          partesDescricao.push(`Contrato pausado em ${formatarData(dataPausa)}`);
+        } else if (eraPausado) {
+          const dataRetomada = dados.pausas[dados.pausas.length - 1]?.dataRetomada;
+          partesDescricao.push(dados.status === "encerrado"
+            ? `Contrato retomado em ${formatarData(dataRetomada)} e encerrado em ${formatarData(dados.dataEncerramentoReal)}`
+            : `Contrato retomado em ${formatarData(dataRetomada)} (status voltou para Ativo)`);
+        } else if (dados.status === "encerrado") {
+          partesDescricao.push(`Contrato encerrado em ${formatarData(dados.dataEncerramentoReal)}`);
+        } else {
+          partesDescricao.push("Contrato reaberto (status voltou para Ativo)");
+        }
       }
       if (!partesDescricao.length) {
         fecharModal("modal-contrato-empresarial");
@@ -681,7 +786,7 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
     // Criação de contrato novo: só o Presidente grava direto; qualquer outro papel vira uma
     // solicitação pendente — nesse caso não existe contrato de verdade ainda, então não faz
     // sentido abrir a aba Funcionários, só avisar e fechar o modal.
-    const contratoBaseCriacao = { ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [] };
+    const contratoBaseCriacao = { ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [], pausas: [] };
     const creditoInicial = calcularResumoContratoEmpresarial(contratoBaseCriacao).totalCreditadoFundo;
     const historicoMovimentacoes = [{
       tipo: "criacao",
@@ -714,7 +819,7 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
       // diálogo) já com o quadro inicial contabilizado — como ninguém precisa de nome, não
       // há formulário extra a preencher aqui, só a confirmação visual do quadro.
       const contratoCriado = state.contratosEmpresariais.find((c) => c.id === idContrato)
-        || { id: idContrato, ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [] };
+        || { id: idContrato, ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [], pausas: [] };
       contratoEmEdicao = contratoCriado;
       contratoFuncionariosAberto = idContrato;
       travarDadosOriginais(true);

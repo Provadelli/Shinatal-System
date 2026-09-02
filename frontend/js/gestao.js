@@ -42,6 +42,13 @@ try {
   mostrarToast("Não foi possível carregar todos os dados. Alguns números podem estar desatualizados.", "erro");
 }
 
+// Deep link de /contratos: os botões "Atividade"/"Solicitações" do header de lá levam pra cá
+// com ?abrir=log|solicitacoes, já abrindo o modal certo — evita duplicar essas telas em contratos.js.
+const abrirViaQuery = new URLSearchParams(location.search).get("abrir");
+if (abrirViaQuery === "log" && EH_ADMIN_OU_PRESIDENTE()) abrirModal("modal-log");
+else if (abrirViaQuery === "solicitacoes" && EH_PRESIDENTE()) abrirModal("modal-solicitacoes");
+if (abrirViaQuery) history.replaceState(null, "", "/gestao");
+
 /* ------------------------------------------------------------------ */
 /* Carregamento                                                        */
 /* ------------------------------------------------------------------ */
