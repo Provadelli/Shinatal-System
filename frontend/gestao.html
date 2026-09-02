@@ -345,6 +345,7 @@
           <option value="avaliacao" data-roles="dp,rh,admin,presidente">Avaliação de desempenho</option>
           <option value="ativar_contrato" data-roles="rh,admin,presidente">Ativar contrato</option>
           <option value="encerrar_contrato" data-roles="rh,admin,presidente">Encerrar contrato</option>
+          <option value="alterar_status_colaborador" data-roles="rh,admin,presidente">Alterar status do colaborador</option>
           <option value="role" data-roles="admin,presidente">Alterar papel (role)</option>
         </select>
       </div>
@@ -372,6 +373,18 @@
           <option value="atestado">Atestado médico</option>
           <option value="clt">Ausência legal (CLT)</option>
         </select>
+      </div>
+      <div data-campo="status-colaborador" class="hidden">
+        <label class="label-shinatal">Novo status</label>
+        <select id="acao-status-colaborador" class="input-shinatal !pl-3">
+          <option value="ativo">Ativo (reverter desligamento)</option>
+          <option value="demitido">Demissão (pedida ou demitido)</option>
+          <option value="aviso_previo">Aviso prévio</option>
+          <option value="abandono">Abandono de emprego</option>
+          <option value="fraude">Fraude / ato doloso</option>
+          <option value="afastado">Afastado (licença/afastamento)</option>
+        </select>
+        <p class="font-body text-label-sm text-on-surface-variant mt-1.5">Demissão, aviso prévio, abandono e fraude tiram o colaborador da divisão do Shinatal (Seção 5), sem apagar o histórico de faltas/advertências/avaliações.</p>
       </div>
       <div data-campo="motivo" class="hidden">
         <label class="label-shinatal">Motivo</label>

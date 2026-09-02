@@ -6,7 +6,7 @@ import {
 import { exigirAutenticacao, fazerLogout, enviarLinkRedefinicaoSenha } from "./auth.js";
 import {
   formatarMoeda, formatarData, mostrarToast,
-  iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar
+  iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
@@ -63,7 +63,7 @@ async function buscarPorUid(nomeColecao, uid) {
 function renderizarPerfil(p) {
   const iniciais = (p.nome || "?").trim().split(/\s+/).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
   const avatarHtml = p.fotoBase64
-    ? `<img src="${p.fotoBase64}" alt="${p.nome}" class="w-full h-full object-cover" />`
+    ? `<img src="${escaparHTML(p.fotoBase64)}" alt="${escaparHTML(p.nome)}" class="w-full h-full object-cover" />`
     : iniciais;
 
   document.getElementById("avatar-desktop").innerHTML = avatarHtml;
@@ -141,7 +141,7 @@ function renderizarListasDeModais(dados) {
           <div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
             <div>
               <p class="text-on-surface font-medium">${formatarData(f.data)}</p>
-              <p class="text-label-sm">${f.motivo || "Sem motivo registrado"}</p>
+              <p class="text-label-sm">${escaparHTML(f.motivo) || "Sem motivo registrado"}</p>
             </div>
             <span class="px-2 py-1 rounded-full text-label-sm ${f.justificada ? "bg-secondary-container/40 text-on-secondary-container" : "bg-error-container text-on-error-container"}">
               ${f.justificada ? "Justificada" : "Injustificada"}
@@ -158,10 +158,10 @@ function renderizarListasDeModais(dados) {
         .map((a) => `
           <div class="border-b border-outline-variant/20 pb-2">
             <div class="flex justify-between items-center">
-              <p class="text-on-surface font-medium">${rotulos[a.tipo] || a.tipo}</p>
+              <p class="text-on-surface font-medium">${escaparHTML(rotulos[a.tipo] || a.tipo)}</p>
               <span class="text-label-sm">${formatarData(a.data)}</span>
             </div>
-            <p class="text-label-sm">${a.motivo || "Sem motivo registrado"}</p>
+            <p class="text-label-sm">${escaparHTML(a.motivo) || "Sem motivo registrado"}</p>
           </div>`)
         .join("")
     : `<p class="text-center py-6">Nenhuma advertência registrada. 🎉</p>`;

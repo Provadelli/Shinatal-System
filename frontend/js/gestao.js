@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -140,7 +140,7 @@ function renderDiretorio(filtro = "") {
     const resultado = computarResultado(u);
     const iniciais = (u.nome || "?").trim().split(/\s+/).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
     const avatar = u.fotoBase64
-      ? `<img src="${u.fotoBase64}" class="w-full h-full object-cover" alt="" />`
+      ? `<img src="${escaparHTML(u.fotoBase64)}" class="w-full h-full object-cover" alt="" />`
       : iniciais;
     const cotaLabel = resultado.elegivel ? formatarMoeda(resultado.cotaFinal) : "Inelegível";
     const totalFaltas = (state.mapaDados[u.uid]?.faltas || []).length;
@@ -157,12 +157,12 @@ function renderDiretorio(filtro = "") {
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-xs overflow-hidden shrink-0">${avatar}</div>
             <div>
-              <p class="font-body font-medium text-on-surface leading-tight">${u.nome || "—"}</p>
+              <p class="font-body font-medium text-on-surface leading-tight">${escaparHTML(u.nome) || "—"}</p>
               <p class="font-body text-label-sm text-on-surface-variant leading-tight">${ROTULOS_ROLE[u.role] || "Colaborador"}</p>
             </div>
           </div>
         </td>
-        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant">${u.cargo || "—"} <span class="text-label-sm">(${u.cargaHoraria || "-"}h)</span></td>
+        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant">${escaparHTML(u.cargo) || "—"} <span class="text-label-sm">(${u.cargaHoraria || "-"}h)</span></td>
         <td class="py-3 px-3 text-center font-body text-body-md ${totalFaltas ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${totalFaltas}</td>
         <td class="py-3 px-3 text-center font-body text-body-md ${totalAdvertencias ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${totalAdvertencias}</td>
         <td class="py-3 px-3 text-center font-body text-body-md text-on-surface-variant" title="Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total">${participacaoPct.toFixed(1)}%</td>
@@ -271,18 +271,19 @@ const CAMPOS_POR_TIPO = {
   avaliacao: ["avaliacao", "motivo"],
   ativar_contrato: ["data-generica"],
   encerrar_contrato: ["contrato-ativo", "data-generica"],
+  alterar_status_colaborador: ["data-generica", "status-colaborador", "motivo"],
   role: ["role"]
 };
 
 function alternarCamposAcao(tipo) {
-  const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-horarios", "tipo-advertencia", "avaliacao", "role", "contrato-ativo"];
+  const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-horarios", "tipo-advertencia", "avaliacao", "role", "contrato-ativo", "status-colaborador"];
   todosOsCampos.forEach((campo) => {
     document.querySelectorAll(`[data-campo="${campo}"]`).forEach((el) => el.classList.add("hidden"));
   });
   (CAMPOS_POR_TIPO[tipo] || []).forEach((campo) => {
     document.querySelectorAll(`[data-campo="${campo}"]`).forEach((el) => el.classList.remove("hidden"));
   });
-  document.getElementById("acao-data").placeholder = tipo === "ativar_contrato" ? "Data de ativação" : tipo === "encerrar_contrato" ? "Data de encerramento" : "Data";
+  document.getElementById("acao-data").placeholder = tipo === "ativar_contrato" ? "Data de ativação" : tipo === "encerrar_contrato" ? "Data de encerramento" : tipo === "alterar_status_colaborador" ? "Data do desligamento" : "Data";
 }
 
 // "Tipo de justificativa" só aparece quando o gestor marca "Falta justificada" — evita
@@ -307,10 +308,29 @@ document.getElementById("acao-uid").addEventListener("change", (e) => {
   renderLancamentosExistentesAcao();
 });
 
+// Mapeia a opção escolhida em "Alterar status do colaborador" pros campos gravados em
+// usuarios/{uid} — motivoPerdaIntegral é o campo que verificarElegibilidade() checa primeiro
+// (Seção 5); "status" é mantido em paralelo só para os dois casos que também têm um valor de
+// status equivalente (demitido/aviso_previo). Abandono/fraude não mexem em "status" — não haveria
+// um valor de status correspondente a inventar, motivoPerdaIntegral sozinho já desqualifica.
+const MAPA_STATUS_COLABORADOR = {
+  ativo: { status: "ativo", motivoPerdaIntegral: null },
+  demitido: { status: "demitido", motivoPerdaIntegral: "demitido" },
+  aviso_previo: { status: "aviso_previo", motivoPerdaIntegral: "aviso_previo" },
+  abandono: { motivoPerdaIntegral: "abandono" },
+  fraude: { motivoPerdaIntegral: "fraude" },
+  afastado: { status: "afastado" }
+};
+const ROTULOS_STATUS_COLABORADOR_ACAO = {
+  ativo: "Ativo", demitido: "Demissão", aviso_previo: "Aviso prévio",
+  abandono: "Abandono de emprego", fraude: "Fraude / ato doloso", afastado: "Afastado"
+};
+
 const TITULOS_ACAO = {
   falta: "Lançar falta", atraso: "Lançar atraso", advertencia: "Registrar advertência",
   avaliacao: "Avaliação de desempenho", ativar_contrato: "Ativar contrato",
-  encerrar_contrato: "Encerrar contrato", role: "Alterar papel (role)"
+  encerrar_contrato: "Encerrar contrato", alterar_status_colaborador: "Alterar status do colaborador",
+  role: "Alterar papel (role)"
 };
 
 document.querySelectorAll("[data-nova-acao]").forEach((btn) => {
@@ -510,8 +530,8 @@ if (EH_ADMIN_OU_PRESIDENTE()) {
       return `
         <li class="flex justify-between items-start gap-3 border-b border-outline-variant/20 pb-2">
           <div>
-            <p class="text-on-surface font-medium">${l.descricao || l.tipo}</p>
-            <p class="text-label-sm">${l.operadorNome || "—"}${l.alvoNome ? " → " + l.alvoNome : ""}</p>
+            <p class="text-on-surface font-medium">${escaparHTML(l.descricao || l.tipo)}</p>
+            <p class="text-label-sm">${escaparHTML(l.operadorNome) || "—"}${l.alvoNome ? " → " + escaparHTML(l.alvoNome) : ""}</p>
           </div>
           <span class="text-label-sm whitespace-nowrap">${l.criadoEm ? formatarDataHora(l.criadoEm) : "—"}</span>
         </li>`;
@@ -552,6 +572,7 @@ const ROTULOS_SOLICITACAO = {
   avaliacao: "Avaliação de desempenho",
   ativar_contrato: "Ativar contrato",
   encerrar_contrato: "Encerrar contrato",
+  alterar_status_colaborador: "Alterar status do colaborador",
   contrato_empresarial_criar: "Novo contrato empresarial",
   contrato_empresarial_editar: "Alteração em contrato empresarial",
   contrato_empresarial_excluir: "Exclusão de contrato empresarial"
@@ -567,6 +588,8 @@ async function aplicarSolicitacao(sol) {
     await addDoc(collection(db, "contratos"), d);
   } else if (sol.tipo === "encerrar_contrato") {
     await updateDoc(doc(db, "contratos", d.contratoId), d.campos);
+  } else if (sol.tipo === "alterar_status_colaborador") {
+    await updateDoc(doc(db, "usuarios", d.uid), d.campos);
   } else if (sol.tipo === "contrato_empresarial_criar") {
     await addDoc(collection(db, "contratosEmpresariais"), d);
   } else if (sol.tipo === "contrato_empresarial_editar") {
@@ -594,9 +617,9 @@ if (EH_PRESIDENTE()) {
       const s = d.data();
       return `
         <li class="border border-outline-variant rounded-lg p-4">
-          <p class="font-body font-semibold text-on-surface">${ROTULOS_SOLICITACAO[s.tipo] || s.tipo}</p>
-          <p class="font-body text-body-md text-on-surface-variant">${s.descricao}</p>
-          <p class="font-body text-label-sm text-on-surface-variant mt-1">Pedido por ${s.solicitadoPorNome || "—"} em ${s.criadoEm ? formatarDataHora(s.criadoEm) : "—"}</p>
+          <p class="font-body font-semibold text-on-surface">${escaparHTML(ROTULOS_SOLICITACAO[s.tipo] || s.tipo)}</p>
+          <p class="font-body text-body-md text-on-surface-variant">${escaparHTML(s.descricao)}</p>
+          <p class="font-body text-label-sm text-on-surface-variant mt-1">Pedido por ${escaparHTML(s.solicitadoPorNome) || "—"} em ${s.criadoEm ? formatarDataHora(s.criadoEm) : "—"}</p>
           <div class="flex gap-2 mt-3">
             <button data-aceitar-solicitacao="${d.id}" class="btn-primario flex-1 !py-2">Aceitar</button>
             <button data-rejeitar-solicitacao="${d.id}" class="btn-fantasma flex-1 !py-2">Rejeitar</button>
@@ -673,15 +696,22 @@ document.getElementById("corpo-diretorio").addEventListener("click", async (e) =
 
   const ok = await confirmarAcao({
     titulo: "Excluir colaborador",
-    mensagem: `Excluir "${usuario.nome || usuario.email}" do sistema? Ele perde o acesso imediatamente e some do diretório e do fundo. Esta ação não pode ser desfeita.`,
+    mensagem: `Excluir "${usuario.nome || usuario.email}" do sistema? Ele perde o acesso imediatamente e some do diretório e do fundo. Também apaga PERMANENTEMENTE o histórico de faltas, atrasos, advertências e avaliações dele. Esta ação não pode ser desfeita. Se for só um desligamento (demissão, aviso prévio etc.), use "Alterar status do colaborador" em vez disto — assim o histórico fica preservado.`,
     textoConfirmar: "Excluir",
     perigo: true
   });
   if (!ok) return;
 
   try {
+    // Apaga o cadastro + os registros pessoais de conduta ligados a este uid (faltas, atrasos,
+    // advertências, avaliações) — LGPD Art. 18 (direito de exclusão). NÃO mexe em `contratos`:
+    // esses documentos alimentam calcularFundo() e representam dinheiro já contabilizado no
+    // fundo coletivo de todos os colaboradores, não é um dado pessoal isolado deste uid.
+    await Promise.all(
+      ["faltas", "atrasos", "advertencias", "avaliacoes"].map((colecao) => excluirRegistrosPorUid(colecao, usuario.uid))
+    );
     await deleteDoc(doc(db, "usuarios", usuario.uid));
-    await registrarLog("exclusao_colaborador", `Colaborador excluído do sistema`, usuario.uid, usuario.nome || usuario.email);
+    await registrarLog("exclusao_colaborador", `Colaborador excluído do sistema (com histórico de faltas/atrasos/advertências/avaliações)`, usuario.uid, usuario.nome || usuario.email);
     mostrarToast("Colaborador excluído.", "sucesso");
     await carregarTudo();
     await recalcularEPublicarFundo();
@@ -691,6 +721,18 @@ document.getElementById("corpo-diretorio").addEventListener("click", async (e) =
     mostrarToast("Não foi possível excluir o colaborador.", "erro");
   }
 });
+
+/** Apaga em lote todos os documentos de `nomeColecao` com `uid == uidAlvo` (mesmo padrão de
+ * lotes de 450 já usado em "Excluir todo o log"). */
+async function excluirRegistrosPorUid(nomeColecao, uidAlvo) {
+  const snap = await getDocs(query(collection(db, nomeColecao), where("uid", "==", uidAlvo)));
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 450) {
+    const lote = writeBatch(db);
+    docs.slice(i, i + 450).forEach((d) => lote.delete(d.ref));
+    await lote.commit();
+  }
+}
 
 document.getElementById("form-editar-colaborador").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -736,7 +778,7 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
 
   // Contratos e avaliação passam pela fila de aprovação do Presidente — exceto quando é o
   // próprio Presidente agindo, que grava direto (ver firestore.rules e o plano aprovado).
-  const precisaAprovacao = !EH_PRESIDENTE() && ["avaliacao", "ativar_contrato", "encerrar_contrato"].includes(tipo);
+  const precisaAprovacao = !EH_PRESIDENTE() && ["avaliacao", "ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo);
 
   try {
     if (tipo === "falta") {
@@ -803,6 +845,19 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
       } else {
         await updateDoc(doc(db, "contratos", contratoId), { status: "encerrado", dataEncerramento: data });
       }
+    } else if (tipo === "alterar_status_colaborador") {
+      const novoStatus = document.getElementById("acao-status-colaborador").value;
+      const campos = { ...MAPA_STATUS_COLABORADOR[novoStatus], dataDesligamento: novoStatus === "ativo" ? null : data };
+      const descricao = `Status de ${alvoNome || uid} alterado para "${ROTULOS_STATUS_COLABORADOR_ACAO[novoStatus]}"${novoStatus !== "ativo" ? ` em ${data}` : ""}${motivo ? ` — ${motivo}` : ""}`;
+      if (precisaAprovacao) {
+        await criarSolicitacao(db, {
+          tipo: "alterar_status_colaborador", descricao, alvoUid: uid, alvoNome,
+          dadosAcao: { uid, campos }, operador: perfil
+        });
+      } else {
+        await updateDoc(doc(db, "usuarios", uid), campos);
+        await registrarLog("alterar_status_colaborador", descricao, uid, alvoNome);
+      }
     } else if (tipo === "role") {
       const novoRole = document.getElementById("acao-role").value;
       await updateDoc(doc(db, "usuarios", uid), { role: novoRole });
@@ -812,7 +867,7 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
     mostrarToast(precisaAprovacao ? "Solicitação enviada — aguardando aprovação do Presidente." : "Ação registrada com sucesso!", "sucesso");
     fecharModal("modal-nova-acao");
     await carregarTudo();
-    if (!precisaAprovacao && ["ativar_contrato", "encerrar_contrato"].includes(tipo)) await recalcularEPublicarFundo();
+    if (!precisaAprovacao && ["ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo)) await recalcularEPublicarFundo();
     renderTudo();
   } catch (erro) {
     console.error(erro);

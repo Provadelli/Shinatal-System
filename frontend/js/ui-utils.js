@@ -1,6 +1,15 @@
 // Shinatal — utilidades de UI compartilhadas entre todas as páginas.
 // Sem dependências externas além do DOM. Módulo ES (importado com <script type="module">).
 
+/** Escapa `& < > " '` para uso seguro dentro de innerHTML — usar sempre que um texto vindo do
+ * usuário/banco (nome, cargo, motivo, descrição etc.) for interpolado num template HTML, para
+ * evitar XSS armazenado. Não é necessário para atribuições a .textContent/.value, que já escapam
+ * sozinhas. */
+function escaparHTML(valor) {
+  const mapa = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  return String(valor ?? "").replace(/[&<>"']/g, (c) => mapa[c]);
+}
+
 /** Formata um número em Real brasileiro. */
 function formatarMoeda(valor) {
   const numero = Number.isFinite(valor) ? valor : 0;
@@ -44,7 +53,7 @@ function mostrarToast(mensagem, tipo = "info") {
 
   const toast = document.createElement("div");
   toast.className = `pointer-events-auto w-full shadow-lg rounded-lg px-4 py-3 flex items-center gap-2 font-body text-body-md ${cores[tipo] || cores.info} animate-[toast-in_0.25s_ease-out]`;
-  toast.innerHTML = `<span class="material-symbols-outlined text-xl">${icones[tipo] || icones.info}</span><span>${mensagem}</span>`;
+  toast.innerHTML = `<span class="material-symbols-outlined text-xl">${icones[tipo] || icones.info}</span><span>${escaparHTML(mensagem)}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -81,8 +90,8 @@ function confirmarAcao({ titulo = "Confirmar ação", mensagem, textoConfirmar =
     overlay.className = "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-inverse-surface/40";
     overlay.innerHTML = `
       <div class="glass-card-active !bg-white rounded-xl p-6 w-full max-w-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-acao-titulo">
-        <h3 id="confirmar-acao-titulo" class="font-display text-headline-md text-on-surface mb-2">${titulo}</h3>
-        <p class="font-body text-body-md text-on-surface-variant mb-6">${mensagem}</p>
+        <h3 id="confirmar-acao-titulo" class="font-display text-headline-md text-on-surface mb-2">${escaparHTML(titulo)}</h3>
+        <p class="font-body text-body-md text-on-surface-variant mb-6">${escaparHTML(mensagem)}</p>
         <div class="flex gap-3">
           <button type="button" data-cancelar class="btn-fantasma flex-1">${textoCancelar}</button>
           <button type="button" data-confirmar class="btn-primario flex-1 ${perigo ? "!bg-christmas-red" : ""}">${textoConfirmar}</button>
@@ -196,6 +205,7 @@ function ativarRevelacaoAoRolar(seletor = "[data-reveal]") {
 }
 
 export {
+  escaparHTML,
   formatarMoeda,
   formatarData,
   formatarDataHora,

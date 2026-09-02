@@ -8,7 +8,7 @@ import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML } from "./ui-utils.js";
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
@@ -187,7 +187,7 @@ function renderTabela() {
     return `
       <tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/60 transition-colors align-top">
         <td class="py-3 px-3">
-          <p class="font-body font-medium text-on-surface leading-tight">${c.nomeEmpresa || "—"}</p>
+          <p class="font-body font-medium text-on-surface leading-tight">${escaparHTML(c.nomeEmpresa) || "—"}</p>
           <p class="font-body text-label-sm text-on-surface-variant leading-tight">${formatarCNPJ(c.cnpj)}</p>
         </td>
         <td class="py-3 px-3 font-body text-body-md text-on-surface-variant text-right whitespace-nowrap">${c.valorContrato ? formatarMoeda(c.valorContrato) : "—"}</td>
@@ -397,7 +397,7 @@ function renderQuadroInicial() {
     const qtd = quantidadeDoRegistro(s);
     return `
     <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
-      <span class="text-on-surface-variant"><strong class="text-christmas-red">${qtd} ${qtd === 1 ? "saída" : "saídas"}</strong> em ${formatarData(s.data)}${s.motivo ? ` — ${s.motivo}` : ""}</span>
+      <span class="text-on-surface-variant"><strong class="text-christmas-red">${qtd} ${qtd === 1 ? "saída" : "saídas"}</strong> em ${formatarData(s.data)}${s.motivo ? ` — ${escaparHTML(s.motivo)}` : ""}</span>
       ${podeGerenciar ? `<button data-remover-saida-inicial="${i}" title="Desfazer esta saída" aria-label="Desfazer esta saída" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg">undo</span></button>` : ""}
     </li>`;
   }).join("");
@@ -434,7 +434,7 @@ function renderEntradasContrato() {
       : `<strong class="text-secondary">${qtd} ${qtd === 1 ? "entrada" : "entradas"}</strong> em ${formatarData(en.dataEntrada)} — ainda ativo(s)`;
     return `
       <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
-        <span class="text-on-surface-variant">${texto}${en.motivo ? ` — ${en.motivo}` : ""}</span>
+        <span class="text-on-surface-variant">${texto}${en.motivo ? ` — ${escaparHTML(en.motivo)}` : ""}</span>
         <span class="flex items-center">${acoesAdmin}</span>
       </li>`;
   }).join("");
@@ -587,7 +587,7 @@ function renderHistoricoMovimentacoes() {
   lista.innerHTML = historico.map((h) => `
     <li class="flex items-center justify-between gap-3 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
       <span class="text-on-surface-variant">
-        <span class="block text-on-surface font-medium">${h.descricao}</span>
+        <span class="block text-on-surface font-medium">${escaparHTML(h.descricao)}</span>
         ${formatarDataHora(h.data)}
       </span>
       <span class="whitespace-nowrap font-semibold ${h.fundoDepois < h.fundoAntes ? "text-christmas-red" : "text-secondary"}">

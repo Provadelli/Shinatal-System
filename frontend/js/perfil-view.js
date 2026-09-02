@@ -1,6 +1,6 @@
 // Shinatal — vitrine de "Perfil" (o próprio colaborador, ou visto por admin/DP/RH/Presidente):
 // junta tudo que calculo-shinatal.js já calcula numa única tela, sem repetir nenhuma fórmula.
-import { formatarMoeda, formatarData } from "./ui-utils.js";
+import { formatarMoeda, formatarData, escaparHTML } from "./ui-utils.js";
 import { contarPontosAtraso } from "./calculo-shinatal.js";
 
 const ROTULOS_ADVERTENCIA = {
@@ -42,8 +42,8 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
   container.innerHTML = `
     <div class="space-y-5">
       <div>
-        <h4 class="font-display text-headline-md text-on-surface">${usuario.nome || "—"}</h4>
-        <p class="font-body text-label-sm text-on-surface-variant">${usuario.cargo || "—"} · ${usuario.cargaHoraria || "—"}h/dia</p>
+        <h4 class="font-display text-headline-md text-on-surface">${escaparHTML(usuario.nome) || "—"}</h4>
+        <p class="font-body text-label-sm text-on-surface-variant">${escaparHTML(usuario.cargo) || "—"} · ${usuario.cargaHoraria || "—"}h/dia</p>
       </div>
       <p class="font-body text-label-sm text-on-surface-variant">Admissão em ${usuario.dataAdmissao ? formatarData(usuario.dataAdmissao) : "—"}</p>
 
@@ -70,7 +70,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         <ul class="space-y-1">
           ${faltasOrdenadas.map((f) => `
             <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-              <span>${formatarData(f.data)} — ${f.justificada ? "justificada" : "injustificada"}${f.motivo ? ` (${f.motivo})` : ""}</span>
+              <span>${formatarData(f.data)} — ${f.justificada ? "justificada" : "injustificada"}${f.motivo ? ` (${escaparHTML(f.motivo)})` : ""}</span>
               ${botaoExcluir("falta", f.id, tiposExcluiveis)}
             </li>`).join("")}
         </ul>` : `<p class="font-body text-label-sm text-on-surface-variant">Nenhuma falta registrada.</p>`}
@@ -105,7 +105,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         <ul class="space-y-1">
           ${advertenciasOrdenadas.map((a) => `
             <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-              <span>${ROTULOS_ADVERTENCIA[a.tipo] || a.tipo} — ${formatarData(a.data)}${a.motivo ? ` (${a.motivo})` : ""}</span>
+              <span>${escaparHTML(ROTULOS_ADVERTENCIA[a.tipo] || a.tipo)} — ${formatarData(a.data)}${a.motivo ? ` (${escaparHTML(a.motivo)})` : ""}</span>
               ${botaoExcluir("advertencia", a.id, tiposExcluiveis)}
             </li>`).join("")}
         </ul>` : `<p class="font-body text-label-sm text-on-surface-variant">Nenhuma advertência registrada.</p>`}

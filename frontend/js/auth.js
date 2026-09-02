@@ -82,6 +82,15 @@ export function exigirAutenticacao(rolesPermitidos = null) {
         window.location.href = "/login";
         return;
       }
+      // Segunda camada de defesa: as firestore.rules já exigem e-mail confirmado para qualquer
+      // leitura/escrita operacional — sem este check, uma sessão nessa situação carregaria a
+      // página e só travaria depois, em erros de permissão confusos, em vez de um redirecionamento
+      // claro (mesma regra já aplicada em fazerLogin()).
+      if (!user.emailVerified) {
+        await signOut(auth);
+        window.location.href = "/login?motivo=nao-verificado";
+        return;
+      }
       const perfil = await obterPerfil(user.uid);
       if (!perfil) {
         await signOut(auth);
