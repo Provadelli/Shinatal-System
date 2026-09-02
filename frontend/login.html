@@ -119,10 +119,11 @@
 
 <script type="module">
   import { fazerLogin, traduzirErroAuth, PAGINA_POR_ROLE } from "./js/auth.js";
-  import { ligarToggleSenha, mostrarToast, ativarRevelacaoAoRolar } from "./js/ui-utils.js";
+  import { ligarToggleSenha, mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
 
   ligarToggleSenha("btn-toggle-senha", "senha");
   ativarRevelacaoAoRolar();
+  sincronizarAlturaHeader();
 
   // Redirecionado aqui por exigirAutenticacao() (auth.js) por causa de uma sessão com e-mail
   // ainda não confirmado — mesma mensagem já usada em fazerLogin().

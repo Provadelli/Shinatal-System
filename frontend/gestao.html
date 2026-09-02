@@ -17,26 +17,26 @@
 
 <!-- ===== Nav superior (desktop) ===== -->
 <nav class="header-flutuante hidden md:flex">
-  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
-    <a href="/gestao" class="flex items-center gap-2 justify-self-start" aria-label="Painel de Gestão do Shinatal">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/gestao" class="flex items-center gap-2 shrink-0" aria-label="Painel de Gestão do Shinatal">
       <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
-      <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal">· Gestão</span>
+      <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal whitespace-nowrap">· Gestão</span>
     </a>
-    <div class="flex gap-6 items-center justify-self-center">
-      <a href="/gestao" data-nav="gestao" class="nav-link nav-ativo font-body text-label-md py-1">Painel</a>
-      <a id="nav-contratos-desktop" href="/contratos" data-nav="contratos" class="nav-link font-body text-label-md py-1">Contratos</a>
-      <button id="nav-perfil-desktop" class="nav-link font-body text-label-md py-1">Perfil</button>
-      <button id="nav-log-desktop" data-abrir-modal="modal-log" class="hidden nav-link font-body text-label-md py-1">Atividade</button>
-      <button id="nav-solicitacoes-desktop" data-abrir-modal="modal-solicitacoes" class="hidden nav-link font-body text-label-md py-1 relative">
+    <div class="flex-1 min-w-0 flex gap-3 lg:gap-6 items-center justify-center overflow-x-auto">
+      <a href="/gestao" data-nav="gestao" class="nav-link nav-ativo font-body text-label-md py-1 whitespace-nowrap shrink-0">Painel</a>
+      <a id="nav-contratos-desktop" href="/contratos" data-nav="contratos" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Contratos</a>
+      <button id="nav-perfil-desktop" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Perfil</button>
+      <button id="nav-log-desktop" data-abrir-modal="modal-log" class="hidden nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Atividade</button>
+      <button id="nav-solicitacoes-desktop" data-abrir-modal="modal-solicitacoes" class="hidden nav-link font-body text-label-md py-1 relative whitespace-nowrap shrink-0">
         Solicitações
         <span id="badge-solicitacoes-desktop" class="hidden absolute -top-2 -right-3 min-w-[1.3em] h-[1.3em] px-1 rounded-full bg-christmas-red text-white text-[10px] font-bold flex items-center justify-center">0</span>
       </button>
     </div>
-    <div class="flex items-center gap-4 justify-self-end">
-      <span id="badge-role" class="hidden md:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold">
+    <div class="flex items-center gap-4 shrink-0">
+      <span id="badge-role" class="hidden md:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold whitespace-nowrap">
         <span class="material-symbols-outlined text-base">shield_person</span> —
       </span>
-      <span id="nome-desktop" class="font-body text-label-md text-on-surface">—</span>
+      <span id="nome-desktop" class="font-body text-label-md text-on-surface whitespace-nowrap">—</span>
       <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
         <span class="material-symbols-outlined">logout</span>
       </button>

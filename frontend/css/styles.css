@@ -157,11 +157,13 @@ h1, h2, h3, .font-display {
   box-shadow: 0 2px 12px rgba(35, 32, 27, 0.05);
 }
 
-/* Compensa a altura do header fixo — aplicar no <body> de cada página (a altura real vem
-   de min-h-14/min-h-12 na barra interna do header em cada HTML). */
-.pt-header-fixo { padding-top: 3.5rem; }
+/* Compensa a altura do header fixo — aplicar no <body> de cada página. --altura-header é medida
+   ao vivo por sincronizarAlturaHeader() (ui-utils.js), que cobre o header quebrando em 2 linhas
+   (nav apertada, zoom do navegador, fonte maior etc.) — os valores fixos abaixo são só o
+   fallback caso o JS ainda não tenha rodado, mesmos valores de antes desta mudança. */
+.pt-header-fixo { padding-top: var(--altura-header, 3.5rem); }
 @media (max-width: 767px) {
-  .pt-header-fixo { padding-top: 3rem; }
+  .pt-header-fixo { padding-top: var(--altura-header, 3rem); }
 }
 
 /* ---------- Navegação ---------- */

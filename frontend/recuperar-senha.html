@@ -98,9 +98,10 @@
 
 <script type="module">
   import { enviarLinkRedefinicaoSenha } from "./js/auth.js";
-  import { mostrarToast, ativarRevelacaoAoRolar } from "./js/ui-utils.js";
+  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
 
   ativarRevelacaoAoRolar();
+  sincronizarAlturaHeader();
 
   const form = document.getElementById("form-recuperar");
   const btn = document.getElementById("btn-enviar");

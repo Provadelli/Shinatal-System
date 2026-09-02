@@ -204,8 +204,41 @@ function ativarRevelacaoAoRolar(seletor = "[data-reveal]") {
   });
 }
 
+/**
+ * Mede a altura real do header fixo (.header-flutuante — só o que estiver de fato visível,
+ * desktop ou mobile) e publica como --altura-header no :root, consumida por .pt-header-fixo
+ * (styles.css). Sem isso, .pt-header-fixo usa um valor fixo que assume o header sempre com uma
+ * linha só — quando a nav quebra em 2 linhas (poucos itens já não cabem, zoom do navegador,
+ * fonte maior), o conteúdo da página fica embaixo do header fixo. Roda ao carregar, em resize, e
+ * observa o próprio header via ResizeObserver (pega mudanças de altura que não vêm de um resize
+ * da janela, como a nav quebrando linha ou a fonte terminando de carregar).
+ */
+function sincronizarAlturaHeader() {
+  const headers = document.querySelectorAll(".header-flutuante");
+  if (!headers.length) return;
+
+  const aplicar = () => {
+    // offsetParent não serve aqui: é sempre null pra elementos position:fixed (é o próprio caso
+    // do header), independente de estarem visíveis. getClientRects().length é o jeito correto de
+    // checar "está renderizado" (fica vazio só quando o elemento ou um ancestral tem display:none
+    // — exatamente o que as classes hidden/md:flex do Tailwind alternam).
+    const altura = [...headers]
+      .filter((el) => el.getClientRects().length > 0)
+      .reduce((max, el) => Math.max(max, el.getBoundingClientRect().height), 0);
+    if (altura > 0) document.documentElement.style.setProperty("--altura-header", `${altura}px`);
+  };
+
+  aplicar();
+  window.addEventListener("resize", aplicar);
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(aplicar);
+    headers.forEach((el) => observer.observe(el));
+  }
+}
+
 export {
   escaparHTML,
+  sincronizarAlturaHeader,
   formatarMoeda,
   formatarData,
   formatarDataHora,

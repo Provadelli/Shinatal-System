@@ -17,21 +17,21 @@
 
 <!-- ===== Nav superior (desktop) ===== -->
 <nav class="header-flutuante hidden md:flex">
-  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 grid grid-cols-3 items-center gap-4">
-    <a href="/dashboard" class="flex items-center gap-2.5 justify-self-start" aria-label="Painel do Shinatal">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/dashboard" class="flex items-center gap-2.5 shrink-0" aria-label="Painel do Shinatal">
       <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
     </a>
-    <div class="flex gap-6 items-center justify-self-center">
-      <button data-nav="home" class="nav-link nav-ativo font-body text-label-md py-1" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">Painel</button>
-      <button data-abrir-modal="modal-faltas" class="nav-link font-body text-label-md py-1">Faltas</button>
-      <button data-abrir-modal="modal-advertencias" class="nav-link font-body text-label-md py-1">Advertências</button>
-      <button data-abrir-modal="modal-regras" class="nav-link font-body text-label-md py-1">Regras do evento</button>
-      <button data-abrir-modal="modal-perfil" class="nav-link font-body text-label-md py-1">Perfil</button>
+    <div class="flex-1 min-w-0 flex gap-3 lg:gap-6 items-center justify-center overflow-x-auto">
+      <button data-nav="home" class="nav-link nav-ativo font-body text-label-md py-1 whitespace-nowrap shrink-0" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">Painel</button>
+      <button data-abrir-modal="modal-faltas" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Faltas</button>
+      <button data-abrir-modal="modal-advertencias" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Advertências</button>
+      <button data-abrir-modal="modal-regras" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Regras do evento</button>
+      <button data-abrir-modal="modal-perfil" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Perfil</button>
     </div>
-    <div class="flex items-center gap-4 justify-self-end">
+    <div class="flex items-center gap-4 shrink-0">
       <button data-abrir-modal="modal-perfil" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
         <div id="avatar-desktop" class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-sm overflow-hidden">?</div>
-        <span id="nome-desktop" class="font-body text-label-md text-on-surface">Perfil</span>
+        <span id="nome-desktop" class="font-body text-label-md text-on-surface whitespace-nowrap">Perfil</span>
       </button>
       <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
         <span class="material-symbols-outlined">logout</span>

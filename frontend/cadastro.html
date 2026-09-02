@@ -167,9 +167,10 @@
   import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { traduzirErroAuth } from "./js/auth.js";
-  import { mostrarToast, ativarRevelacaoAoRolar } from "./js/ui-utils.js";
+  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
 
   ativarRevelacaoAoRolar();
+  sincronizarAlturaHeader();
 
   let fotoBase64 = null;
   const inputFoto = document.getElementById("foto");

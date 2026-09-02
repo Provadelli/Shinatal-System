@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -22,6 +22,7 @@ const EH_ADMIN_OU_PRESIDENTE = () => perfil.role === "admin" || perfil.role === 
 
 const perfil = await exigirAutenticacao(["admin", "dp", "rh", "presidente"]);
 ativarRevelacaoAoRolar();
+sincronizarAlturaHeader();
 document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
