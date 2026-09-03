@@ -14,6 +14,42 @@
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
 
+<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
+    <span class="tela-carregamento-glow" aria-hidden="true"></span>
+  </div>
+</div>
+<script>
+  (function () {
+    var texto = document.getElementById("tela-carregamento-texto");
+    "Carregando".split("").forEach(function (letra, i) {
+      var span = document.createElement("span");
+      span.className = "tela-carregamento-letra";
+      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
+      span.textContent = letra;
+      texto.appendChild(span);
+    });
+
+    var el = document.getElementById("tela-carregamento");
+    var inicio = Date.now();
+    var minimoMs = 650;
+    var escondida = false;
+    function esconder() {
+      if (escondida) return;
+      escondida = true;
+      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
+      setTimeout(function () {
+        el.classList.add("tela-carregamento-oculta");
+        setTimeout(function () { el.style.display = "none"; }, 550);
+      }, atraso);
+    }
+    if (document.readyState === "complete") esconder();
+    else window.addEventListener("load", esconder);
+    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
+  })();
+</script>
+
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <header class="header-flutuante">

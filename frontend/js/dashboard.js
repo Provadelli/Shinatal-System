@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, enviarLinkRedefinicaoSenha } from "./auth.js";
 import {
-  formatarMoeda, formatarData, mostrarToast,
+  formatarMoeda, formatarData, mostrarToast, formatarJornadaSemanal,
   iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
@@ -77,7 +77,7 @@ function renderizarPerfil(p) {
     new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
   document.getElementById("perfil-nome").textContent = p.nome || "—";
-  document.getElementById("perfil-cargo").textContent = p.cargo ? `${p.cargo} · ${p.cargaHoraria}h/dia` : "—";
+  document.getElementById("perfil-cargo").textContent = p.cargo ? `${p.cargo} · ${formatarJornadaSemanal(p.cargaHoraria)}` : "—";
   document.getElementById("perfil-email").textContent = p.email || "—";
   document.getElementById("perfil-admissao").textContent = p.dataAdmissao
     ? `Admissão em ${formatarData(p.dataAdmissao)}`

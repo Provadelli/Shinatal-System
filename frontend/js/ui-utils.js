@@ -16,6 +16,15 @@ function formatarMoeda(valor) {
   return numero.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/** Converte a carga horária diária salva (8/6/4, ver calculo-shinatal.js) para o texto de
+ * jornada semanal exibido em toda a UI (dia × 5 dias úteis). O cálculo do fundo continua em
+ * horas diárias — isto é só formatação de exibição. */
+function formatarJornadaSemanal(cargaHorariaDiaria) {
+  const n = Number(cargaHorariaDiaria);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return `${n * 5}h semanais`;
+}
+
 /** Formata uma data ISO (yyyy-mm-dd) para dd/mm/aaaa. */
 function formatarData(isoOuData) {
   const d = isoOuData instanceof Date ? isoOuData : new Date(isoOuData + "T00:00:00");
@@ -240,6 +249,7 @@ export {
   escaparHTML,
   sincronizarAlturaHeader,
   formatarMoeda,
+  formatarJornadaSemanal,
   formatarData,
   formatarDataHora,
   mostrarToast,

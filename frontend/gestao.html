@@ -13,6 +13,42 @@
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
 
+<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
+    <span class="tela-carregamento-glow" aria-hidden="true"></span>
+  </div>
+</div>
+<script>
+  (function () {
+    var texto = document.getElementById("tela-carregamento-texto");
+    "Carregando".split("").forEach(function (letra, i) {
+      var span = document.createElement("span");
+      span.className = "tela-carregamento-letra";
+      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
+      span.textContent = letra;
+      texto.appendChild(span);
+    });
+
+    var el = document.getElementById("tela-carregamento");
+    var inicio = Date.now();
+    var minimoMs = 650;
+    var escondida = false;
+    function esconder() {
+      if (escondida) return;
+      escondida = true;
+      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
+      setTimeout(function () {
+        el.classList.add("tela-carregamento-oculta");
+        setTimeout(function () { el.style.display = "none"; }, 550);
+      }, atraso);
+    }
+    if (document.readyState === "complete") esconder();
+    else window.addEventListener("load", esconder);
+    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
+  })();
+</script>
+
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <!-- ===== Nav superior (desktop) ===== -->
@@ -49,7 +85,7 @@
     <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto" />
     <span class="font-body not-italic text-on-surface-variant font-normal text-sm">· Gestão</span>
   </a>
-  <div class="flex items-center gap-4">
+  <div class="flex items-center gap-4 min-w-0 overflow-x-auto">
     <a id="nav-contratos-mobile" href="/contratos" title="Contratos Empresariais" class="text-on-surface-variant hover:text-primary transition-colors">
       <span class="material-symbols-outlined">apartment</span>
     </a>
@@ -83,12 +119,14 @@
     <!-- Fundo total -->
     <div class="glass-card-active glow-gold col-span-1 md:col-span-4 rounded-xl p-7 relative overflow-hidden flex flex-col justify-between min-h-[220px]">
       <span class="material-symbols-outlined absolute top-3 right-3 text-6xl text-festive-gold opacity-20">redeem</span>
-      <div>
-        <h2 class="font-display text-headline-md text-on-surface mb-1">Fundo do Shinatal</h2>
-        <p class="font-body text-label-sm text-on-surface-variant mb-4">Contratos ativos · R$150/cabeça</p>
+      <div class="flex items-start justify-between gap-2">
+        <h2 id="fundo-titulo" class="font-display text-headline-md text-on-surface mb-1">Fundo do Shinatal</h2>
+        <button id="btn-editar-colab-anteriores" data-abrir-modal="modal-colaboradores-anteriores" title="Colaboradores de anos anteriores" aria-label="Colaboradores de anos anteriores" class="hidden text-on-surface-variant hover:text-primary transition-colors p-1 shrink-0">
+          <span class="material-symbols-outlined text-lg">edit_calendar</span>
+        </button>
       </div>
-      <div class="relative">
-        <div id="fundo-saldo" class="font-display text-gradiente-valor font-extrabold text-3xl md:text-4xl skeleton w-40 h-9 relative whitespace-nowrap">&nbsp;</div>
+      <div class="relative text-center">
+        <div id="fundo-saldo" class="font-display text-gradiente-valor font-extrabold text-4xl md:text-5xl skeleton w-40 h-9 relative whitespace-nowrap">&nbsp;</div>
         <p id="fundo-detalhe" class="font-body text-label-sm text-on-surface-variant mt-2 relative">—</p>
       </div>
     </div>
@@ -271,7 +309,7 @@
         <div>
           <label class="label-shinatal">Jornada</label>
           <select id="nc-carga" required class="input-shinatal !pl-3">
-            <option value="8">8h/dia</option><option value="6">6h/dia</option><option value="4">4h/dia</option>
+            <option value="8">40h semanais</option><option value="6">30h semanais</option><option value="4">20h semanais</option>
           </select>
         </div>
       </div>
@@ -312,7 +350,7 @@
         <div>
           <label class="label-shinatal">Jornada</label>
           <select id="ec-carga" required class="input-shinatal !pl-3">
-            <option value="8">8h/dia (100% da cota)</option><option value="6">6h/dia (75% da cota)</option><option value="4">4h/dia (50% da cota)</option>
+            <option value="8">40h semanais (100% da cota)</option><option value="6">30h semanais (75% da cota)</option><option value="4">20h semanais (50% da cota)</option>
           </select>
         </div>
       </div>
@@ -324,6 +362,26 @@
         O e-mail institucional não pode ser alterado por aqui, pois é a identidade de login do colaborador.
       </p>
       <button type="submit" class="btn-primario w-full">Salvar alterações</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Modal: Colaboradores de anos anteriores (histórico do Fundo Shinatal) ===== -->
+<div id="modal-colaboradores-anteriores" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-md overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
+      <h3 class="font-display text-headline-md text-on-surface">Colaboradores de anos anteriores</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="form-colaboradores-anteriores" class="p-5 space-y-4" novalidate>
+      <div>
+        <label class="label-shinatal">Colaboradores em anos anteriores (histórico, não inclui o ano atual)</label>
+        <input id="cah-quantidade" required min="0" step="1" class="input-shinatal !pl-3" type="number" />
+      </div>
+      <p class="font-body text-label-sm text-on-surface-variant bg-surface-container rounded-lg px-3 py-2">
+        Esse número é somado à contagem de colaboradores do exercício atual para formar o "total" mostrado na página inicial. Não afeta o valor em R$ do fundo.
+      </p>
+      <button type="submit" class="btn-primario w-full">Salvar</button>
     </form>
   </div>
 </div>

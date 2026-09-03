@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -26,9 +26,10 @@ sincronizarAlturaHeader();
 document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
+document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
 
 const state = {
-  usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {},
+  usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {}, estatisticasPublico: {},
   fundo: { saldoDisponivel: 0, somaPesos: 0, totalContratosAtivos: null, totalContratosEncerrados: null, estornos: null }
 };
 
@@ -55,7 +56,7 @@ if (abrirViaQuery) history.replaceState(null, "", "/gestao");
 /* ------------------------------------------------------------------ */
 
 async function carregarTudo() {
-  const [usuariosSnap, contratosSnap, contratosEmpresariaisSnap, faltasSnap, atrasosSnap, advertenciasSnap, avaliacoesSnap] =
+  const [usuariosSnap, contratosSnap, contratosEmpresariaisSnap, faltasSnap, atrasosSnap, advertenciasSnap, avaliacoesSnap, estatisticasSnap] =
     await Promise.all([
       getDocs(collection(db, "usuarios")),
       getDocs(collection(db, "contratos")),
@@ -63,12 +64,14 @@ async function carregarTudo() {
       getDocs(collection(db, "faltas")),
       getDocs(collection(db, "atrasos")),
       getDocs(collection(db, "advertencias")),
-      getDocs(collection(db, "avaliacoes"))
+      getDocs(collection(db, "avaliacoes")),
+      getDoc(doc(db, "estatisticas", "publico"))
     ]);
 
   state.usuarios = usuariosSnap.docs.map((d) => ({ uid: d.id, ...d.data() }));
   state.contratos = contratosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   state.contratosEmpresariais = contratosEmpresariaisSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  state.estatisticasPublico = estatisticasSnap.exists() ? estatisticasSnap.data() : {};
 
   state.mapaDados = {};
   for (const u of state.usuarios) state.mapaDados[u.uid] = { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
@@ -116,7 +119,7 @@ function renderFundoCard() {
   const el = document.getElementById("fundo-saldo");
   el.classList.remove("skeleton", "w-40", "h-9");
   animarNumero(el, state.fundo.saldoDisponivel, { formatador: formatarMoeda });
-  const ativos = state.fundo.totalContratosAtivos ?? state.contratos.filter((c) => c.status === "ativo").length;
+  const ativos = state.contratosEmpresariais.filter((c) => c.status === "ativo").length;
   document.getElementById("fundo-detalhe").textContent = `${ativos} contratos ativos · Exercício ${ANO_EXERCICIO}`;
 }
 
@@ -163,7 +166,7 @@ function renderDiretorio(filtro = "") {
             </div>
           </div>
         </td>
-        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant">${escaparHTML(u.cargo) || "—"} <span class="text-label-sm">(${u.cargaHoraria || "-"}h)</span></td>
+        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant">${escaparHTML(u.cargo) || "—"} <span class="text-label-sm">(${formatarJornadaSemanal(u.cargaHoraria)})</span></td>
         <td class="py-3 px-3 text-center font-body text-body-md ${totalFaltas ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${totalFaltas}</td>
         <td class="py-3 px-3 text-center font-body text-body-md ${totalAdvertencias ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${totalAdvertencias}</td>
         <td class="py-3 px-3 text-center font-body text-body-md text-on-surface-variant" title="Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total">${participacaoPct.toFixed(1)}%</td>
@@ -188,38 +191,35 @@ function renderDiretorio(filtro = "") {
   }).join("");
 }
 
-/* Linka o card "Status de contratos" com a tela dedicada de Contratos Empresariais
-   (contratos.html): mostra a contagem e o total líquido creditado por eles, com atalho. */
+/* Card "Status de contratos": alimentado diretamente pela aba Contratos (coleção
+   contratosEmpresariais) — a contagem acompanha automaticamente os contratos cadastrados,
+   editados ou encerrados por lá, sem depender de um recálculo manual. */
 function renderContratosResumo() {
-  const ativos = state.fundo.totalContratosAtivos ?? state.contratos.filter((c) => c.status === "ativo").length;
-  const encerrados = state.fundo.totalContratosEncerrados ?? state.contratos.filter((c) => c.status === "encerrado").length;
-  const estornos = state.fundo.estornos ?? calcularFundo(state.contratos).estornos;
-
-  const totalContratosEmp = state.contratosEmpresariais.length;
+  const ativos = state.contratosEmpresariais.filter((c) => c.status === "ativo").length;
+  const pausados = state.contratosEmpresariais.filter((c) => c.status === "pausado").length;
+  const encerrados = state.contratosEmpresariais.filter((c) => c.status === "encerrado").length;
   const totalCreditadoEmp = state.contratosEmpresariais.reduce(
     (soma, c) => soma + calcularResumoContratoEmpresarial(c).totalCreditadoFundo, 0
   );
-  const blocoContratosEmpresariais = `
-    <div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
-      <div>
-        <p class="font-body font-bold text-on-surface">Contratos empresariais</p>
-        <p class="font-body text-label-sm text-on-surface-variant">Creditado ao fundo: ${formatarMoeda(totalCreditadoEmp)}</p>
-        <a href="/contratos" class="font-body text-label-sm text-rio-deep-blue hover:underline mt-1 inline-flex items-center gap-1">
-          ${perfil.role === "admin" ? "Ver planilha de contratos" : "Ver contratos"} <span class="material-symbols-outlined text-xs">arrow_forward</span>
-        </a>
-      </div>
-      <span class="font-display text-headline-md text-rio-deep-blue">${totalContratosEmp}</span>
-    </div>`;
 
   document.getElementById("resumo-contratos").innerHTML = `
     <div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
-      <div><p class="font-body font-bold text-on-surface">Contratos ativos</p><p class="font-body text-label-sm text-on-surface-variant">Contribuindo com o fundo</p></div>
+      <div>
+        <p class="font-body font-bold text-on-surface">Contratos ativos</p>
+        <p class="font-body text-label-sm text-on-surface-variant">Contribuindo com o fundo${pausados ? ` · ${pausados} pausado(s)` : ""}</p>
+      </div>
       <span class="font-display text-headline-md text-primary">${ativos}</span>
     </div>
     <div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
-      <div><p class="font-body font-bold text-on-surface">Contratos encerrados</p><p class="font-body text-label-sm text-on-surface-variant">Total de estornos: ${formatarMoeda(estornos)}</p></div>
+      <div>
+        <p class="font-body font-bold text-on-surface">Contratos encerrados</p>
+        <p class="font-body text-label-sm text-on-surface-variant">Total creditado ao fundo: ${formatarMoeda(totalCreditadoEmp)}</p>
+      </div>
       <span class="font-display text-headline-md text-christmas-red">${encerrados}</span>
-    </div>${blocoContratosEmpresariais}`;
+    </div>
+    <a href="/contratos" class="block text-center font-body text-label-sm text-primary hover:underline pt-1">
+      ${perfil.role === "admin" ? "Ver planilha de contratos" : "Ver contratos"} <span class="material-symbols-outlined text-xs align-middle">arrow_forward</span>
+    </a>`;
 }
 
 function popularSelects() {
@@ -259,6 +259,9 @@ function filtrarAcoesPorRole() {
   const btnNovoColaborador = document.getElementById("btn-novo-colaborador");
   btnNovoColaborador.classList.toggle("hidden", !vePrivilegiado);
   btnNovoColaborador.classList.toggle("flex", vePrivilegiado);
+
+  // Colaboradores de anos anteriores (histórico do Fundo) — mesmo escopo de acesso da aba Contratos.
+  document.getElementById("btn-editar-colab-anteriores").classList.toggle("hidden", !vePrivilegiado);
 }
 
 /* ------------------------------------------------------------------ */
@@ -498,6 +501,7 @@ onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
 
 onSnapshot(collection(db, "contratosEmpresariais"), (snap) => {
   state.contratosEmpresariais = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  renderFundoCard();
   renderContratosResumo();
 });
 
@@ -600,6 +604,51 @@ async function aplicarSolicitacao(sol) {
   }
 }
 
+/** Resumo compacto (contrato, ação, headcount antes/depois) só para os 3 tipos de solicitação
+ * de contrato empresarial — outros tipos já têm descrição textual suficiente. Só usa dados já
+ * em memória (dadosAcao + state.contratosEmpresariais), nunca busca nada assíncrono no render. */
+function montarDetalhesSolicitacao(s) {
+  const d = s.dadosAcao || {};
+  if (s.tipo === "contrato_empresarial_criar") {
+    const qtd = calcularResumoContratoEmpresarial(d).qtdAtual;
+    return [
+      { rotulo: "Contrato", valor: d.nomeEmpresa || s.alvoNome || "—" },
+      { rotulo: "Ação", valor: "Novo contrato" },
+      { rotulo: "Valor do contrato", valor: d.valorContrato ? formatarMoeda(d.valorContrato) : "—" },
+      { rotulo: "Funcionários no quadro inicial", valor: String(qtd) }
+    ];
+  }
+  if (s.tipo === "contrato_empresarial_editar") {
+    const atual = state.contratosEmpresariais.find((c) => c.id === d.docId);
+    const linhas = [{ rotulo: "Contrato", valor: s.alvoNome || atual?.nomeEmpresa || "—" }];
+    if (atual) {
+      const antes = calcularResumoContratoEmpresarial(atual).qtdAtual;
+      const depois = calcularResumoContratoEmpresarial({ ...atual, ...(d.campos || {}) }).qtdAtual;
+      linhas.push(depois !== antes
+        ? { rotulo: "Funcionários", valor: `${antes} → ${depois} (${depois > antes ? "+" : ""}${depois - antes})` }
+        : { rotulo: "Total de funcionários", valor: String(depois) });
+    }
+    return linhas;
+  }
+  if (s.tipo === "contrato_empresarial_excluir") {
+    const atual = state.contratosEmpresariais.find((c) => c.id === d.docId);
+    return [
+      { rotulo: "Contrato", valor: s.alvoNome || atual?.nomeEmpresa || "—" },
+      { rotulo: "Ação", valor: "Excluir contrato" },
+      ...(atual ? [{ rotulo: "Funcionários no contrato", valor: String(calcularResumoContratoEmpresarial(atual).qtdAtual) }] : [])
+    ];
+  }
+  return null;
+}
+
+function renderDetalhesSolicitacao(s) {
+  const linhas = montarDetalhesSolicitacao(s);
+  if (!linhas || !linhas.length) return "";
+  return `<div class="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
+    ${linhas.map((l) => `<span class="text-on-surface-variant">${escaparHTML(l.rotulo)}: <strong class="text-on-surface">${escaparHTML(l.valor)}</strong></span>`).join("")}
+  </div>`;
+}
+
 if (EH_PRESIDENTE()) {
   const qSolPendentes = query(collection(db, "solicitacoes"), where("status", "==", "pendente"), orderBy("criadoEm", "desc"));
   onSnapshot(qSolPendentes, (snap) => {
@@ -620,6 +669,7 @@ if (EH_PRESIDENTE()) {
         <li class="border border-outline-variant rounded-lg p-4">
           <p class="font-body font-semibold text-on-surface">${escaparHTML(ROTULOS_SOLICITACAO[s.tipo] || s.tipo)}</p>
           <p class="font-body text-body-md text-on-surface-variant">${escaparHTML(s.descricao)}</p>
+          ${renderDetalhesSolicitacao(s)}
           <p class="font-body text-label-sm text-on-surface-variant mt-1">Pedido por ${escaparHTML(s.solicitadoPorNome) || "—"} em ${s.criadoEm ? formatarDataHora(s.criadoEm) : "—"}</p>
           <div class="flex gap-2 mt-3">
             <button data-aceitar-solicitacao="${d.id}" class="btn-primario flex-1 !py-2">Aceitar</button>
@@ -924,6 +974,30 @@ document.getElementById("form-novo-colaborador").addEventListener("submit", asyn
     mostrarToast(traduzirErroAuth(erro), "erro");
   } finally {
     await deleteApp(appSecundario);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Colaboradores de anos anteriores (histórico do Fundo, ver home)     */
+/* ------------------------------------------------------------------ */
+
+document.getElementById("btn-editar-colab-anteriores").addEventListener("click", () => {
+  document.getElementById("cah-quantidade").value = state.estatisticasPublico.colaboradoresAnosAnteriores ?? 0;
+});
+
+document.getElementById("form-colaboradores-anteriores").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const valor = Number(document.getElementById("cah-quantidade").value);
+  if (!Number.isInteger(valor) || valor < 0) return mostrarToast("Informe um número inteiro válido (0 ou mais).", "erro");
+  try {
+    await setDoc(doc(db, "estatisticas", "publico"), { colaboradoresAnosAnteriores: valor, atualizadoEm: serverTimestamp() }, { merge: true });
+    state.estatisticasPublico.colaboradoresAnosAnteriores = valor;
+    await registrarLog("colaboradores_anos_anteriores", `Colaboradores de anos anteriores atualizado para ${valor}`);
+    mostrarToast("Atualizado com sucesso!", "sucesso");
+    fecharModal("modal-colaboradores-anteriores");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Não foi possível salvar.", "erro");
   }
 });
 

@@ -1,6 +1,6 @@
 // Shinatal — vitrine de "Perfil" (o próprio colaborador, ou visto por admin/DP/RH/Presidente):
 // junta tudo que calculo-shinatal.js já calcula numa única tela, sem repetir nenhuma fórmula.
-import { formatarMoeda, formatarData, escaparHTML } from "./ui-utils.js";
+import { formatarMoeda, formatarData, escaparHTML, formatarJornadaSemanal } from "./ui-utils.js";
 import { contarPontosAtraso } from "./calculo-shinatal.js";
 
 const ROTULOS_ADVERTENCIA = {
@@ -43,7 +43,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
     <div class="space-y-5">
       <div>
         <h4 class="font-display text-headline-md text-on-surface">${escaparHTML(usuario.nome) || "—"}</h4>
-        <p class="font-body text-label-sm text-on-surface-variant">${escaparHTML(usuario.cargo) || "—"} · ${usuario.cargaHoraria || "—"}h/dia</p>
+        <p class="font-body text-label-sm text-on-surface-variant">${escaparHTML(usuario.cargo) || "—"} · ${formatarJornadaSemanal(usuario.cargaHoraria)}</p>
       </div>
       <p class="font-body text-label-sm text-on-surface-variant">Admissão em ${usuario.dataAdmissao ? formatarData(usuario.dataAdmissao) : "—"}</p>
 

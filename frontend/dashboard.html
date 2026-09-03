@@ -13,6 +13,42 @@
 </head>
 <body class="gradient-natalino pagina-dashboard min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo pb-24 md:pb-0">
 
+<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
+    <span class="tela-carregamento-glow" aria-hidden="true"></span>
+  </div>
+</div>
+<script>
+  (function () {
+    var texto = document.getElementById("tela-carregamento-texto");
+    "Carregando".split("").forEach(function (letra, i) {
+      var span = document.createElement("span");
+      span.className = "tela-carregamento-letra";
+      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
+      span.textContent = letra;
+      texto.appendChild(span);
+    });
+
+    var el = document.getElementById("tela-carregamento");
+    var inicio = Date.now();
+    var minimoMs = 650;
+    var escondida = false;
+    function esconder() {
+      if (escondida) return;
+      escondida = true;
+      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
+      setTimeout(function () {
+        el.classList.add("tela-carregamento-oculta");
+        setTimeout(function () { el.style.display = "none"; }, 550);
+      }, atraso);
+    }
+    if (document.readyState === "complete") esconder();
+    else window.addEventListener("load", esconder);
+    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
+  })();
+</script>
+
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <!-- ===== Nav superior (desktop) ===== -->
@@ -315,7 +351,7 @@
       <p><strong class="text-on-surface">1. Objetivo.</strong> Prêmio anual por desempenho, comprometimento, disciplina e assiduidade, de natureza exclusivamente premial e liberal, sem incorporação ao contrato de trabalho.</p>
       <p><strong class="text-on-surface">2. Fundo Shinatal.</strong> R$ 150,00 por colaborador ativado em contrato, creditados na ativação. Encerramento do contrato antes de 12 meses gera estorno proporcional: (150/12) × meses faltantes. Saldo zera após o pagamento anual; estornos continuam sendo contabilizados mesmo após a virada.</p>
       <p><strong class="text-on-surface">3. Elegíveis.</strong> Operacionais, administrativos, gestores, estagiários, jovens aprendizes e demais colaboradores orgânicos ativos na data do pagamento.</p>
-      <p><strong class="text-on-surface">4. Proporcionalidade.</strong> Admissão até dia 15 = mês cheio; a partir do dia 16 = mês seguinte. Jornada: 8h=100%, 6h=75%, 4h=50%.</p>
+      <p><strong class="text-on-surface">4. Proporcionalidade.</strong> Admissão até dia 15 = mês cheio; a partir do dia 16 = mês seguinte. Jornada: 40h semanais=100%, 30h semanais=75%, 20h semanais=50%.</p>
       <p><strong class="text-on-surface">5. Perda integral.</strong> Pedido de demissão ou demissão antes do pagamento, aviso prévio na data do pagamento, abandono de emprego, ou fraude/ato doloso.</p>
       <p><strong class="text-on-surface">6. Distribuição.</strong> Valor líquido do fundo dividido pelos elegíveis, proporcional a avos e carga horária, com os redutores aplicados.</p>
       <p><strong class="text-on-surface">7. Faltas injustificadas.</strong> Desconto = cota ÷ 30 × nº de faltas. Não contam férias, licença paternidade (até 5 dias), atestados e ausências legais da CLT, desde que não ultrapassem 15 dias/ano no total.</p>

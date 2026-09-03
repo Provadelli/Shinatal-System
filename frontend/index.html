@@ -32,6 +32,42 @@
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden pt-header-fixo">
 
+<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
+    <span class="tela-carregamento-glow" aria-hidden="true"></span>
+  </div>
+</div>
+<script>
+  (function () {
+    var texto = document.getElementById("tela-carregamento-texto");
+    "Carregando".split("").forEach(function (letra, i) {
+      var span = document.createElement("span");
+      span.className = "tela-carregamento-letra";
+      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
+      span.textContent = letra;
+      texto.appendChild(span);
+    });
+
+    var el = document.getElementById("tela-carregamento");
+    var inicio = Date.now();
+    var minimoMs = 650;
+    var escondida = false;
+    function esconder() {
+      if (escondida) return;
+      escondida = true;
+      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
+      setTimeout(function () {
+        el.classList.add("tela-carregamento-oculta");
+        setTimeout(function () { el.style.display = "none"; }, 550);
+      }, atraso);
+    }
+    if (document.readyState === "complete") esconder();
+    else window.addEventListener("load", esconder);
+    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
+  })();
+</script>
+
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <!-- ===================== HEADER FIXO (desktop: opções centralizadas) ===================== -->
@@ -80,7 +116,7 @@
       </span>
     </a>
 
-    <nav class="flex items-center gap-1 sm:gap-2">
+    <nav class="flex items-center gap-1 sm:gap-2 min-w-0 overflow-x-auto">
       <a href="#sobre-nos" title="Quem somos" aria-label="Quem somos" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
         <span class="material-symbols-outlined text-lg">history_edu</span>
       </a>
@@ -93,13 +129,11 @@
       <a href="#nossos-valores" title="Valores" aria-label="Valores" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
         <span class="material-symbols-outlined text-lg">workspace_premium</span>
       </a>
-      <a href="/login" class="btn-fantasma !py-2 !px-3 sm:!px-4 flex items-center gap-1.5 text-sm">
+      <a href="/login" title="Login" aria-label="Login" class="btn-fantasma !py-2 !px-3 flex items-center">
         <span class="material-symbols-outlined text-lg">login</span>
-        <span class="hidden sm:inline">Login</span>
       </a>
-      <a href="/cadastro" class="btn-primario !py-2 !px-3 sm:!px-4 flex items-center gap-1.5 text-sm">
+      <a href="/cadastro" title="Criar cadastro" aria-label="Criar cadastro" class="btn-primario !py-2 !px-3 flex items-center">
         <span class="material-symbols-outlined text-lg">person_add</span>
-        <span class="hidden sm:inline">Cadastro</span>
       </a>
     </nav>
   </div>
@@ -111,15 +145,19 @@
 
     <div class="flex flex-col items-start space-y-6 conteudo-sobre-fundo">
       <p class="selo-premiacao font-display text-label-sm font-semibold uppercase tracking-widest anim-entrada anim-entrada-1">
-        <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação 2026
+        <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação voluntária 2026
       </p>
       <h1 class="font-display text-headline-lg-mobile md:text-headline-xl leading-[1.05] anim-entrada anim-entrada-2">
         Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
       </h1>
-      <p class="font-body text-body-lg text-on-surface-variant max-w-md anim-entrada anim-entrada-3">
-        A magia do Natal encontra o espírito do Rio: acompanhe sua premiação, sua conduta e a
-        contagem regressiva para a celebração do ano da Shine Rio.
-      </p>
+      <div class="max-w-md space-y-1 anim-entrada anim-entrada-3">
+        <p class="font-body text-body-lg font-bold text-on-surface-variant">
+          Shinatal, o reconhecimento de quem faz a shine rio acontecer.
+        </p>
+        <p class="font-body text-body-lg text-on-surface-variant">
+          Na shine rio, o ano termina com reconhecimento, gratidão e uma premiação. Durante todo o ano, construímos juntos. No natal, compartilhamos juntos.
+        </p>
+      </div>
 
       <div class="flex flex-wrap gap-3 pt-2 anim-entrada anim-entrada-4">
         <a href="/login" class="btn-primario flex items-center gap-2">
@@ -139,23 +177,28 @@
     <div class="relative w-full max-w-2xl mx-auto anim-entrada anim-entrada-3">
       <div id="card-fundo" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">
         <div class="absolute top-0 left-0 right-0 h-1.5" style="background: linear-gradient(90deg, var(--shinatal-red) 0%, var(--shinatal-red) 65%, var(--shinatal-gold) 100%);"></div>
-        <p class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5 relative flex items-center justify-center gap-2">
-          <span class="material-symbols-outlined text-festive-gold text-lg">savings</span>
-          Fundo Shinatal já arrecadado
+        <p id="fundo-rotulo" class="font-premium text-on-surface-variant mb-5 relative flex items-center justify-center gap-2 text-base sm:text-lg">
+          <span class="material-symbols-outlined not-italic text-festive-gold text-lg">savings</span>
+          <span id="fundo-rotulo-texto">Fundo Shinatal</span>
         </p>
 
         <div class="relative py-3 w-full flex items-center justify-center">
           <!-- Para ajustar o tamanho do número: mude as classes text-5xl/6xl/7xl abaixo.
                Para trocar as cores do degradê: edite --shinatal-gradiente-valor em css/styles.css. -->
-          <p class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] relative px-2 whitespace-nowrap">
+          <p class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] relative px-2 sm:whitespace-nowrap">
             <span id="valor-arrecadado"><span class="skeleton inline-block w-48 h-12 align-middle rounded-lg"></span></span>
           </p>
         </div>
 
-        <p id="qtd-colaboradores" class="font-body text-body-lg text-on-surface-variant mt-6 relative flex items-center justify-center gap-2">
-          <span class="material-symbols-outlined text-primary text-xl">groups</span>
-          <span class="skeleton inline-block w-40 h-5 align-middle rounded"></span>
-        </p>
+        <div id="qtd-colaboradores" class="mt-6 relative flex flex-col items-center gap-1">
+          <p id="qtd-colaboradores-ano" class="font-body text-body-md text-on-surface-variant flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-primary text-xl">groups</span>
+            <span class="skeleton inline-block w-56 h-5 align-middle rounded"></span>
+          </p>
+          <p id="qtd-colaboradores-total" class="font-body text-label-sm text-on-surface-variant">
+            <span class="skeleton inline-block w-32 h-4 align-middle rounded"></span>
+          </p>
+        </div>
 
         <p class="font-body text-label-sm text-outline mt-6 relative max-w-sm">
           Valor atualizado conforme novos contratos são ativados pela Shine Rio.
@@ -164,7 +207,7 @@
 
       <!-- Chapéu de natal pendurado na quina do card, como se estivesse realmente apoiado ali -->
       <img src="assets/chapeu-natal.png" alt="" aria-hidden="true"
-        class="absolute -top-8 -right-7 sm:-top-10 sm:-right-9 w-16 sm:w-20 h-auto rotate-12 z-20 drop-shadow-lg pointer-events-none select-none anim-entrada anim-entrada-4" />
+        class="absolute -top-4 -right-3 sm:-top-8 sm:-right-6 md:-top-10 md:-right-9 w-14 sm:w-16 md:w-20 h-auto rotate-12 z-20 drop-shadow-lg pointer-events-none select-none anim-entrada anim-entrada-4" />
     </div>
   </section>
 
@@ -190,16 +233,19 @@
         <p class="font-body text-body-lg text-on-surface-variant mb-4">
           A Shine Rio nasceu do compromisso de tratar cada colaborador como parte essencial de uma mesma equipe.
           Ao longo do nosso caminho, aprendemos que reconhecimento e cuidado constroem histórias — e é esse espírito
-          que carregamos em cada contrato, em cada turno e em cada conquista.
+          que carregamos em cada contrato, em cada dia de trabalho e em cada conquista.
         </p>
         <p class="font-body text-body-lg text-on-surface-variant mb-4">
           Acreditamos que dedicação merece ser celebrada. O Shinatal nasceu dessa crença: transformar o esforço diário
-          de quem faz a Shine Rio acontecer em um gesto concreto de gratidão, no espírito generoso que o Natal carioca
-          sempre inspirou.
+          de quem faz a Shine Rio acontecer em um gesto concreto de gratidão, no espírito de amor, generosidade e
+          esperança que o Natal, nascimento de Jesus, representa.
         </p>
-        <p class="font-body text-body-lg text-on-surface-variant">
+        <p class="font-body text-body-lg text-on-surface-variant mb-4">
           Mais do que um programa de premiação, o Shinatal é a nossa forma de dizer obrigado — com a energia do Rio
           de Janeiro e o brilho de uma época que celebra o que realmente importa: as pessoas.
+        </p>
+        <p class="font-body text-body-lg text-on-surface-variant">
+          E esse espírito também se estende à sociedade, levando alegria, solidariedade e esperança a quem mais precisa.
         </p>
       </div>
     </div>
@@ -212,11 +258,17 @@
         <span class="material-symbols-outlined text-base">menu_book</span> Sobre o Shinatal
       </p>
       <h2 class="font-display text-headline-lg-mobile md:text-headline-lg text-white mb-4">O espírito da celebração</h2>
-      <p class="font-body text-body-lg text-white/80 max-w-2xl">
-        A cada novo contrato conquistado pela Shine Rio, uma parte é reservada num fundo coletivo,
-        dividido entre os colaboradores elegíveis no fim do ano — reconhecimento por um ano inteiro
-        de dedicação, com o brilho e a generosidade do espírito natalino.
-      </p>
+      <div class="max-w-2xl">
+        <p class="font-body text-body-lg text-white/80 mb-4">
+          O Shinatal vai além da celebração entre nós. Todos os anos, levamos o espírito do Natal para comunidades
+          carentes, proporcionando às crianças um dia de alegria, diversão, presentes e esperança.
+        </p>
+        <p class="font-body text-body-lg text-white/80">
+          Mais do que comemorar nossas conquistas, acreditamos que também é nosso papel compartilhar o que
+          construímos com a sociedade. Por isso, transformamos parte do nosso espírito de união e solidariedade em
+          momentos especiais para quem mais precisa.
+        </p>
+      </div>
 
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
         <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
@@ -259,13 +311,13 @@
           <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
             <span class="material-symbols-outlined text-xl">groups</span>
           </span>
-          <p class="font-body text-body-md text-on-surface-variant">Participam operacionais, administrativos, gestores, estagiários e aprendizes.</p>
+          <p class="font-body text-body-md text-on-surface-variant">Participam todos os funcionários orgânicos alocados no escritório administrativo da empresa.</p>
         </div>
         <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
           <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
             <span class="material-symbols-outlined text-xl">check_circle</span>
           </span>
-          <p class="font-body text-body-md text-on-surface-variant">Assiduidade e boa conduta contam pontos a seu favor.</p>
+          <p class="font-body text-body-md text-on-surface-variant">Assiduidade e bom desempenho contam pontos a seu favor.</p>
         </div>
         <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
           <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
@@ -294,25 +346,37 @@
           <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
             <span class="material-symbols-outlined text-xl">workspace_premium</span>
           </span>
-          <p class="font-body text-body-md text-on-surface-variant">Dedicação reconhecida em cada detalhe do trabalho.</p>
-        </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
-          <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">diversity_3</span>
-          </span>
-          <p class="font-body text-body-md text-on-surface-variant">Comunidade: crescemos juntos, como uma só equipe.</p>
+          <div>
+            <p class="font-body font-bold text-on-surface text-body-md mb-1">Compromisso e reconhecimento</p>
+            <p class="font-body text-body-md text-on-surface-variant">Nosso trabalho gera resultados. E os resultados são compartilhados.</p>
+          </div>
         </div>
         <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
           <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
             <span class="material-symbols-outlined text-xl">trending_up</span>
           </span>
-          <p class="font-body text-body-md text-on-surface-variant">Crescimento constante, para a empresa e para quem faz parte dela.</p>
+          <div>
+            <p class="font-body font-bold text-on-surface text-body-md mb-1">Crescimento conjunto</p>
+            <p class="font-body text-body-md text-on-surface-variant">Cada novo contrato e cada contrato mantido fortalecem a participação de todos.</p>
+          </div>
+        </div>
+        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
+          <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
+            <span class="material-symbols-outlined text-xl">diversity_3</span>
+          </span>
+          <div>
+            <p class="font-body font-bold text-on-surface text-body-md mb-1">Qualidade que gera resultados</p>
+            <p class="font-body text-body-md text-on-surface-variant">Cada colaborador faz a diferença na qualidade, na produtividade e na competitividade da Shine Rio.</p>
+          </div>
         </div>
         <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
           <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
             <span class="material-symbols-outlined text-xl">redeem</span>
           </span>
-          <p class="font-body text-body-md text-on-surface-variant">Espírito natalino: gratidão e generosidade o ano inteiro.</p>
+          <div>
+            <p class="font-body font-bold text-on-surface text-body-md mb-1">Participação de todos</p>
+            <p class="font-body text-body-md text-on-surface-variant">A caixinha é construída ao longo do ano e compartilhada proporcionalmente com quem fez parte dessa jornada.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -398,10 +462,15 @@
   // ---------------------------------------------------------------
   const VALOR_ARRECADADO_EXEMPLO = 9867;
   const QTD_COLABORADORES_EXEMPLO = 358;
+  const COLABORADORES_ANOS_ANTERIORES_EXEMPLO = 0;
+
+  document.getElementById("fundo-rotulo-texto").innerHTML =
+    `Fundo Shinatal <span class="not-italic font-extrabold text-festive-gold text-lg sm:text-xl">${new Date().getFullYear()}</span>`;
 
   async function carregarNumeros() {
     let valor = VALOR_ARRECADADO_EXEMPLO;
     let colaboradores = QTD_COLABORADORES_EXEMPLO;
+    let colaboradoresAnosAnteriores = COLABORADORES_ANOS_ANTERIORES_EXEMPLO;
 
     try {
       const snap = await getDoc(doc(db, "estatisticas", "publico"));
@@ -409,6 +478,7 @@
         const dados = snap.data();
         if (typeof dados.arrecadado === "number") valor = dados.arrecadado;
         if (typeof dados.colaboradores === "number") colaboradores = dados.colaboradores;
+        if (typeof dados.colaboradoresAnosAnteriores === "number") colaboradoresAnosAnteriores = dados.colaboradoresAnosAnteriores;
       }
     } catch {
       // Documento ainda não publicado ou sem permissão — mantém o exemplo.
@@ -416,9 +486,13 @@
 
     animarNumero(document.getElementById("valor-arrecadado"), valor, { formatador: formatarMoeda });
 
-    const qtdEl = document.getElementById("qtd-colaboradores");
-    qtdEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Já somos <strong id="num-colaboradores" class="text-on-surface">0</strong> colaboradores`;
+    const ano = new Date().getFullYear();
+    const qtdAnoEl = document.getElementById("qtd-colaboradores-ano");
+    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Somos <strong id="num-colaboradores" class="font-display text-2xl md:text-3xl font-extrabold text-primary">0</strong> colaboradores em ${ano}`;
+    document.getElementById("qtd-colaboradores-total").innerHTML =
+      `<strong id="num-colaboradores-total">0</strong> colaboradores no total`;
     animarNumero(document.getElementById("num-colaboradores"), colaboradores, { formatador: (v) => Math.round(v).toString() });
+    animarNumero(document.getElementById("num-colaboradores-total"), colaboradores + colaboradoresAnosAnteriores, { formatador: (v) => Math.round(v).toString() });
   }
 
   carregarNumeros();
