@@ -502,18 +502,30 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   animation: carregamento-letra 2.2s ease-in-out infinite;
 }
 
+/* Camada de "barras percorridas": uma máscara de listras verticais finas (repeating-linear-
+   gradient) recorta um anel de cor vermelho/verde/dourado que varre da esquerda pra direita e
+   pulsa em opacidade — as cores só ficam visíveis através das frestas das barras. */
 .tela-carregamento-glow {
   position: absolute;
   inset: -50px -90px;
   z-index: -1;
   pointer-events: none;
+  overflow: hidden;
+  -webkit-mask-image: repeating-linear-gradient(90deg, transparent 0, transparent 6px, black 7px, black 8px);
+  mask-image: repeating-linear-gradient(90deg, transparent 0, transparent 6px, black 7px, black 8px);
+}
+.tela-carregamento-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background-image:
-    radial-gradient(circle at 28% 30%, var(--shinatal-gold) 0%, transparent 58%),
-    radial-gradient(circle at 74% 34%, var(--shinatal-red) 0%, transparent 58%),
-    radial-gradient(circle at 50% 78%, var(--shinatal-verde-escuro) 0%, transparent 58%);
-  filter: blur(14px);
-  animation: carregamento-glow-mov 2.6s cubic-bezier(0.6, 0.8, 0.5, 1) infinite alternate,
-             carregamento-glow-fade 2.2s infinite;
+    radial-gradient(circle at 50% 30%, var(--shinatal-gold) 0%, transparent 40%),
+    radial-gradient(circle at 30% 66%, var(--shinatal-red) 0%, transparent 40%),
+    radial-gradient(circle at 70% 66%, var(--shinatal-verde-escuro) 0%, transparent 40%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, black 30%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, black 30%);
+  animation: carregamento-glow-mov 2s cubic-bezier(0.6, 0.8, 0.5, 1) infinite alternate,
+             carregamento-glow-fade 4s infinite;
 }
 
 @keyframes carregamento-letra {
@@ -523,10 +535,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   100% { opacity: 0; }
 }
 @keyframes carregamento-glow-mov {
-  0% { transform: translateX(-8%); }
-  100% { transform: translateX(8%); }
+  0% { transform: translateX(-55%); }
+  100% { transform: translateX(55%); }
 }
 @keyframes carregamento-glow-fade {
   0%, 100% { opacity: 0; }
-  50% { opacity: 0.85; }
+  15% { opacity: 1; }
+  65% { opacity: 0; }
 }
