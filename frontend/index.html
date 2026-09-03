@@ -488,7 +488,7 @@
 
     const ano = new Date().getFullYear();
     const qtdAnoEl = document.getElementById("qtd-colaboradores-ano");
-    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Somos <strong id="num-colaboradores" class="font-display text-2xl md:text-3xl font-extrabold text-primary">0</strong> colaboradores em ${ano}`;
+    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Somos <strong id="num-colaboradores" class="text-on-surface">0</strong> colaboradores em ${ano}`;
     document.getElementById("qtd-colaboradores-total").innerHTML =
       `<strong id="num-colaboradores-total">0</strong> colaboradores no total`;
     animarNumero(document.getElementById("num-colaboradores"), colaboradores, { formatador: (v) => Math.round(v).toString() });
