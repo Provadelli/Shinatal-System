@@ -357,7 +357,8 @@ function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, d
  *   quantidadeFuncionariosIniciais?:number, saidasIniciais?:Array<{data:string}>,
  *   entradasContrato?:Array<{dataEntrada:string, dataSaida?:string|null}>,
  *   pausas?:Array<{dataPausa:string, dataRetomada:string|null}>,
- *   funcionariosPausados?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>}} contrato
+ *   pausasQuadroInicial?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>,
+ *   pausasEntradas?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>}} contrato
  */
 function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOString().slice(0, 10)) {
   const dataReferencia = contrato.status === "encerrado" ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
@@ -379,7 +380,10 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOS
   const descontado = descontadoFuncionarios + Math.max(0, -ajustePrazo);
   const totalCreditado = creditoInicial + acrescidoFuncionarios - descontadoFuncionarios;
   const pausas = contrato.pausas || [];
-  const funcionariosPausados = contrato.funcionariosPausados || [];
+  // Duas fontes de funcionário pausado — quem já estava desde a implantação e quem entrou
+  // durante o contrato — mas a mesma regra de estorno (proporcional ao quadro inicial) se
+  // aplica às duas, então são somadas num único pool para o cálculo.
+  const funcionariosPausados = [...(contrato.pausasQuadroInicial || []), ...(contrato.pausasEntradas || [])];
   const qtdIniciais = contrato.quantidadeFuncionariosIniciais || 0;
   const estorno = calcularEstornoContratoEmpresarial(
     contrato.dataInicio, contrato.dataFimPrevista, dataReferencia, totalCreditado, pausas, funcionariosPausados, qtdIniciais

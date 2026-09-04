@@ -340,7 +340,8 @@ function atualizarVisibilidadeBotoesFuncionarios() {
   const podeEditar = funcionariosHabilitado && podeGerenciar;
   document.getElementById("btn-saida-inicial").classList.toggle("hidden", !podeEditar);
   document.getElementById("btn-nova-entrada").classList.toggle("hidden", !podeEditar);
-  document.getElementById("btn-pausar-funcionarios").classList.toggle("hidden", !podeEditar);
+  document.getElementById("btn-pausar-quadro-inicial").classList.toggle("hidden", !podeEditar);
+  document.getElementById("btn-pausar-entradas").classList.toggle("hidden", !podeEditar);
 }
 
 /** As abas "Funcionários"/"Histórico" ficam sempre visíveis e clicáveis — só os botões de
@@ -471,15 +472,16 @@ function renderEntradasContrato() {
 /** Bloco "Funcionários pausados": lista de {dataPausa, dataRetomada?, quantidade, motivo}, sem
  * nome — mesma lógica de entradas/saídas, mas não ajusta o crédito na hora: só desconta do
  * estorno, proporcionalmente à fração do quadro pausada (ver calcularEstornoContratoEmpresarial). */
-function renderPausasFuncionarios() {
-  const resumoEl = document.getElementById("ce-pausas-funcionarios-resumo");
-  const lista = document.getElementById("lista-pausas-funcionarios");
+/** Bloco genérico de "funcionários pausados" — reaproveitado tanto para o quadro inicial quanto
+ * para as entradas durante o contrato (dois pools separados, mesmo formato de registro). */
+function renderBlocoPausas(pausas, resumoElId, listaElId, mensagemVazia) {
+  const resumoEl = document.getElementById(resumoElId);
+  const lista = document.getElementById(listaElId);
   if (!contratoEmEdicao) {
     resumoEl.textContent = "Salve o contrato na aba anterior para pausar funcionários.";
     lista.innerHTML = "";
     return;
   }
-  const pausas = contratoEmEdicao.funcionariosPausados || [];
   const totalPausas = pausas.reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
   const totalAbertas = pausas.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
   resumoEl.innerHTML = [
@@ -488,13 +490,13 @@ function renderPausasFuncionarios() {
   ].join("");
 
   if (!pausas.length) {
-    lista.innerHTML = `<li class="font-body text-label-sm text-on-surface-variant">Nenhum funcionário pausado ainda.</li>`;
+    lista.innerHTML = `<li class="font-body text-label-sm text-on-surface-variant">${mensagemVazia}</li>`;
     return;
   }
   lista.innerHTML = pausas.map((p, i) => {
     const qtd = quantidadeDoRegistro(p);
     const acoesAdmin = podeGerenciar ? `
-        ${!p.dataRetomada ? `<button data-marcar-retomada-pausa="${i}" title="Registrar retomada" aria-label="Registrar retomada" class="text-on-surface-variant hover:text-secondary transition-colors p-1"><span class="material-symbols-outlined text-lg">play_circle</span></button>` : ""}
+        ${!p.dataRetomada ? `<button data-marcar-retomada="${i}" title="Registrar retomada" aria-label="Registrar retomada" class="text-on-surface-variant hover:text-secondary transition-colors p-1"><span class="material-symbols-outlined text-lg">play_circle</span></button>` : ""}
         <button data-remover-pausa="${i}" title="Remover este registro" aria-label="Remover este registro" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg">undo</span></button>` : "";
     const texto = p.dataRetomada
       ? `<strong class="text-tertiary">${qtd} ${qtd === 1 ? "funcionário" : "funcionários"}</strong> pausado(s) em ${formatarData(p.dataPausa)} → <strong class="text-secondary">retomou</strong> em ${formatarData(p.dataRetomada)}`
@@ -505,6 +507,20 @@ function renderPausasFuncionarios() {
         <span class="flex items-center">${acoesAdmin}</span>
       </li>`;
   }).join("");
+}
+
+function renderPausasQuadroInicial() {
+  renderBlocoPausas(
+    contratoEmEdicao?.pausasQuadroInicial || [], "ce-pausas-quadro-inicial-resumo", "lista-pausas-quadro-inicial",
+    "Nenhum funcionário do quadro inicial pausado ainda."
+  );
+}
+
+function renderPausasEntradas() {
+  renderBlocoPausas(
+    contratoEmEdicao?.pausasEntradas || [], "ce-pausas-entradas-resumo", "lista-pausas-entradas",
+    "Nenhum funcionário (entrada durante o contrato) pausado ainda."
+  );
 }
 
 // Dados originais: definidos só no cadastro, travados depois (ver travarDadosOriginais).
@@ -532,14 +548,17 @@ function resetarModalContrato() {
   esconderFormSaidaInicial();
   esconderFormNovaEntrada();
   esconderFormSaidaEntrada();
-  esconderFormPausarFuncionarios();
-  esconderFormRetomarPausa();
+  esconderFormPausarQuadroInicial();
+  esconderFormRetomarPausaQuadroInicial();
+  esconderFormPausarEntradas();
+  esconderFormRetomarPausaEntradas();
   habilitarTabFuncionarios(false);
   atualizarPreviewCreditoInicial();
   atualizarResumoQuadro();
   renderQuadroInicial();
   renderEntradasContrato();
-  renderPausasFuncionarios();
+  renderPausasQuadroInicial();
+  renderPausasEntradas();
   renderHistoricoMovimentacoes();
   alternarTabContrato("dados");
 }
@@ -696,7 +715,8 @@ function prepararModalContrato(contrato, tabInicial) {
   habilitarTabFuncionarios(true);
   renderQuadroInicial();
   renderEntradasContrato();
-  renderPausasFuncionarios();
+  renderPausasQuadroInicial();
+  renderPausasEntradas();
   renderHistoricoMovimentacoes();
   atualizarResumoQuadro();
   alternarTabContrato(tabInicial);
@@ -851,7 +871,7 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
     // Criação de contrato novo: só o Presidente grava direto; qualquer outro papel vira uma
     // solicitação pendente — nesse caso não existe contrato de verdade ainda, então não faz
     // sentido abrir a aba Funcionários, só avisar e fechar o modal.
-    const contratoBaseCriacao = { ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [], pausas: [], funcionariosPausados: [] };
+    const contratoBaseCriacao = { ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [], pausas: [], pausasQuadroInicial: [], pausasEntradas: [] };
     const creditoInicial = calcularResumoContratoEmpresarial(contratoBaseCriacao).totalCreditadoFundo;
     const historicoMovimentacoes = [{
       tipo: "criacao",
@@ -884,7 +904,7 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
       // diálogo) já com o quadro inicial contabilizado — como ninguém precisa de nome, não
       // há formulário extra a preencher aqui, só a confirmação visual do quadro.
       const contratoCriado = state.contratosEmpresariais.find((c) => c.id === idContrato)
-        || { id: idContrato, ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [], pausas: [], funcionariosPausados: [] };
+        || { id: idContrato, ...dados, status: "ativo", dataEncerramentoReal: null, saidasIniciais: [], entradasContrato: [], pausas: [], pausasQuadroInicial: [], pausasEntradas: [] };
       contratoEmEdicao = contratoCriado;
       contratoFuncionariosAberto = idContrato;
       travarDadosOriginais(true);
@@ -963,7 +983,8 @@ async function atualizarAposMovimentacao(mensagemSucesso) {
   contratoEmEdicao = state.contratosEmpresariais.find((c) => c.id === contratoFuncionariosAberto) || contratoEmEdicao;
   renderQuadroInicial();
   renderEntradasContrato();
-  renderPausasFuncionarios();
+  renderPausasQuadroInicial();
+  renderPausasEntradas();
   renderHistoricoMovimentacoes();
   atualizarResumoQuadro();
   renderTabela();
@@ -1165,132 +1186,173 @@ document.getElementById("lista-entradas-contrato").addEventListener("click", asy
 });
 
 /* ------------------------------------------------------------------ */
-/* Funcionários pausados — mesma lógica de entradas/saídas (contagem,   */
-/* sem nome), mas o desconto vai só para o estorno (proporcional à      */
-/* fração do quadro pausada), não para o crédito na hora.               */
+/* Funcionários pausados — dois pools separados (quadro inicial e       */
+/* entradas durante o contrato), mesma lógica de entradas/saídas        */
+/* (contagem, sem nome). O desconto vai só para o estorno (proporcional */
+/* à fração do quadro pausada), não para o crédito na hora.             */
 /* ------------------------------------------------------------------ */
 
-function esconderFormPausarFuncionarios() {
-  document.getElementById("form-pausar-funcionarios").classList.add("hidden");
-  document.getElementById("form-pausar-funcionarios").reset();
-  atualizarVisibilidadeBotoesFuncionarios();
-}
-
-document.getElementById("btn-pausar-funcionarios").addEventListener("click", () => {
-  document.getElementById("form-pausar-funcionarios").classList.remove("hidden");
-  document.getElementById("btn-pausar-funcionarios").classList.add("hidden");
-  document.getElementById("pf-data").value = new Date().toISOString().slice(0, 10);
-  document.getElementById("pf-quantidade").value = "1";
-});
-
-document.getElementById("pf-botao-cancelar").addEventListener("click", esconderFormPausarFuncionarios);
-
-document.getElementById("form-pausar-funcionarios").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const dataPausa = document.getElementById("pf-data").value;
-  const motivo = document.getElementById("pf-motivo").value.trim();
-  const quantidade = Number(document.getElementById("pf-quantidade").value);
-  if (!dataPausa) return mostrarToast("Informe a data da pausa.", "erro");
-  if (!Number.isInteger(quantidade) || quantidade < 1) return mostrarToast("Informe uma quantidade válida (1 ou mais).", "erro");
-
-  const qtdAtual = calcularResumoContratoEmpresarial(contratoEmEdicao).qtdAtual;
-  const jaPausados = (contratoEmEdicao.funcionariosPausados || []).filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
-  const disponivel = qtdAtual - jaPausados;
-  if (quantidade > disponivel) {
-    return mostrarToast(`Só há ${disponivel} funcionário(s) ativo(s) e não pausado(s) — quantidade maior que isso.`, "erro");
+/** Liga os 3 fluxos (pausar / retomar / remover registro) de UM pool de "funcionários
+ * pausados" — a mesma função monta tanto o bloco do quadro inicial quanto o das entradas
+ * durante o contrato, só muda de onde vem/vai a lista (campo do contrato), os elementos do
+ * DOM e como calcular quantos ainda estão disponíveis pra pausar nesse pool específico. */
+function configurarBlocoPausar({
+  campo, tipoMovPausa, tipoMovRetomada, tipoMovRemocao,
+  idBtnPausar, idFormPausar, idQuantidade, idData, idMotivo, idBotaoCancelarPausar,
+  idFormRetomar, idDataRetomada, idBotaoCancelarRetomar, idLista, poolDisponivel
+}) {
+  function esconderFormPausar() {
+    document.getElementById(idFormPausar).classList.add("hidden");
+    document.getElementById(idFormPausar).reset();
+    atualizarVisibilidadeBotoesFuncionarios();
   }
 
-  const novaLista = [...(contratoEmEdicao.funcionariosPausados || []), { dataPausa, dataRetomada: null, motivo: motivo || null, quantidade }];
-  const resultado = await confirmarEAplicarMovimentacao({
-    idContrato: contratoFuncionariosAberto,
-    contratoBase: contratoEmEdicao,
-    contratoDepois: { ...contratoEmEdicao, funcionariosPausados: novaLista },
-    tipo: "pausa_funcionarios",
-    descricaoEvento: `${quantidade} funcionário(s) pausado(s) em ${formatarData(dataPausa)}${motivo ? ` (${motivo})` : ""}`,
-    camposParaSalvar: { funcionariosPausados: novaLista }
+  document.getElementById(idBtnPausar).addEventListener("click", () => {
+    document.getElementById(idFormPausar).classList.remove("hidden");
+    document.getElementById(idBtnPausar).classList.add("hidden");
+    document.getElementById(idData).value = new Date().toISOString().slice(0, 10);
+    document.getElementById(idQuantidade).value = "1";
   });
-  if (!resultado) return;
-  esconderFormPausarFuncionarios();
-  try {
-    await atualizarAposMovimentacao(mensagemResultado(resultado, "Pausa registrada."));
-  } catch (erro) {
-    console.error(erro);
-    mostrarToast("Pausa salva, mas houve um problema ao atualizar a tela.", "erro");
-  }
-});
 
-// Mini-form compartilhado para marcar a retomada de UM grupo pausado específico (por índice).
-let pausaEmRetomadaIndex = null;
+  document.getElementById(idBotaoCancelarPausar).addEventListener("click", esconderFormPausar);
 
-function esconderFormRetomarPausa() {
-  pausaEmRetomadaIndex = null;
-  document.getElementById("form-retomar-pausa").classList.add("hidden");
-  document.getElementById("form-retomar-pausa").reset();
-}
+  document.getElementById(idFormPausar).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const dataPausa = document.getElementById(idData).value;
+    const motivo = document.getElementById(idMotivo).value.trim();
+    const quantidade = Number(document.getElementById(idQuantidade).value);
+    if (!dataPausa) return mostrarToast("Informe a data da pausa.", "erro");
+    if (!Number.isInteger(quantidade) || quantidade < 1) return mostrarToast("Informe uma quantidade válida (1 ou mais).", "erro");
 
-document.getElementById("rp-botao-cancelar").addEventListener("click", esconderFormRetomarPausa);
+    const disponivel = poolDisponivel(contratoEmEdicao);
+    if (quantidade > disponivel) {
+      return mostrarToast(`Só há ${disponivel} funcionário(s) ativo(s) e não pausado(s) nesse grupo — quantidade maior que isso.`, "erro");
+    }
 
-document.getElementById("form-retomar-pausa").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const data = document.getElementById("rp-data").value;
-  if (!data) return mostrarToast("Informe a data de retomada.", "erro");
-  if (pausaEmRetomadaIndex === null) return;
-
-  const pausaAlterada = (contratoEmEdicao.funcionariosPausados || [])[pausaEmRetomadaIndex];
-  const qtdAlterada = quantidadeDoRegistro(pausaAlterada);
-  const novaLista = (contratoEmEdicao.funcionariosPausados || []).map((p, i) =>
-    i === pausaEmRetomadaIndex ? { ...p, dataRetomada: data } : p
-  );
-  const resultado = await confirmarEAplicarMovimentacao({
-    idContrato: contratoFuncionariosAberto,
-    contratoBase: contratoEmEdicao,
-    contratoDepois: { ...contratoEmEdicao, funcionariosPausados: novaLista },
-    tipo: "retomada_funcionarios",
-    descricaoEvento: `Retomada de ${qtdAlterada} funcionário(s) em ${formatarData(data)} (pausados desde ${formatarData(pausaAlterada?.dataPausa)})`,
-    camposParaSalvar: { funcionariosPausados: novaLista }
-  });
-  if (!resultado) return;
-  esconderFormRetomarPausa();
-  try {
-    await atualizarAposMovimentacao(mensagemResultado(resultado, "Retomada registrada."));
-  } catch (erro) {
-    console.error(erro);
-    mostrarToast("Retomada salva, mas houve um problema ao atualizar a tela.", "erro");
-  }
-});
-
-document.getElementById("lista-pausas-funcionarios").addEventListener("click", async (e) => {
-  const btnMarcar = e.target.closest("[data-marcar-retomada-pausa]");
-  if (btnMarcar) {
-    pausaEmRetomadaIndex = Number(btnMarcar.dataset.marcarRetomadaPausa);
-    document.getElementById("form-retomar-pausa").classList.remove("hidden");
-    document.getElementById("rp-data").value = new Date().toISOString().slice(0, 10);
-    return;
-  }
-
-  const btnRemover = e.target.closest("[data-remover-pausa]");
-  if (btnRemover) {
-    const idx = Number(btnRemover.dataset.removerPausa);
-    const pausaRemovida = (contratoEmEdicao.funcionariosPausados || [])[idx];
-    const qtdRemovida = quantidadeDoRegistro(pausaRemovida);
-    const novaLista = (contratoEmEdicao.funcionariosPausados || []).filter((_, i) => i !== idx);
+    const novaLista = [...(contratoEmEdicao[campo] || []), { dataPausa, dataRetomada: null, motivo: motivo || null, quantidade }];
     const resultado = await confirmarEAplicarMovimentacao({
       idContrato: contratoFuncionariosAberto,
       contratoBase: contratoEmEdicao,
-      contratoDepois: { ...contratoEmEdicao, funcionariosPausados: novaLista },
-      tipo: "remocao_pausa_funcionarios",
-      descricaoEvento: `Registro de pausa de ${qtdRemovida} funcionário(s) em ${formatarData(pausaRemovida?.dataPausa)} removido`,
-      camposParaSalvar: { funcionariosPausados: novaLista }
+      contratoDepois: { ...contratoEmEdicao, [campo]: novaLista },
+      tipo: tipoMovPausa,
+      descricaoEvento: `${quantidade} funcionário(s) pausado(s) em ${formatarData(dataPausa)}${motivo ? ` (${motivo})` : ""}`,
+      camposParaSalvar: { [campo]: novaLista }
     });
     if (!resultado) return;
+    esconderFormPausar();
     try {
-      await atualizarAposMovimentacao(mensagemResultado(resultado, "Registro removido."));
+      await atualizarAposMovimentacao(mensagemResultado(resultado, "Pausa registrada."));
     } catch (erro) {
       console.error(erro);
-      mostrarToast("Registro removido, mas houve um problema ao atualizar a tela.", "erro");
+      mostrarToast("Pausa salva, mas houve um problema ao atualizar a tela.", "erro");
     }
+  });
+
+  // Mini-form compartilhado para marcar a retomada de UM grupo pausado específico (por índice).
+  let indiceEmRetomada = null;
+
+  function esconderFormRetomar() {
+    indiceEmRetomada = null;
+    document.getElementById(idFormRetomar).classList.add("hidden");
+    document.getElementById(idFormRetomar).reset();
+  }
+
+  document.getElementById(idBotaoCancelarRetomar).addEventListener("click", esconderFormRetomar);
+
+  document.getElementById(idFormRetomar).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = document.getElementById(idDataRetomada).value;
+    if (!data) return mostrarToast("Informe a data de retomada.", "erro");
+    if (indiceEmRetomada === null) return;
+
+    const pausaAlterada = (contratoEmEdicao[campo] || [])[indiceEmRetomada];
+    const qtdAlterada = quantidadeDoRegistro(pausaAlterada);
+    const novaLista = (contratoEmEdicao[campo] || []).map((p, i) => (i === indiceEmRetomada ? { ...p, dataRetomada: data } : p));
+    const resultado = await confirmarEAplicarMovimentacao({
+      idContrato: contratoFuncionariosAberto,
+      contratoBase: contratoEmEdicao,
+      contratoDepois: { ...contratoEmEdicao, [campo]: novaLista },
+      tipo: tipoMovRetomada,
+      descricaoEvento: `Retomada de ${qtdAlterada} funcionário(s) em ${formatarData(data)} (pausados desde ${formatarData(pausaAlterada?.dataPausa)})`,
+      camposParaSalvar: { [campo]: novaLista }
+    });
+    if (!resultado) return;
+    esconderFormRetomar();
+    try {
+      await atualizarAposMovimentacao(mensagemResultado(resultado, "Retomada registrada."));
+    } catch (erro) {
+      console.error(erro);
+      mostrarToast("Retomada salva, mas houve um problema ao atualizar a tela.", "erro");
+    }
+  });
+
+  document.getElementById(idLista).addEventListener("click", async (e) => {
+    const btnMarcar = e.target.closest("[data-marcar-retomada]");
+    if (btnMarcar) {
+      indiceEmRetomada = Number(btnMarcar.dataset.marcarRetomada);
+      document.getElementById(idFormRetomar).classList.remove("hidden");
+      document.getElementById(idDataRetomada).value = new Date().toISOString().slice(0, 10);
+      return;
+    }
+
+    const btnRemover = e.target.closest("[data-remover-pausa]");
+    if (btnRemover) {
+      const idx = Number(btnRemover.dataset.removerPausa);
+      const pausaRemovida = (contratoEmEdicao[campo] || [])[idx];
+      const qtdRemovida = quantidadeDoRegistro(pausaRemovida);
+      const novaLista = (contratoEmEdicao[campo] || []).filter((_, i) => i !== idx);
+      const resultado = await confirmarEAplicarMovimentacao({
+        idContrato: contratoFuncionariosAberto,
+        contratoBase: contratoEmEdicao,
+        contratoDepois: { ...contratoEmEdicao, [campo]: novaLista },
+        tipo: tipoMovRemocao,
+        descricaoEvento: `Registro de pausa de ${qtdRemovida} funcionário(s) em ${formatarData(pausaRemovida?.dataPausa)} removido`,
+        camposParaSalvar: { [campo]: novaLista }
+      });
+      if (!resultado) return;
+      try {
+        await atualizarAposMovimentacao(mensagemResultado(resultado, "Registro removido."));
+      } catch (erro) {
+        console.error(erro);
+        mostrarToast("Registro removido, mas houve um problema ao atualizar a tela.", "erro");
+      }
+    }
+  });
+
+  return { esconderFormPausar, esconderFormRetomar };
+}
+
+const blocoPausasQuadroInicial = configurarBlocoPausar({
+  campo: "pausasQuadroInicial",
+  tipoMovPausa: "pausa_quadro_inicial", tipoMovRetomada: "retomada_quadro_inicial", tipoMovRemocao: "remocao_pausa_quadro_inicial",
+  idBtnPausar: "btn-pausar-quadro-inicial", idFormPausar: "form-pausar-quadro-inicial",
+  idQuantidade: "pqi-quantidade", idData: "pqi-data", idMotivo: "pqi-motivo", idBotaoCancelarPausar: "pqi-botao-cancelar",
+  idFormRetomar: "form-retomar-pausa-quadro-inicial", idDataRetomada: "rpqi-data", idBotaoCancelarRetomar: "rpqi-botao-cancelar",
+  idLista: "lista-pausas-quadro-inicial",
+  poolDisponivel: (c) => {
+    const ativosQuadro = Math.max(0, (c.quantidadeFuncionariosIniciais || 0) - (c.saidasIniciais || []).reduce((soma, s) => soma + quantidadeDoRegistro(s), 0));
+    const jaPausados = (c.pausasQuadroInicial || []).filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+    return ativosQuadro - jaPausados;
   }
 });
+function esconderFormPausarQuadroInicial() { blocoPausasQuadroInicial.esconderFormPausar(); }
+function esconderFormRetomarPausaQuadroInicial() { blocoPausasQuadroInicial.esconderFormRetomar(); }
+
+const blocoPausasEntradas = configurarBlocoPausar({
+  campo: "pausasEntradas",
+  tipoMovPausa: "pausa_entradas", tipoMovRetomada: "retomada_entradas", tipoMovRemocao: "remocao_pausa_entradas",
+  idBtnPausar: "btn-pausar-entradas", idFormPausar: "form-pausar-entradas",
+  idQuantidade: "pe-quantidade", idData: "pe-data", idMotivo: "pe-motivo", idBotaoCancelarPausar: "pe-botao-cancelar",
+  idFormRetomar: "form-retomar-pausa-entradas", idDataRetomada: "rpe-data", idBotaoCancelarRetomar: "rpe-botao-cancelar",
+  idLista: "lista-pausas-entradas",
+  poolDisponivel: (c) => {
+    const ativasEntradas = (c.entradasContrato || []).filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
+    const jaPausados = (c.pausasEntradas || []).filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+    return ativasEntradas - jaPausados;
+  }
+});
+function esconderFormPausarEntradas() { blocoPausasEntradas.esconderFormPausar(); }
+function esconderFormRetomarPausaEntradas() { blocoPausasEntradas.esconderFormRetomar(); }
 
 /* ------------------------------------------------------------------ */
 /* Modais + logout                                                     */
