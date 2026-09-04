@@ -9,7 +9,8 @@ import {
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
 import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal } from "./ui-utils.js";
 import {
-  calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
+  calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial,
+  montarPausasAposTransicao
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
@@ -19,6 +20,9 @@ const ANO_EXERCICIO = new Date().getFullYear();
 const ROTULOS_ROLE = { admin: "Administrador", dp: "Departamento Pessoal", rh: "Recursos Humanos", presidente: "Presidente" };
 const EH_PRESIDENTE = () => perfil.role === "presidente";
 const EH_ADMIN_OU_PRESIDENTE = () => perfil.role === "admin" || perfil.role === "presidente";
+// DP e RH também podem abrir o perfil detalhado de qualquer colaborador (controle/auditoria) —
+// sem ganhar "editar"/"excluir colaborador", que continuam exclusivos de Admin/Presidente.
+const PODE_VER_PERFIL = () => ["dp", "rh", "admin", "presidente"].includes(perfil.role);
 
 const perfil = await exigirAutenticacao(["admin", "dp", "rh", "presidente"]);
 ativarRevelacaoAoRolar();
@@ -172,10 +176,11 @@ function renderDiretorio(filtro = "") {
         <td class="py-3 px-3 text-center font-body text-body-md text-on-surface-variant" title="Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total">${participacaoPct.toFixed(1)}%</td>
         <td class="py-3 px-3 font-body text-body-md ${resultado.elegivel ? "text-on-surface" : "text-christmas-red"}">${cotaLabel}</td>
         <td class="py-3 px-3 text-right whitespace-nowrap">
-          ${EH_ADMIN_OU_PRESIDENTE() ? `
+          ${PODE_VER_PERFIL() ? `
           <button data-ver-perfil-uid="${u.uid}" title="Ver perfil" aria-label="Ver perfil" class="text-on-surface-variant hover:text-primary transition-colors p-1">
             <span class="material-symbols-outlined">person</span>
-          </button>
+          </button>` : ""}
+          ${EH_ADMIN_OU_PRESIDENTE() ? `
           <button data-editar-uid="${u.uid}" title="Editar colaborador" aria-label="Editar colaborador" class="text-on-surface-variant hover:text-primary transition-colors p-1">
             <span class="material-symbols-outlined">edit</span>
           </button>` : ""}
@@ -275,9 +280,16 @@ const CAMPOS_POR_TIPO = {
   avaliacao: ["avaliacao", "motivo"],
   ativar_contrato: ["data-generica"],
   encerrar_contrato: ["contrato-ativo", "data-generica"],
+  pausar_contrato: ["contrato-ativo", "data-generica"],
+  retomar_contrato: ["contrato-ativo", "data-generica"],
   alterar_status_colaborador: ["data-generica", "status-colaborador", "motivo"],
   role: ["role"]
 };
+
+// Contrato que cada tipo de ação lista no dropdown (mesmo campo/select "contrato-ativo" é
+// reaproveitado nos três casos — só o status filtrado muda).
+const STATUS_CONTRATO_POR_TIPO = { encerrar_contrato: "ativo", pausar_contrato: "ativo", retomar_contrato: "pausado" };
+const ROTULO_CONTRATO_POR_TIPO = { encerrar_contrato: "Contrato ativo", pausar_contrato: "Contrato ativo", retomar_contrato: "Contrato pausado" };
 
 function alternarCamposAcao(tipo) {
   const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-horarios", "tipo-advertencia", "avaliacao", "role", "contrato-ativo", "status-colaborador"];
@@ -287,7 +299,13 @@ function alternarCamposAcao(tipo) {
   (CAMPOS_POR_TIPO[tipo] || []).forEach((campo) => {
     document.querySelectorAll(`[data-campo="${campo}"]`).forEach((el) => el.classList.remove("hidden"));
   });
-  document.getElementById("acao-data").placeholder = tipo === "ativar_contrato" ? "Data de ativação" : tipo === "encerrar_contrato" ? "Data de encerramento" : tipo === "alterar_status_colaborador" ? "Data do desligamento" : "Data";
+  const rotuloContrato = document.querySelector('[data-campo="contrato-ativo"] label');
+  if (rotuloContrato) rotuloContrato.textContent = ROTULO_CONTRATO_POR_TIPO[tipo] || "Contrato ativo";
+  document.getElementById("acao-data").placeholder = tipo === "ativar_contrato" ? "Data de ativação"
+    : tipo === "encerrar_contrato" ? "Data de encerramento"
+    : tipo === "pausar_contrato" ? "Data da pausa"
+    : tipo === "retomar_contrato" ? "Data de retomada"
+    : tipo === "alterar_status_colaborador" ? "Data do desligamento" : "Data";
 }
 
 // "Tipo de justificativa" só aparece quando o gestor marca "Falta justificada" — evita
@@ -296,15 +314,27 @@ document.getElementById("acao-justificada").addEventListener("change", (e) => {
   document.querySelectorAll('[data-campo="tipo-justificativa"]').forEach((el) => el.classList.toggle("hidden", !e.target.checked));
 });
 
+/** Rótulo de uma opção do dropdown de contrato: data de ativação para contratos ativos, ou desde
+ * quando está pausado (última pausa aberta) para contratos pausados. */
+function rotularContratoParaSelect(c, status) {
+  if (status !== "pausado") return `Ativado em ${c.dataAtivacao}`;
+  const pausaAberta = [...(c.pausas || [])].reverse().find((p) => !p.dataRetomada);
+  return `Pausado desde ${pausaAberta ? pausaAberta.dataPausa : "?"}`;
+}
+
+/** Popula o dropdown de contrato do colaborador com os contratos no status esperado pelo tipo
+ * de ação selecionado (ativo p/ encerrar_contrato e pausar_contrato, pausado p/ retomar_contrato). */
 function popularContratosAtivos(uid) {
-  const ativos = state.contratos.filter((c) => c.uid === uid && c.status === "ativo");
-  document.getElementById("acao-contrato").innerHTML = ativos.length
-    ? ativos.map((c) => `<option value="${c.id}">Ativado em ${c.dataAtivacao}</option>`).join("")
-    : `<option value="">Nenhum contrato ativo</option>`;
+  const status = STATUS_CONTRATO_POR_TIPO[document.getElementById("acao-tipo").value] || "ativo";
+  const contratos = state.contratos.filter((c) => c.uid === uid && c.status === status);
+  document.getElementById("acao-contrato").innerHTML = contratos.length
+    ? contratos.map((c) => `<option value="${c.id}">${rotularContratoParaSelect(c, status)}</option>`).join("")
+    : `<option value="">Nenhum contrato ${status}</option>`;
 }
 
 document.getElementById("acao-tipo").addEventListener("change", (e) => {
   alternarCamposAcao(e.target.value);
+  popularContratosAtivos(document.getElementById("acao-uid").value);
   renderLancamentosExistentesAcao();
 });
 document.getElementById("acao-uid").addEventListener("change", (e) => {
@@ -333,7 +363,8 @@ const ROTULOS_STATUS_COLABORADOR_ACAO = {
 const TITULOS_ACAO = {
   falta: "Lançar falta", atraso: "Lançar atraso", advertencia: "Registrar advertência",
   avaliacao: "Avaliação de desempenho", ativar_contrato: "Ativar contrato",
-  encerrar_contrato: "Encerrar contrato", alterar_status_colaborador: "Alterar status do colaborador",
+  encerrar_contrato: "Encerrar contrato", pausar_contrato: "Pausar contrato",
+  retomar_contrato: "Retomar contrato", alterar_status_colaborador: "Alterar status do colaborador",
   role: "Alterar papel (role)"
 };
 
@@ -458,7 +489,10 @@ function abrirPerfil(uidAlvo) {
   perfilAbertoUid = uidAlvo;
   document.getElementById("perfil-modal-titulo").textContent =
     uidAlvo === perfil.uid ? "Meu perfil" : `Perfil de ${usuario.nome || usuario.email}`;
-  const dados = state.mapaDados[uidAlvo] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
+  const dados = {
+    ...(state.mapaDados[uidAlvo] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] }),
+    contratos: state.contratos.filter((c) => c.uid === uidAlvo)
+  };
   const resultado = computarResultado(usuario);
   renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
     usuario, dados, resultado, somaPesos: state.fundo.somaPesos, anoExercicio: ANO_EXERCICIO,
@@ -577,6 +611,8 @@ const ROTULOS_SOLICITACAO = {
   avaliacao: "Avaliação de desempenho",
   ativar_contrato: "Ativar contrato",
   encerrar_contrato: "Encerrar contrato",
+  pausar_contrato: "Pausar contrato",
+  retomar_contrato: "Retomar contrato",
   alterar_status_colaborador: "Alterar status do colaborador",
   contrato_empresarial_criar: "Novo contrato empresarial",
   contrato_empresarial_editar: "Alteração em contrato empresarial",
@@ -591,7 +627,7 @@ async function aplicarSolicitacao(sol) {
     await addDoc(collection(db, "avaliacoes"), d);
   } else if (sol.tipo === "ativar_contrato") {
     await addDoc(collection(db, "contratos"), d);
-  } else if (sol.tipo === "encerrar_contrato") {
+  } else if (sol.tipo === "encerrar_contrato" || sol.tipo === "pausar_contrato" || sol.tipo === "retomar_contrato") {
     await updateDoc(doc(db, "contratos", d.contratoId), d.campos);
   } else if (sol.tipo === "alterar_status_colaborador") {
     await updateDoc(doc(db, "usuarios", d.uid), d.campos);
@@ -829,7 +865,7 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
 
   // Contratos e avaliação passam pela fila de aprovação do Presidente — exceto quando é o
   // próprio Presidente agindo, que grava direto (ver firestore.rules e o plano aprovado).
-  const precisaAprovacao = !EH_PRESIDENTE() && ["avaliacao", "ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo);
+  const precisaAprovacao = !EH_PRESIDENTE() && ["avaliacao", "ativar_contrato", "encerrar_contrato", "pausar_contrato", "retomar_contrato", "alterar_status_colaborador"].includes(tipo);
 
   try {
     if (tipo === "falta") {
@@ -874,7 +910,7 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
       }
     } else if (tipo === "ativar_contrato") {
       const dadosContrato = {
-        uid, dataAtivacao: data, dataEncerramento: null, valorCredito: 150, status: "ativo",
+        uid, dataAtivacao: data, dataEncerramento: null, valorCredito: 150, status: "ativo", pausas: [],
         registradoPor: perfil.uid, criadoEm: serverTimestamp()
       };
       const descricao = `Ativar contrato para ${alvoNome || uid} em ${data}`;
@@ -895,6 +931,25 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
         });
       } else {
         await updateDoc(doc(db, "contratos", contratoId), { status: "encerrado", dataEncerramento: data });
+      }
+    } else if (tipo === "pausar_contrato" || tipo === "retomar_contrato") {
+      const contratoId = document.getElementById("acao-contrato").value;
+      if (!contratoId) return mostrarToast(`Este colaborador não possui contrato ${tipo === "pausar_contrato" ? "ativo" : "pausado"}.`, "erro");
+      const contratoAlvo = state.contratos.find((c) => c.id === contratoId);
+      const novoStatus = tipo === "pausar_contrato" ? "pausado" : "ativo";
+      // Mesma regra de pausas de contratosEmpresariais (montarPausasAposTransicao): tempo
+      // pausado não conta como tempo efetivo de execução do contrato (calcularFundo já desconta).
+      const pausas = montarPausasAposTransicao(contratoAlvo?.pausas, contratoAlvo?.status === "pausado", novoStatus, data, data);
+      if (pausas === null) return mostrarToast(`Informe a data de ${tipo === "pausar_contrato" ? "pausa" : "retomada"}.`, "erro");
+      const descricao = `${tipo === "pausar_contrato" ? "Pausar" : "Retomar"} contrato de ${alvoNome || uid} em ${data}`;
+      if (precisaAprovacao) {
+        await criarSolicitacao(db, {
+          tipo, descricao, alvoUid: uid, alvoNome,
+          dadosAcao: { contratoId, campos: { status: novoStatus, pausas } },
+          operador: perfil
+        });
+      } else {
+        await updateDoc(doc(db, "contratos", contratoId), { status: novoStatus, pausas });
       }
     } else if (tipo === "alterar_status_colaborador") {
       const novoStatus = document.getElementById("acao-status-colaborador").value;

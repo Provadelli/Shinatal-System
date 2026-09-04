@@ -107,7 +107,10 @@ function calcularFundo(contratos, contratosEmpresariais = []) {
     arrecadado += CREDITO_POR_CONTRATO; // Seção 2.1 — crédito integral na ativação
 
     if (c.status === "encerrado" && c.dataAtivacao && c.dataEncerramento) {
-      const meses = mesesEntreDatas(c.dataAtivacao, c.dataEncerramento);
+      // Meses pausados não contam como tempo efetivo de execução (mesma regra da Seção 2.2
+      // aplicada a contratosEmpresariais, ver calcularEstornoContratoEmpresarial).
+      const mesesBrutos = mesesEntreDatas(c.dataAtivacao, c.dataEncerramento);
+      const meses = mesesBrutos - calcularMesesPausados(c.pausas, c.dataEncerramento);
       if (meses < MESES_ANO) {
         const mesesFaltantes = MESES_ANO - meses;
         estornos += (CREDITO_POR_CONTRATO / MESES_ANO) * mesesFaltantes; // Seção 2.2
@@ -132,6 +135,28 @@ function mesesEntreDatas(inicioISO, fimISO) {
   const inicio = new Date(inicioISO + "T00:00:00");
   const fim = new Date(fimISO + "T00:00:00");
   return (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth());
+}
+
+/**
+ * "Mês de referência" de implantação (regra do dia 15, mesma lógica de `calcularAvosTrabalhados`
+ * para admissão): implantado até o dia 15 conta o mês corrente; do dia 16 em diante, conta a
+ * partir do mês seguinte. Rótulo/exibição apenas — NÃO é usado por `mesesEntreDatas` nem por
+ * nenhum cálculo financeiro (duração prevista, meses decorridos, estorno) desta ou de outras
+ * funções, que continuam com a diferença de mês corrida de sempre.
+ * @param {string} dataInicioISO 'aaaa-mm-dd'
+ * @returns {{ano:number, mes:number}} mes 0-11
+ */
+function calcularMesReferenciaImplantacao(dataInicioISO) {
+  const d = new Date(dataInicioISO + "T00:00:00");
+  let ano = d.getFullYear();
+  let mes = d.getDate() <= 15 ? d.getMonth() : d.getMonth() + 1;
+  if (mes > 11) { mes = 0; ano += 1; }
+  return { ano, mes };
+}
+
+/** Formata o mês de referência como "mm/aaaa" para exibição. */
+function formatarMesReferencia({ ano, mes }) {
+  return `${String(mes + 1).padStart(2, "0")}/${ano}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -249,6 +274,31 @@ function calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, d
     if (s.data && s.data <= dataReferenciaISO) descontado += CREDITO_AJUSTE_FUNCIONARIO_CONTRATO * quantidadeDoRegistro(s);
   }
   return { acrescido, descontado };
+}
+
+/**
+ * Monta a lista de pausas atualizada a partir de uma transição de status — mesma regra
+ * compartilhada por contratos empresariais e por contratos individuais de colaborador: entrar em
+ * "pausado" abre uma nova pausa; sair de "pausado" fecha a última pausa aberta com a data de
+ * retomada. Retorna `null` quando a transição exige uma data que ainda não foi informada (fora
+ * dessas duas transições não é erro — devolve a lista sem mudança nenhuma).
+ * @param {Array<{dataPausa:string, dataRetomada:string|null}>} pausasAtuais
+ * @param {boolean} estavaPausado status anterior do contrato era "pausado"
+ * @param {string} novoStatus status selecionado agora
+ * @param {string} [dataPausa] usada só ao entrar em "pausado"
+ * @param {string} [dataRetomada] usada só ao sair de "pausado"
+ */
+function montarPausasAposTransicao(pausasAtuais, estavaPausado, novoStatus, dataPausa, dataRetomada) {
+  const pausas = pausasAtuais || [];
+  if (novoStatus === "pausado" && !estavaPausado) {
+    if (!dataPausa) return null;
+    return [...pausas, { dataPausa, dataRetomada: null }];
+  }
+  if (estavaPausado && novoStatus !== "pausado") {
+    if (!dataRetomada) return null;
+    return pausas.map((p, i) => (i === pausas.length - 1 ? { ...p, dataRetomada } : p));
+  }
+  return pausas;
 }
 
 /** Soma os meses em que o contrato ficou pausado até a data de referência — uma pausa ainda
@@ -570,5 +620,8 @@ export {
   calcularAjustesFuncionariosContrato,
   calcularEstornoContratoEmpresarial,
   calcularResumoContratoEmpresarial,
-  calcularMesesPausados
+  calcularMesesPausados,
+  montarPausasAposTransicao,
+  calcularMesReferenciaImplantacao,
+  formatarMesReferencia
 };

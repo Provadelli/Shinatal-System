@@ -12,7 +12,8 @@ import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarA
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
-  quantidadeDoRegistro, calcularCotaColaborador
+  quantidadeDoRegistro, calcularCotaColaborador, calcularMesReferenciaImplantacao, formatarMesReferencia,
+  montarPausasAposTransicao
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
@@ -197,7 +198,10 @@ function renderTabela() {
             <span class="material-symbols-outlined text-lg">groups</span>${resumo.qtdAtual}
           </button>
         </td>
-        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant whitespace-nowrap">${formatarData(c.dataInicio)}</td>
+        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant whitespace-nowrap">
+          ${formatarData(c.dataInicio)}
+          <span class="block text-label-sm">Mês ref.: ${formatarMesReferencia(calcularMesReferenciaImplantacao(c.dataInicio))}</span>
+        </td>
         <td class="py-3 px-3 font-body text-body-md text-on-surface-variant whitespace-nowrap">
           ${formatarData(c.dataFimPrevista)}
           <span class="block text-label-sm">${duracaoPrevista} meses previstos</span>
@@ -228,9 +232,14 @@ document.getElementById("filtro-status-contrato").addEventListener("change", ren
 // Evita que a resposta de uma consulta antiga (usuário já digitou outro CNPJ) sobrescreva o
 // status na tela — só a consulta mais recente pode escrever o resultado.
 let tokenConsultaCNPJ = 0;
+// Só a chamada de rede é adiada (a validação local abaixo continua instantânea) — evita
+// disparar uma consulta a cada tecla digitada enquanto o usuário ainda está editando o CNPJ.
+let debounceConsultaCNPJ = null;
+const DEBOUNCE_CONSULTA_CNPJ_MS = 400;
 
 function atualizarStatusCNPJ(bruto) {
   const el = document.getElementById("ce-cnpj-status");
+  clearTimeout(debounceConsultaCNPJ);
   if (!bruto) { el.textContent = ""; return; }
   if (bruto.length < 14) {
     el.textContent = "Continue digitando...";
@@ -245,8 +254,14 @@ function atualizarStatusCNPJ(bruto) {
   }
   el.textContent = "CNPJ válido ✓ — consultando na Receita Federal...";
   el.className = "font-body text-label-sm mt-1.5 min-h-[1em] text-secondary";
-  consultarCNPJNaReceita(bruto);
+  debounceConsultaCNPJ = setTimeout(() => consultarCNPJNaReceita(bruto), DEBOUNCE_CONSULTA_CNPJ_MS);
 }
+
+const MENSAGENS_FALHA_CONSULTA_CNPJ = {
+  timeout: "CNPJ válido ✓ — a consulta à Receita Federal demorou demais e foi cancelada. Tente novamente.",
+  rede: "CNPJ válido ✓ — não foi possível confirmar na Receita Federal agora (falha de conexão).",
+  servidor: "CNPJ válido ✓ — a Receita Federal (via BrasilAPI) está indisponível no momento."
+};
 
 async function consultarCNPJNaReceita(bruto) {
   const minhaVez = ++tokenConsultaCNPJ;
@@ -257,7 +272,12 @@ async function consultarCNPJNaReceita(bruto) {
   const campoNome = document.getElementById("ce-nome");
 
   if (!resultado.ok) {
-    el.textContent = "CNPJ válido ✓ — não foi possível confirmar na Receita Federal agora.";
+    // Formato alfanumérico (vigente desde jul/2026): já passou na validação local do dígito
+    // verificador, então uma falha aqui é mais provável ser o serviço de consulta ainda não
+    // suportando o formato novo do que o CNPJ em si estar errado — mensagem não deve sugerir isso.
+    el.textContent = /[A-Z]/.test(bruto)
+      ? "CNPJ válido ✓ — formato alfanumérico novo; a consulta automática pode não estar disponível ainda nesse serviço. Confirme manualmente na Receita Federal."
+      : (MENSAGENS_FALHA_CONSULTA_CNPJ[resultado.motivo] || MENSAGENS_FALHA_CONSULTA_CNPJ.rede);
     el.className = "font-body text-label-sm mt-1.5 min-h-[1em] text-secondary";
     return;
   }
@@ -267,10 +287,14 @@ async function consultarCNPJNaReceita(bruto) {
     return;
   }
 
-  if (!campoNome.value.trim() && resultado.razaoSocial) campoNome.value = resultado.razaoSocial;
+  // Nome fantasia só entra como substituto quando não há razão social — nunca sem avisar,
+  // já que o rótulo do campo é "razão social".
+  const nomeParaPreencher = resultado.razaoSocial || resultado.nomeFantasia;
+  if (!campoNome.value.trim() && nomeParaPreencher) campoNome.value = nomeParaPreencher;
+  const nomeParaExibir = resultado.razaoSocial || (resultado.nomeFantasia ? `${resultado.nomeFantasia} (nome fantasia — razão social não informada)` : "empresa ativa");
 
   if (resultado.ativo) {
-    el.textContent = `CNPJ válido na Receita Federal ✓ — ${resultado.razaoSocial || "empresa ativa"}`;
+    el.textContent = `CNPJ válido na Receita Federal ✓ — ${nomeParaExibir}`;
     el.className = "font-body text-label-sm mt-1.5 min-h-[1em] text-secondary";
   } else {
     el.textContent = `Atenção: CNPJ encontrado, mas com situação "${resultado.situacao}" na Receita Federal (não ativa).`;
@@ -477,22 +501,17 @@ function resetarModalContrato() {
 
 /** A partir do status selecionado agora e do estado salvo do contrato, monta a lista de pausas
  * atualizada — usada tanto na prévia ao vivo (atualizarPreviewEstornoContrato) quanto no submit.
- * Retorna null se uma transição pausar/retomar está em andamento mas a data ainda não foi
- * preenchida (não é um erro fora dessas transições: aí devolve a lista sem mudança nenhuma). */
+ * Só lê o DOM aqui; a regra em si (mesma usada para pausar contrato individual de colaborador,
+ * em gestao.js) é a função pura montarPausasAposTransicao. */
 function montarPausasAtualizadas(statusSelecionado) {
-  const pausas = contratoEmEdicao?.pausas || [];
   const estavaPausado = contratoEmEdicao?.status === "pausado";
-  if (statusSelecionado === "pausado" && !estavaPausado) {
-    const dataPausa = document.getElementById("ce-data-pausa").value;
-    if (!dataPausa) return null;
-    return [...pausas, { dataPausa, dataRetomada: null }];
-  }
-  if (estavaPausado && statusSelecionado !== "pausado") {
-    const dataRetomada = document.getElementById("ce-data-retomada").value;
-    if (!dataRetomada) return null;
-    return pausas.map((p, i) => (i === pausas.length - 1 ? { ...p, dataRetomada } : p));
-  }
-  return pausas;
+  return montarPausasAposTransicao(
+    contratoEmEdicao?.pausas,
+    estavaPausado,
+    statusSelecionado,
+    document.getElementById("ce-data-pausa").value,
+    document.getElementById("ce-data-retomada").value
+  );
 }
 
 function atualizarPreviewEstornoContrato() {
