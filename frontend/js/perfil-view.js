@@ -1,39 +1,7 @@
 // Shinatal — vitrine de "Perfil" (o próprio colaborador, ou visto por admin/DP/RH/Presidente):
 // junta tudo que calculo-shinatal.js já calcula numa única tela, sem repetir nenhuma fórmula.
 import { formatarMoeda, formatarData, escaparHTML, formatarJornadaSemanal } from "./ui-utils.js";
-import { contarPontosAtraso, calcularMesesPausados } from "./calculo-shinatal.js";
-
-const ROTULOS_STATUS_CONTRATO = { ativo: "Ativo", pausado: "Pausado", encerrado: "Encerrado" };
-
-/** Seção "Contrato": status atual + histórico de pausas (mesma regra de contratosEmpresariais —
- * tempo pausado não conta como tempo efetivo de execução). Sem contratos individuais carregados
- * (ex.: vitrine do próprio colaborador no dashboard, que não passa `dados.contratos`), não
- * renderiza nada. */
-function renderizarSecaoContrato(contratos) {
-  if (!contratos || !contratos.length) return "";
-  const atual = contratos.find((c) => c.status === "ativo" || c.status === "pausado") || contratos[contratos.length - 1];
-  const dataReferencia = atual.dataEncerramento || new Date().toISOString().slice(0, 10);
-  const mesesPausados = calcularMesesPausados(atual.pausas, dataReferencia);
-  const pausasOrdenadas = [...(atual.pausas || [])].sort((a, b) => (a.dataPausa < b.dataPausa ? 1 : -1));
-  return `
-      <div>
-        <p class="font-body font-semibold text-on-surface mb-1">Contrato</p>
-        <div class="bg-surface-container rounded-lg px-3 py-2 font-body text-label-sm space-y-1">
-          <div class="flex justify-between">
-            <span>Status</span>
-            <span>${ROTULOS_STATUS_CONTRATO[atual.status] || atual.status}${atual.dataAtivacao ? " — desde " + formatarData(atual.dataAtivacao) : ""}</span>
-          </div>
-          ${mesesPausados ? `<div class="flex justify-between text-on-surface-variant"><span>Meses pausados</span><span>${mesesPausados}</span></div>` : ""}
-        </div>
-        ${pausasOrdenadas.length ? `
-        <ul class="space-y-1 mt-2">
-          ${pausasOrdenadas.map((p) => `
-            <li class="flex justify-between font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-              <span>Pausado em ${formatarData(p.dataPausa)}</span><span>${p.dataRetomada ? "Retomado em " + formatarData(p.dataRetomada) : "Em pausa"}</span>
-            </li>`).join("")}
-        </ul>` : ""}
-      </div>`;
-}
+import { contarPontosAtraso } from "./calculo-shinatal.js";
 
 const ROTULOS_ADVERTENCIA = {
   verbal: "Advertência verbal", escrita: "Advertência escrita",
@@ -53,7 +21,7 @@ function botaoExcluir(tipo, id, tiposExcluiveis) {
  * @param {HTMLElement} container elemento onde o HTML do perfil detalhado será injetado
  * @param {{
  *   usuario: object,
- *   dados: {faltas:object[], atrasos:object[], advertencias:object[], avaliacoes:object[], contratos?:object[]},
+ *   dados: {faltas:object[], atrasos:object[], advertencias:object[], avaliacoes:object[]},
  *   resultado: object,    // saída de calcularCotaColaborador
  *   somaPesos: number,
  *   anoExercicio: number,
@@ -151,8 +119,6 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
           ${botaoExcluir("avaliacao", avaliacaoDoAno.id, tiposExcluiveis)}
         </div>` : `<p class="font-body text-label-sm text-on-surface-variant">Ainda não avaliado(a) este ano.</p>`}
       </div>
-
-      ${renderizarSecaoContrato(dados.contratos)}
 
       <div class="border-t border-outline-variant/30 pt-4">
         <p class="font-body font-semibold text-on-surface mb-2">Cota estimada</p>

@@ -107,10 +107,7 @@ function calcularFundo(contratos, contratosEmpresariais = []) {
     arrecadado += CREDITO_POR_CONTRATO; // Seção 2.1 — crédito integral na ativação
 
     if (c.status === "encerrado" && c.dataAtivacao && c.dataEncerramento) {
-      // Meses pausados não contam como tempo efetivo de execução (mesma regra da Seção 2.2
-      // aplicada a contratosEmpresariais, ver calcularEstornoContratoEmpresarial).
-      const mesesBrutos = mesesEntreDatas(c.dataAtivacao, c.dataEncerramento);
-      const meses = mesesBrutos - calcularMesesPausados(c.pausas, c.dataEncerramento);
+      const meses = mesesEntreDatas(c.dataAtivacao, c.dataEncerramento);
       if (meses < MESES_ANO) {
         const mesesFaltantes = MESES_ANO - meses;
         estornos += (CREDITO_POR_CONTRATO / MESES_ANO) * mesesFaltantes; // Seção 2.2
@@ -312,15 +309,33 @@ function calcularMesesPausados(pausas, dataReferenciaISO) {
   }, 0);
 }
 
+/** Soma "funcionário-meses" pausados até a data de referência: cada pausa contribui
+ * quantidade × meses-pausados (uma pausa ainda aberta conta até a própria data de referência).
+ * Mesma mecânica de `calcularMesesPausados`, mas ponderada pela quantidade de funcionários
+ * afetados — usada para descontar do estorno só a fração do quadro que ficou pausada, não o
+ * contrato inteiro (ver "Pausar funcionários" abaixo). */
+function calcularFuncionarioMesesPausados(funcionariosPausados, dataReferenciaISO) {
+  return (funcionariosPausados || []).reduce((soma, p) => {
+    if (!p.dataPausa || p.dataPausa > dataReferenciaISO) return soma;
+    const fim = p.dataRetomada && p.dataRetomada < dataReferenciaISO ? p.dataRetomada : dataReferenciaISO;
+    return soma + quantidadeDoRegistro(p) * Math.max(0, mesesEntreDatas(p.dataPausa, fim));
+  }, 0);
+}
+
 /** Estorno proporcional se o contrato encerrar (ou estiver projetado a encerrar) antes dos meses
- * previstos. `mesesDecorridos` é o tempo EFETIVO de execução — exclui qualquer período em que o
- * contrato esteve pausado (ver `calcularMesesPausados`), já que pausas não contam para os 12 meses. */
-function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, dataReferenciaISO, valorCreditadoAteAData, pausas = []) {
+ * previstos. `mesesDecorridos` é o tempo EFETIVO de execução — exclui tanto os períodos em que o
+ * contrato inteiro esteve pausado (`pausas`, ver `calcularMesesPausados`) quanto, proporcional-
+ * mente, os períodos em que só uma PARTE do quadro esteve pausada (`funcionariosPausados`): a
+ * fração excluída é funcionário-meses pausados ÷ quadro inicial — pausar todo o quadro inicial
+ * dá o mesmo resultado que pausar o contrato inteiro por aquele período. */
+function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, dataReferenciaISO, valorCreditadoAteAData, pausas = [], funcionariosPausados = [], quantidadeFuncionariosIniciais = 0) {
   if (!dataInicioISO || valorCreditadoAteAData <= 0) return 0;
   const mesesAlvo = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
   if (mesesAlvo <= 0) return 0;
   const mesesBrutos = Math.max(0, mesesEntreDatas(dataInicioISO, dataReferenciaISO));
-  const mesesDecorridos = Math.max(0, mesesBrutos - calcularMesesPausados(pausas, dataReferenciaISO));
+  const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferenciaISO);
+  const mesesPausadosQuadro = quantidadeFuncionariosIniciais > 0 ? funcionarioMesesPausados / quantidadeFuncionariosIniciais : 0;
+  const mesesDecorridos = Math.max(0, mesesBrutos - calcularMesesPausados(pausas, dataReferenciaISO) - mesesPausadosQuadro);
   if (mesesDecorridos >= mesesAlvo) return 0;
   const mesesFaltantes = mesesAlvo - mesesDecorridos;
   return Math.min(valorCreditadoAteAData, (valorCreditadoAteAData / mesesAlvo) * mesesFaltantes);
@@ -340,7 +355,9 @@ function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, d
  * @param {{dataInicio:string, status:string, dataEncerramentoReal:string|null,
  *   dataFimPrevista?:string, dataFimPrevistaOriginal?:string,
  *   quantidadeFuncionariosIniciais?:number, saidasIniciais?:Array<{data:string}>,
- *   entradasContrato?:Array<{dataEntrada:string, dataSaida?:string|null}>}} contrato
+ *   entradasContrato?:Array<{dataEntrada:string, dataSaida?:string|null}>,
+ *   pausas?:Array<{dataPausa:string, dataRetomada:string|null}>,
+ *   funcionariosPausados?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>}} contrato
  */
 function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOString().slice(0, 10)) {
   const dataReferencia = contrato.status === "encerrado" ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
@@ -362,13 +379,22 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOS
   const descontado = descontadoFuncionarios + Math.max(0, -ajustePrazo);
   const totalCreditado = creditoInicial + acrescidoFuncionarios - descontadoFuncionarios;
   const pausas = contrato.pausas || [];
-  const estorno = calcularEstornoContratoEmpresarial(contrato.dataInicio, contrato.dataFimPrevista, dataReferencia, totalCreditado, pausas);
+  const funcionariosPausados = contrato.funcionariosPausados || [];
+  const qtdIniciais = contrato.quantidadeFuncionariosIniciais || 0;
+  const estorno = calcularEstornoContratoEmpresarial(
+    contrato.dataInicio, contrato.dataFimPrevista, dataReferencia, totalCreditado, pausas, funcionariosPausados, qtdIniciais
+  );
   const totalCreditadoFundo = contrato.status === "encerrado" ? Math.max(0, totalCreditado - estorno) : totalCreditado;
   const saidasIniciaisQtd = saidasIniciais.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
   const entradasAtivasQtd = entradasContrato.filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
-  const qtdAtual = Math.max(0, (contrato.quantidadeFuncionariosIniciais || 0) - saidasIniciaisQtd) + entradasAtivasQtd;
+  const qtdAtual = Math.max(0, qtdIniciais - saidasIniciaisQtd) + entradasAtivasQtd;
   const mesesPausados = calcularMesesPausados(pausas, dataReferencia);
-  return { creditoInicial, acrescido, descontado, ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia, qtdAtual, mesesPausados };
+  const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferencia);
+  const qtdPausadaAtual = funcionariosPausados.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+  return {
+    creditoInicial, acrescido, descontado, ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
+    qtdAtual, mesesPausados, funcionarioMesesPausados, qtdPausadaAtual
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -621,6 +647,7 @@ export {
   calcularEstornoContratoEmpresarial,
   calcularResumoContratoEmpresarial,
   calcularMesesPausados,
+  calcularFuncionarioMesesPausados,
   montarPausasAposTransicao,
   calcularMesReferenciaImplantacao,
   formatarMesReferencia

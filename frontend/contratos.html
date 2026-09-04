@@ -370,6 +370,54 @@
           </form>
           <ul id="lista-entradas-contrato" class="space-y-1"></ul>
         </div>
+
+        <!-- Funcionários pausados: contagem + datas, sem nome (mesma lógica de entradas/saídas) —
+             o tempo pausado não conta como tempo efetivo de execução para ESSA fração do quadro,
+             proporcionalmente ao estorno (ver calcularEstornoContratoEmpresarial). -->
+        <div class="glass-panel rounded-lg p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="font-body font-bold text-on-surface">Funcionários pausados</p>
+              <div id="ce-pausas-funcionarios-resumo" class="flex flex-wrap gap-1.5 mt-1.5">—</div>
+            </div>
+            <button id="btn-pausar-funcionarios" type="button" aria-label="Pausar funcionários" class="btn-fantasma !py-2 !px-3 flex items-center gap-2 text-sm whitespace-nowrap">
+              <span class="material-symbols-outlined text-lg">pause_circle</span> Pausar funcionários
+            </button>
+          </div>
+          <form id="form-pausar-funcionarios" class="hidden grid grid-cols-1 sm:grid-cols-4 gap-3 bg-surface-container rounded-lg p-3" novalidate>
+            <div>
+              <label class="label-shinatal">Quantidade</label>
+              <input id="pf-quantidade" required class="input-shinatal !pl-3" type="number" min="1" step="1" value="1" />
+            </div>
+            <div>
+              <label class="label-shinatal">Data da pausa</label>
+              <input id="pf-data" required class="input-shinatal !pl-3" type="date" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label-shinatal">Motivo (opcional)</label>
+              <input id="pf-motivo" class="input-shinatal !pl-3" type="text" placeholder="Ex: férias coletivas" />
+            </div>
+            <div class="sm:col-span-4 flex gap-2">
+              <button type="submit" class="btn-primario flex-1">Confirmar pausa</button>
+              <button type="button" id="pf-botao-cancelar" class="btn-fantasma">Cancelar</button>
+            </div>
+          </form>
+          <!-- Mini-form compartilhado para marcar a retomada de UM grupo pausado (ver data-marcar-retomada-pausa) -->
+          <form id="form-retomar-pausa" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface-container rounded-lg p-3" novalidate>
+            <div>
+              <label class="label-shinatal">Data de retomada</label>
+              <input id="rp-data" required class="input-shinatal !pl-3" type="date" />
+            </div>
+            <div class="sm:col-span-2 flex items-end">
+              <p class="font-body text-label-sm text-on-surface-variant">Confirme quando este grupo de funcionários pausados retomou.</p>
+            </div>
+            <div class="sm:col-span-3 flex gap-2">
+              <button type="submit" class="btn-primario flex-1">Confirmar retomada</button>
+              <button type="button" id="rp-botao-cancelar" class="btn-fantasma">Cancelar</button>
+            </div>
+          </form>
+          <ul id="lista-pausas-funcionarios" class="space-y-1"></ul>
+        </div>
       </div>
 
       <!-- Painel: Histórico de movimentações (data e hora de cada mudança no valor creditado) -->
