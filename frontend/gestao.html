@@ -58,7 +58,7 @@
       <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
       <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal whitespace-nowrap">· Gestão</span>
     </a>
-    <div class="flex-1 min-w-0 flex gap-3 lg:gap-6 items-center justify-center overflow-x-auto">
+    <div class="flex-1 min-w-0 flex flex-wrap gap-x-2 gap-y-1 lg:gap-x-5 items-center justify-center">
       <a href="/gestao" data-nav="gestao" class="nav-link nav-ativo font-body text-label-md py-1 whitespace-nowrap shrink-0">Painel</a>
       <a id="nav-contratos-desktop" href="/contratos" data-nav="contratos" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Contratos</a>
       <button id="nav-log-desktop" data-abrir-modal="modal-log" class="hidden nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Atividade</button>
@@ -67,8 +67,8 @@
         <span id="badge-solicitacoes-desktop" class="hidden absolute -top-2 -right-3 min-w-[1.3em] h-[1.3em] px-1 rounded-full bg-christmas-red text-white text-[10px] font-bold flex items-center justify-center">0</span>
       </button>
     </div>
-    <div class="flex items-center gap-4 shrink-0">
-      <span id="badge-role" class="hidden md:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold whitespace-nowrap">
+    <div class="flex items-center gap-3 lg:gap-4 shrink-0">
+      <span id="badge-role" class="hidden lg:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold whitespace-nowrap">
         <span class="material-symbols-outlined text-base">shield_person</span> —
       </span>
       <button id="btn-perfil-desktop" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -84,10 +84,10 @@
 
 <header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
   <a href="/gestao" class="flex items-center gap-2" aria-label="Painel de Gestão do Shinatal">
-    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto" />
-    <span class="font-body not-italic text-on-surface-variant font-normal text-sm">· Gestão</span>
+    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto shrink-0" />
+    <span class="hidden min-[360px]:inline font-body not-italic text-on-surface-variant font-normal text-sm whitespace-nowrap">· Gestão</span>
   </a>
-  <div class="flex items-center gap-4 min-w-0 overflow-x-auto">
+  <div class="flex items-center gap-2.5 shrink-0">
     <a id="nav-contratos-mobile" href="/contratos" title="Contratos Empresariais" class="text-on-surface-variant hover:text-primary transition-colors">
       <span class="material-symbols-outlined">apartment</span>
     </a>

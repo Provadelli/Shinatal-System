@@ -37,7 +37,7 @@ const ehPresidente = perfil.role === "presidente";
 // realmente grava direto ou só solicita aprovação é decidido por `ehPresidente`, dentro de
 // cada handler de escrita (ver confirmarEAplicarMovimentacao e o submit do formulário).
 const podeGerenciar = perfil.role === "admin" || ehPresidente;
-document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
+document.getElementById("nome-desktop").textContent = (perfil.nome || perfil.email || "").split(" ")[0] || "—";
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
 const avatarHtml = construirAvatarHTML(perfil);

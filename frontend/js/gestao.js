@@ -26,7 +26,7 @@ const PODE_VER_PERFIL = () => ["dp", "rh", "admin", "presidente"].includes(perfi
 const perfil = await exigirAutenticacao(["admin", "dp", "rh", "presidente"]);
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
-document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
+document.getElementById("nome-desktop").textContent = (perfil.nome || perfil.email || "").split(" ")[0] || "—";
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
 const avatarHtml = construirAvatarHTML(perfil);
