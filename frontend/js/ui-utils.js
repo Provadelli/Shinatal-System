@@ -32,6 +32,13 @@ function formatarData(isoOuData) {
   return d.toLocaleDateString("pt-BR");
 }
 
+/** Formata um mês/ano "aaaa-mm" (ex.: input type="month") para "mm/aaaa". */
+function formatarMesAno(mesAno) {
+  const [ano, mes] = (mesAno || "").split("-");
+  if (!ano || !mes) return "—";
+  return `${mes}/${ano}`;
+}
+
 /** Formata um Timestamp do Firestore (ou Date/ISO) para "dd/mm/aaaa às HH:mm". */
 function formatarDataHora(valor) {
   const d = valor?.toDate ? valor.toDate() : (valor instanceof Date ? valor : new Date(valor));
@@ -251,6 +258,7 @@ export {
   formatarMoeda,
   formatarJornadaSemanal,
   formatarData,
+  formatarMesAno,
   formatarDataHora,
   mostrarToast,
   ligarToggleSenha,

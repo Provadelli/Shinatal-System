@@ -1,6 +1,6 @@
 // Shinatal — vitrine de "Perfil" (o próprio colaborador, ou visto por admin/DP/RH/Presidente):
 // junta tudo que calculo-shinatal.js já calcula numa única tela, sem repetir nenhuma fórmula.
-import { formatarMoeda, formatarData, escaparHTML, formatarJornadaSemanal } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarMesAno, escaparHTML, formatarJornadaSemanal } from "./ui-utils.js";
 import { contarPontosAtraso } from "./calculo-shinatal.js";
 
 const ROTULOS_ADVERTENCIA = {
@@ -35,7 +35,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
   const mesesComAtraso = Object.entries(porMes).filter(([, qtd]) => qtd > 0).sort(([a], [b]) => a.localeCompare(b));
 
   const faltasOrdenadas = [...dados.faltas].sort((a, b) => (a.data < b.data ? 1 : -1));
-  const atrasosOrdenados = [...dados.atrasos].sort((a, b) => (a.data < b.data ? 1 : -1));
+  const atrasosOrdenados = [...dados.atrasos].sort((a, b) => (a.mesAno < b.mesAno ? 1 : -1));
   const advertenciasOrdenadas = [...dados.advertencias].sort((a, b) => (a.data < b.data ? 1 : -1));
   const avaliacaoDoAno = dados.avaliacoes.find((a) => a.ano === anoExercicio);
 
@@ -93,7 +93,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         <ul class="space-y-1">
           ${atrasosOrdenados.map((a) => `
             <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-              <span>${formatarData(a.data)} — ${a.minutosAtraso}min${a.horarioEntrada && a.horarioAtraso ? ` (${a.horarioEntrada} → ${a.horarioAtraso})` : ""}</span>
+              <span>${formatarMesAno(a.mesAno)} — ${a.quantidadeAtrasos ?? "?"} atraso(s)</span>
               ${botaoExcluir("atraso", a.id, tiposExcluiveis)}
             </li>`).join("")}
         </ul>

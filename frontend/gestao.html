@@ -448,15 +448,13 @@
         <label class="label-shinatal">Motivo</label>
         <textarea id="acao-motivo" class="input-shinatal !pl-3" rows="2"></textarea>
       </div>
-      <div data-campo="atraso-horarios" class="hidden grid grid-cols-2 gap-3">
-        <div>
-          <label class="label-shinatal">Entrada normal da empresa</label>
-          <input id="acao-horario-entrada" class="input-shinatal !pl-3" type="time" />
-        </div>
-        <div>
-          <label class="label-shinatal">Horário que chegou</label>
-          <input id="acao-horario-atraso" class="input-shinatal !pl-3" type="time" />
-        </div>
+      <div data-campo="atraso-mes-ano" class="hidden">
+        <label class="label-shinatal">Mês/Ano do atraso</label>
+        <input id="acao-mes-ano" class="input-shinatal !pl-3" type="month" />
+      </div>
+      <div data-campo="atraso-quantidade" class="hidden">
+        <label class="label-shinatal">Quantidade de atrasos no mês</label>
+        <input id="acao-quantidade-atrasos" class="input-shinatal !pl-3" type="number" min="1" step="1" />
       </div>
       <div data-campo="tipo-advertencia" class="hidden">
         <label class="label-shinatal">Tipo</label>

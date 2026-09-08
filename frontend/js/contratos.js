@@ -170,7 +170,7 @@ function renderTabela() {
 
   const corpo = document.getElementById("corpo-contratos-empresariais");
   if (!contratos.length) {
-    corpo.innerHTML = `<tr><td colspan="11" class="py-8 text-center font-body text-on-surface-variant">Nenhum contrato encontrado.</td></tr>`;
+    corpo.innerHTML = `<p class="col-span-full py-8 text-center font-body text-on-surface-variant">Nenhum contrato encontrado.</p>`;
     return;
   }
 
@@ -187,39 +187,63 @@ function renderTabela() {
           <span class="material-symbols-outlined">delete</span>
         </button>` : "";
     return `
-      <tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/60 transition-colors align-top">
-        <td class="py-3 px-3">
-          <p class="font-body font-medium text-on-surface leading-tight">${escaparHTML(c.nomeEmpresa) || "—"}</p>
-          <p class="font-body text-label-sm text-on-surface-variant leading-tight">${formatarCNPJ(c.cnpj)}</p>
-        </td>
-        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant text-right whitespace-nowrap">${c.valorContrato ? formatarMoeda(c.valorContrato) : "—"}</td>
-        <td class="py-3 px-3 text-center">
-          <button data-ver-funcionarios="${c.id}" title="Ver funcionários" class="inline-flex items-center gap-1.5 font-body text-body-md font-semibold rounded-full px-3 py-1 transition-colors ${resumo.qtdAtual ? "text-primary hover:bg-primary-container/30" : "text-christmas-red hover:bg-error-container/40"}">
-            <span class="material-symbols-outlined text-lg">groups</span>${resumo.qtdAtual}
-          </button>
-        </td>
-        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant whitespace-nowrap">
-          ${formatarData(c.dataInicio)}
-          <span class="block text-label-sm">Mês ref.: ${formatarMesReferencia(calcularMesReferenciaImplantacao(c.dataInicio))}</span>
-        </td>
-        <td class="py-3 px-3 font-body text-body-md text-on-surface-variant whitespace-nowrap">
-          ${formatarData(c.dataFimPrevista)}
-          <span class="block text-label-sm">${duracaoPrevista} meses previstos</span>
-        </td>
-        <td class="py-3 px-3">
-          <span class="inline-flex items-center px-2 py-1 rounded-full font-body text-label-sm ${status.classe}">${status.texto}</span>
-          ${resumo.mesesPausados ? `<span class="block text-label-sm text-on-surface-variant mt-1">${resumo.mesesPausados} ${resumo.mesesPausados === 1 ? "mês pausado" : "meses pausados"}</span>` : ""}
-          ${resumo.qtdPausadaAtual ? `<span class="block text-label-sm text-on-surface-variant mt-1">${resumo.qtdPausadaAtual} ${resumo.qtdPausadaAtual === 1 ? "funcionário pausado" : "funcionários pausados"}</span>` : ""}
-        </td>
-        <td class="py-3 px-3 font-body text-body-md text-right whitespace-nowrap ${resumo.descontado ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.descontado)}</td>
-        <td class="py-3 px-3 font-body text-body-md text-right whitespace-nowrap ${resumo.acrescido ? "text-secondary font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.acrescido)}</td>
-        <td class="py-3 px-3 text-right whitespace-nowrap">
-          <p class="font-body text-body-md ${resumo.estorno ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.estorno)}</p>
-          <p class="font-body text-label-sm text-on-surface-variant">${rotuloEstorno}</p>
-        </td>
-        <td class="py-3 px-3 font-body text-body-md text-right whitespace-nowrap font-semibold text-primary">${formatarMoeda(resumo.totalCreditadoFundo)}</td>
-        <td class="py-3 px-3 text-right whitespace-nowrap">${acoesAdmin || "—"}</td>
-      </tr>`;
+      <div class="glow-gold border-t-4 border-t-festive-gold bg-white/80 rounded-xl p-4 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="font-body font-medium text-on-surface leading-tight">${escaparHTML(c.nomeEmpresa) || "—"}</p>
+            <p class="font-body text-label-sm text-on-surface-variant leading-tight">${formatarCNPJ(c.cnpj)}</p>
+          </div>
+          <span class="inline-flex items-center px-2 py-1 rounded-full font-body text-label-sm shrink-0 ${status.classe}">${status.texto}</span>
+        </div>
+        ${resumo.mesesPausados || resumo.qtdPausadaAtual ? `
+        <p class="-mt-2 font-body text-label-sm text-on-surface-variant">
+          ${[
+            resumo.mesesPausados ? `${resumo.mesesPausados} ${resumo.mesesPausados === 1 ? "mês pausado" : "meses pausados"}` : "",
+            resumo.qtdPausadaAtual ? `${resumo.qtdPausadaAtual} ${resumo.qtdPausadaAtual === 1 ? "funcionário pausado" : "funcionários pausados"}` : ""
+          ].filter(Boolean).join(" · ")}
+        </p>` : ""}
+
+        <div class="grid grid-cols-2 gap-x-3 gap-y-2.5 font-body text-body-md">
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Valor do contrato</p>
+            <p class="text-on-surface">${c.valorContrato ? formatarMoeda(c.valorContrato) : "—"}</p>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Funcionários</p>
+            <button data-ver-funcionarios="${c.id}" title="Ver funcionários" class="inline-flex items-center gap-1.5 -ml-2 font-semibold rounded-full px-2 py-0.5 transition-colors ${resumo.qtdAtual ? "text-primary hover:bg-primary-container/30" : "text-christmas-red hover:bg-error-container/40"}">
+              <span class="material-symbols-outlined text-lg">groups</span>${resumo.qtdAtual}
+            </button>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Início</p>
+            <p class="text-on-surface">${formatarData(c.dataInicio)}</p>
+            <p class="text-label-sm text-on-surface-variant">Mês ref.: ${formatarMesReferencia(calcularMesReferenciaImplantacao(c.dataInicio))}</p>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Encerramento previsto</p>
+            <p class="text-on-surface">${formatarData(c.dataFimPrevista)}</p>
+            <p class="text-label-sm text-on-surface-variant">${duracaoPrevista} meses previstos</p>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Descontado (saídas/prazo)</p>
+            <p class="${resumo.descontado ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.descontado)}</p>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Acrescido (entradas/prazo)</p>
+            <p class="${resumo.acrescido ? "text-secondary font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.acrescido)}</p>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Estorno (${rotuloEstorno})</p>
+            <p class="${resumo.estorno ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${formatarMoeda(resumo.estorno)}</p>
+          </div>
+          <div>
+            <p class="text-label-sm text-on-surface-variant">Contribuindo ao fundo</p>
+            <p class="font-semibold text-primary">${formatarMoeda(resumo.totalCreditadoFundo)}</p>
+          </div>
+        </div>
+
+        ${acoesAdmin ? `<div class="flex justify-end gap-1 border-t border-outline-variant/40 pt-2 -mb-1">${acoesAdmin}</div>` : ""}
+      </div>`;
   }).join("");
 }
 

@@ -422,25 +422,20 @@ function calcularDescontoFaltas(cotaAntesDoDesconto, numeroFaltas) {
 /* Atrasos / pontualidade — Seção 8                                    */
 /* ------------------------------------------------------------------ */
 
-/** Atraso relevante = entrada ≥ 20 minutos após o horário contratual (Seção 8.4). */
-function ehAtrasoRelevante(minutosAtraso) {
-  return minutosAtraso >= 20;
-}
-
 /**
- * Conta pontos de atraso no ano (Seção 8.2): cada bloco de 6 atrasos relevantes num mesmo MÊS
- * vira 1 ponto — 6 atrasos = 1 ponto, 12 = 2 pontos, 36 = 6 pontos, 72 = 12 pontos (teto, ver
- * calcularPercentualAtraso). Até 5 atrasos no mês não gera nenhum ponto.
+ * Conta pontos de atraso no ano (Seção 8.2): cada bloco de 6 atrasos num mesmo MÊS vira 1 ponto —
+ * 6 atrasos = 1 ponto, 12 = 2 pontos, 36 = 6 pontos, 72 = 12 pontos (teto, ver
+ * calcularPercentualAtraso). Até 5 atrasos no mês não gera nenhum ponto. A quantidade de atrasos
+ * de cada mês é informada diretamente pelo DP (campo "mesAno" + "quantidadeAtrasos"), já
+ * considerando quais atrasos contam (Seção 8.4) — o sistema não registra mais horários.
  * @returns {{pontos:number, porMes:Record<string, number>}}
  */
 function contarPontosAtraso(atrasos, anoExercicio) {
-  const porMes = {}; // 'aaaa-mm' -> contagem de atrasos relevantes
+  const porMes = {}; // 'aaaa-mm' -> soma de atrasos lançados no mês
   for (const a of atrasos) {
-    const data = new Date(a.data + "T00:00:00");
-    if (data.getFullYear() !== anoExercicio) continue;
-    if (!ehAtrasoRelevante(a.minutosAtraso)) continue;
-    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
-    porMes[chave] = (porMes[chave] || 0) + 1;
+    const ano = Number((a.mesAno || "").split("-")[0]);
+    if (ano !== anoExercicio) continue;
+    porMes[a.mesAno] = (porMes[a.mesAno] || 0) + (Number(a.quantidadeAtrasos) || 0);
   }
   const pontos = Object.values(porMes).reduce((soma, qtd) => soma + Math.floor(qtd / 6), 0);
   return { pontos, porMes };
@@ -630,7 +625,6 @@ export {
   mesesEntreDatas,
   contarFaltasComDesconto,
   calcularDescontoFaltas,
-  ehAtrasoRelevante,
   contarPontosAtraso,
   calcularPercentualAtraso,
   calcularDisciplinar,

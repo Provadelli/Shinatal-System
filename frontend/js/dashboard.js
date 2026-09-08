@@ -208,7 +208,7 @@ function simular() {
   for (let i = 0; i < extraFaltas; i++) dadosSimulados.faltas.push({ data: `${ANO_EXERCICIO}-01-0${(i % 9) + 1}`, justificada: false });
   for (let m = 1; m <= extraPontos && m <= 12; m++) {
     const mm = String(m).padStart(2, "0");
-    for (let d = 1; d <= 6; d++) dadosSimulados.atrasos.push({ data: `${ANO_EXERCICIO}-${mm}-0${d}`, minutosAtraso: 25 });
+    dadosSimulados.atrasos.push({ mesAno: `${ANO_EXERCICIO}-${mm}`, quantidadeAtrasos: 6 });
   }
 
   const atual = calcularCotaColaborador(perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO);

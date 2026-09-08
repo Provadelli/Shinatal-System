@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -274,7 +274,7 @@ function filtrarAcoesPorRole() {
 
 const CAMPOS_POR_TIPO = {
   falta: ["data-generica", "justificada", "motivo"],
-  atraso: ["data-generica", "atraso-horarios"],
+  atraso: ["atraso-mes-ano", "atraso-quantidade"],
   advertencia: ["data-generica", "tipo-advertencia", "motivo"],
   avaliacao: ["avaliacao", "motivo"],
   ativar_contrato: ["data-generica"],
@@ -284,7 +284,7 @@ const CAMPOS_POR_TIPO = {
 };
 
 function alternarCamposAcao(tipo) {
-  const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-horarios", "tipo-advertencia", "avaliacao", "role", "contrato-ativo", "status-colaborador"];
+  const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-mes-ano", "atraso-quantidade", "tipo-advertencia", "avaliacao", "role", "contrato-ativo", "status-colaborador"];
   todosOsCampos.forEach((campo) => {
     document.querySelectorAll(`[data-campo="${campo}"]`).forEach((el) => el.classList.add("hidden"));
   });
@@ -418,9 +418,9 @@ const ROTULOS_TIPO_ADVERTENCIA_ACAO = {
 const ROTULOS_CONCEITO_ACAO = { excelente: "Excelente", bom: "Bom", regular: "Regular", insatisfatorio: "Insatisfatório" };
 
 function descreverLancamentoAcao(tipo, registro) {
+  if (tipo === "atraso") return `${formatarMesAno(registro.mesAno)} — ${registro.quantidadeAtrasos ?? "?"} atraso(s)`;
   const data = formatarData(registro.data);
   if (tipo === "falta") return `${data} — ${registro.justificada ? "justificada" : "injustificada"}`;
-  if (tipo === "atraso") return `${data} — ${registro.minutosAtraso ?? "?"} min de atraso`;
   if (tipo === "advertencia") return `${data} — ${ROTULOS_TIPO_ADVERTENCIA_ACAO[registro.tipo] || registro.tipo}`;
   if (tipo === "avaliacao") return `${data} — ${ROTULOS_CONCEITO_ACAO[registro.conceito] || registro.conceito}`;
   return data;
@@ -440,7 +440,8 @@ function renderLancamentosExistentesAcao() {
     lista.innerHTML = "";
     return;
   }
-  const registros = [...(state.mapaDados[uid]?.[chave] || [])].sort((a, b) => (a.data < b.data ? 1 : -1));
+  const chaveOrdenacao = (r) => r.data || r.mesAno || "";
+  const registros = [...(state.mapaDados[uid]?.[chave] || [])].sort((a, b) => (chaveOrdenacao(a) < chaveOrdenacao(b) ? 1 : -1));
   const podeExcluir = (TIPOS_EXCLUIVEIS_POR_ROLE[perfil.role] || []).includes(tipo);
   secao.classList.remove("hidden");
   if (!registros.length) {
@@ -815,12 +816,6 @@ document.getElementById("form-editar-colaborador").addEventListener("submit", as
 /* Submissão da ação                                                   */
 /* ------------------------------------------------------------------ */
 
-/** Minutos entre dois horários "HH:MM" do mesmo dia (nunca negativo). */
-function minutosEntre(horarioEntrada, horarioChegada) {
-  const [he, hc] = [horarioEntrada, horarioChegada].map((h) => (h || "00:00").split(":").map(Number));
-  return Math.max(0, (hc[0] * 60 + hc[1]) - (he[0] * 60 + he[1]));
-}
-
 document.getElementById("form-nova-acao").addEventListener("submit", async (e) => {
   e.preventDefault();
   const tipo = document.getElementById("acao-tipo").value;
@@ -845,14 +840,14 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
       });
       await registrarLog("falta", `Falta ${justificada ? "justificada" : "injustificada"} lançada em ${data}`, uid, alvoNome);
     } else if (tipo === "atraso") {
-      const horarioEntrada = document.getElementById("acao-horario-entrada").value;
-      const horarioAtraso = document.getElementById("acao-horario-atraso").value;
-      const minutosAtraso = minutosEntre(horarioEntrada, horarioAtraso);
+      const mesAno = document.getElementById("acao-mes-ano").value;
+      const quantidadeAtrasos = Number(document.getElementById("acao-quantidade-atrasos").value) || 0;
+      if (!mesAno || quantidadeAtrasos <= 0) return mostrarToast("Informe o mês/ano e a quantidade de atrasos.", "erro");
       await addDoc(collection(db, "atrasos"), {
-        uid, data, horarioEntrada, horarioAtraso, minutosAtraso,
+        uid, mesAno, quantidadeAtrasos,
         registradoPor: perfil.uid, criadoEm: serverTimestamp()
       });
-      await registrarLog("atraso", `Atraso de ${minutosAtraso}min lançado em ${data}${minutosAtraso >= 20 ? " (ponto)" : ""}`, uid, alvoNome);
+      await registrarLog("atraso", `${quantidadeAtrasos} atraso(s) lançado(s) para ${mesAno}`, uid, alvoNome);
     } else if (tipo === "advertencia") {
       const tipoAdvertencia = document.getElementById("acao-tipo-advertencia").value;
       await addDoc(collection(db, "advertencias"), {
@@ -1028,7 +1023,7 @@ function simular() {
   for (let i = 0; i < extraFaltas; i++) dadosSimulados.faltas.push({ data: `${ANO_EXERCICIO}-01-0${(i % 9) + 1}`, justificada: false });
   for (let m = 1; m <= extraPontos && m <= 12; m++) {
     const mm = String(m).padStart(2, "0");
-    for (let d = 1; d <= 6; d++) dadosSimulados.atrasos.push({ data: `${ANO_EXERCICIO}-${mm}-0${d}`, minutosAtraso: 25 });
+    dadosSimulados.atrasos.push({ mesAno: `${ANO_EXERCICIO}-${mm}`, quantidadeAtrasos: 6 });
   }
 
   const atual = calcularCotaColaborador(usuario, dadosReais, state.fundo.saldoDisponivel, state.fundo.somaPesos, ANO_EXERCICIO);
