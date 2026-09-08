@@ -6,7 +6,8 @@ import {
 import { exigirAutenticacao, fazerLogout, enviarLinkRedefinicaoSenha } from "./auth.js";
 import {
   formatarMoeda, formatarData, mostrarToast, formatarJornadaSemanal,
-  iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader
+  iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
+  construirAvatarHTML
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
@@ -62,10 +63,7 @@ async function buscarPorUid(nomeColecao, uid) {
 }
 
 function renderizarPerfil(p) {
-  const iniciais = (p.nome || "?").trim().split(/\s+/).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
-  const avatarHtml = p.fotoBase64
-    ? `<img src="${escaparHTML(p.fotoBase64)}" alt="${escaparHTML(p.nome)}" class="w-full h-full object-cover" />`
-    : iniciais;
+  const avatarHtml = construirAvatarHTML(p);
 
   document.getElementById("avatar-desktop").innerHTML = avatarHtml;
   document.getElementById("avatar-mobile").innerHTML = avatarHtml;

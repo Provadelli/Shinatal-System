@@ -8,7 +8,7 @@ import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML } from "./ui-utils.js";
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
@@ -40,6 +40,9 @@ const podeGerenciar = perfil.role === "admin" || ehPresidente;
 document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
+const avatarHtml = construirAvatarHTML(perfil);
+document.getElementById("avatar-desktop").innerHTML = avatarHtml;
+document.getElementById("avatar-mobile").innerHTML = avatarHtml;
 if (!ehPresidente) {
   document.getElementById("subtitulo-pagina").textContent =
     "Suas alterações aqui (criar, editar, entradas/saídas, excluir) viram uma solicitação — só valem depois que o Presidente aprovar.";
@@ -104,8 +107,8 @@ async function abrirPerfilProprio() {
   abrirModal("modal-perfil");
 }
 
-document.getElementById("nav-perfil-desktop").addEventListener("click", abrirPerfilProprio);
-document.getElementById("nav-perfil-mobile").addEventListener("click", abrirPerfilProprio);
+document.getElementById("btn-perfil-desktop").addEventListener("click", abrirPerfilProprio);
+document.getElementById("avatar-mobile").addEventListener("click", abrirPerfilProprio);
 
 // Envolvido em try/catch: uma falha aqui (ex.: rede, regra do Firestore) não pode impedir o
 // resto do script — abaixo — de rodar e ligar os botões/modais da página.

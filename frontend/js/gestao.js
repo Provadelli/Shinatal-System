@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -29,6 +29,9 @@ sincronizarAlturaHeader();
 document.getElementById("nome-desktop").textContent = perfil.nome || perfil.email;
 document.getElementById("badge-role").innerHTML =
   `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
+const avatarHtml = construirAvatarHTML(perfil);
+document.getElementById("avatar-desktop").innerHTML = avatarHtml;
+document.getElementById("avatar-mobile").innerHTML = avatarHtml;
 document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
 
 const state = {
@@ -479,8 +482,8 @@ document.getElementById("corpo-diretorio").addEventListener("click", (e) => {
   abrirPerfil(btn.dataset.verPerfilUid);
 });
 
-document.getElementById("nav-perfil-desktop").addEventListener("click", () => abrirPerfil(perfil.uid));
-document.getElementById("nav-perfil-mobile").addEventListener("click", () => abrirPerfil(perfil.uid));
+document.getElementById("btn-perfil-desktop").addEventListener("click", () => abrirPerfil(perfil.uid));
+document.getElementById("avatar-mobile").addEventListener("click", () => abrirPerfil(perfil.uid));
 
 /* ------------------------------------------------------------------ */
 /* Status de contratos — ao vivo, pra não depender de recarregar a     */

@@ -10,6 +10,14 @@ function escaparHTML(valor) {
   return String(valor ?? "").replace(/[&<>"']/g, (c) => mapa[c]);
 }
 
+/** HTML do avatar (foto ou iniciais) de um usuário — usado no "canto" do header. */
+function construirAvatarHTML(usuario) {
+  const iniciais = (usuario?.nome || "?").trim().split(/\s+/).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
+  return usuario?.fotoBase64
+    ? `<img src="${escaparHTML(usuario.fotoBase64)}" alt="${escaparHTML(usuario.nome)}" class="w-full h-full object-cover" />`
+    : iniciais;
+}
+
 /** Formata um número em Real brasileiro. */
 function formatarMoeda(valor) {
   const numero = Number.isFinite(valor) ? valor : 0;
@@ -254,6 +262,7 @@ function sincronizarAlturaHeader() {
 
 export {
   escaparHTML,
+  construirAvatarHTML,
   sincronizarAlturaHeader,
   formatarMoeda,
   formatarJornadaSemanal,
