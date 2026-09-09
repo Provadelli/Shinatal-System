@@ -3,6 +3,8 @@ backend/scripts/service-account.json
 .firebase/
 *.log
 .DS_Store
+.env
+.env.*
 
 # Ferramentas locais (Claude Code) — não fazem parte do app, não vão para o repositório.
 .claude/

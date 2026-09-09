@@ -92,11 +92,15 @@ function mostrarToast(mensagem, tipo = "info") {
 function ligarToggleSenha(botaoId, inputId) {
   const botao = document.getElementById(botaoId);
   const input = document.getElementById(inputId);
-  if (!botao || !input) return;
+  const icone = botao?.querySelector(".material-symbols-outlined");
+  if (!botao || !input || !icone) return;
   botao.addEventListener("click", () => {
-    const visivel = input.type === "text";
-    input.type = visivel ? "password" : "text";
-    botao.textContent = visivel ? "visibility" : "visibility_off";
+    // Só troca o glifo do <span> do ícone — nunca o textContent do botão inteiro, que apagaria
+    // o <span class="material-symbols-outlined"> e mostraria o nome do ícone como texto puro.
+    const senhaFicaVisivel = input.type === "password";
+    input.type = senhaFicaVisivel ? "text" : "password";
+    icone.textContent = senhaFicaVisivel ? "visibility_off" : "visibility";
+    botao.setAttribute("aria-label", senhaFicaVisivel ? "Ocultar senha" : "Mostrar senha");
   });
 }
 

@@ -55,9 +55,17 @@ service cloud.firestore {
       // secundário): em ambos os casos o novo registro só pode nascer como 'colaborador', e
       // quem está autenticado no momento da escrita precisa ter e-mail @shinerio.com —
       // restrição de domínio aplicada no token do servidor, não só no formulário.
+      // hasOnly() fecha o schema aos campos que os dois fluxos realmente gravam (cadastro.html
+      // e o bloco "novo colaborador" de gestao.js) — sem isso, o SDK client aceitava qualquer
+      // campo extra no create (mass assignment), mesmo que a UI nunca ofereça essa opção.
       allow create: if emailInstitucional()
         && request.resource.data.role == 'colaborador'
         && request.resource.data.keys().hasAll(['nome', 'email', 'cargaHoraria', 'status'])
+        && request.resource.data.keys().hasOnly([
+             'nome', 'email', 'cargo', 'cargaHoraria', 'status', 'role',
+             'fotoBase64', 'motivoPerdaIntegral', 'dataAdmissao', 'dataDesligamento',
+             'criadoEm', 'criadoPor'
+           ])
         && (request.auth.uid == uid || ehAdminOuPresidente());
 
       // O próprio usuário só edita nome/foto. Só Admin/Presidente editam outros perfis
