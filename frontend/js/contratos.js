@@ -137,7 +137,7 @@ async function carregarTudo() {
 
 async function recalcularEPublicarFundo() {
   await publicarFundo({
-    usuarios: state.usuarios, contratos: state.contratosBase, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid
+    usuarios: state.usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid
   });
 }
 

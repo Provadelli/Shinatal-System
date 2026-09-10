@@ -103,7 +103,7 @@ async function carregarTudo() {
 /** Recalcula e publica o agregado do fundo em `fundo/{ano}` para os dashboards dos colaboradores. */
 async function recalcularEPublicarFundo() {
   const resultado = await publicarFundo({
-    usuarios: state.usuarios, contratos: state.contratos, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid
+    usuarios: state.usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid
   });
   state.fundo = { saldoDisponivel: resultado.saldoDisponivel, somaPesos: resultado.somaPesos };
   state.contratosEmpresariais = resultado.contratosEmpresariais;
