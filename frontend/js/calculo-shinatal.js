@@ -90,30 +90,20 @@ function calcularPesoIndividual(usuario, anoExercicio) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Fundo Shinatal — Seção 2                                            */
+/* Fundo Shinatal                                                      */
 /* ------------------------------------------------------------------ */
 
 /**
- * @param {object[]} contratos
+ * O contrato individual do colaborador (coleção `contratos`, ações "Ativar
+ * contrato"/"Encerrar contrato" da aba RH) é dado interno — não alimenta o fundo. A única
+ * fonte de dinheiro do Fundo Shinatal é a aba "Contratos" (empresariais, por CNPJ).
  * @param {object[]} contratosEmpresariais contratos empresariais (CNPJ) — feature do Admin. Cada
  *   um já carrega seu próprio `quantidadeFuncionariosIniciais`/`saidasIniciais`/`entradasContrato`
  *   diretamente no documento (sem subcoleção).
  */
-function calcularFundo(contratos, contratosEmpresariais = []) {
+function calcularFundo(contratosEmpresariais = []) {
   let arrecadado = 0;
   let estornos = 0;
-
-  for (const c of contratos) {
-    arrecadado += CREDITO_POR_CONTRATO; // Seção 2.1 — crédito integral na ativação
-
-    if (c.status === "encerrado" && c.dataAtivacao && c.dataEncerramento) {
-      const meses = mesesEntreDatas(c.dataAtivacao, c.dataEncerramento);
-      if (meses < MESES_ANO) {
-        const mesesFaltantes = MESES_ANO - meses;
-        estornos += (CREDITO_POR_CONTRATO / MESES_ANO) * mesesFaltantes; // Seção 2.2
-      }
-    }
-  }
 
   for (const ce of contratosEmpresariais) {
     const resumo = calcularResumoContratoEmpresarial(ce);
@@ -601,8 +591,8 @@ function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExerc
  * Recalcula a cota estimada de TODOS os elegíveis para obter a soma de pesos correta e
  * então devolve o resultado individual do `uidAlvo`. Use esta função no dashboard/simulador.
  */
-function calcularCotaComContexto(uidAlvo, todosUsuarios, mapaDados, contratos, anoExercicio) {
-  const { saldoDisponivel } = calcularFundo(contratos);
+function calcularCotaComContexto(uidAlvo, todosUsuarios, mapaDados, contratosEmpresariais, anoExercicio) {
+  const { saldoDisponivel } = calcularFundo(contratosEmpresariais);
   const elegiveis = todosUsuarios.filter((u) => verificarElegibilidade(u).elegivel);
   const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
 

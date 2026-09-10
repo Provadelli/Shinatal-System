@@ -20,8 +20,8 @@ service cloud.firestore {
       return estaLogado() ? perfil().role : null;
     }
 
-    // Presidente: acima do Admin — única conta que grava contratos/avaliações direto, sem
-    // passar pela fila de solicitações (ver `solicitacoes/{id}` abaixo).
+    // Presidente: acima do Admin — única conta que grava contratos empresariais/avaliações
+    // direto, sem passar pela fila de solicitações (ver `solicitacoes/{id}` abaixo).
     function ehPresidente() { return papel() == 'presidente'; }
     function ehAdminOuPresidente() { return papel() in ['admin', 'presidente']; }
     // "Equipe" ampla (qualquer papel de gestão) — usada em leituras compartilhadas (diretório,
@@ -31,6 +31,9 @@ service cloud.firestore {
     function ehDp() { return papel() in ['dp', 'admin', 'presidente']; }
     // Quem participa de avaliação de desempenho (DP e RH dividem esse tópico).
     function podeAvaliar() { return papel() in ['dp', 'rh', 'admin', 'presidente']; }
+    // Quem pode ativar/encerrar o contrato individual do colaborador (dado interno de RH —
+    // não é mais a Seção 2 do regulamento, não passa pela fila do Presidente).
+    function podeGerenciarContratoColaborador() { return papel() in ['rh', 'admin', 'presidente']; }
 
     // E-mail institucional (defesa em profundidade — o token do Firebase Auth não pode ser
     // falsificado pelo cliente, ao contrário de uma checagem só em JavaScript).
@@ -68,27 +71,32 @@ service cloud.firestore {
            ])
         && (request.auth.uid == uid || ehAdminOuPresidente());
 
-      // O próprio usuário só edita nome/foto. Só Admin/Presidente editam outros perfis
-      // (DP/RH perderam "editar colaborador" nesta revisão) — e ninguém, nem Admin, consegue
-      // se autopromover a 'presidente' por aqui: só uma sessão já-presidente pode conceder
-      // esse papel (na prática, só existe via scripts/seed-usuarios.js).
+      // O próprio usuário só edita nome/foto. Só Admin/Presidente editam o perfil completo de
+      // outros colaboradores — e ninguém, nem Admin, consegue se autopromover a 'presidente'
+      // por aqui: só uma sessão já-presidente pode conceder esse papel (na prática, só existe
+      // via scripts/seed-usuarios.js). RH tem uma exceção estreita: pode gravar direto (sem
+      // aprovação do Presidente) só os 3 campos de "Alterar status do colaborador"
+      // (desligamento/afastamento) — nada além disso, dado interno de RH.
       allow update: if estaLogado() && (
         (request.auth.uid == uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64'])) ||
         (ehAdminOuPresidente() &&
-          (request.resource.data.role != 'presidente' || ehPresidente()))
+          (request.resource.data.role != 'presidente' || ehPresidente())) ||
+        (papel() == 'rh' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'motivoPerdaIntegral', 'dataDesligamento']))
       );
 
       allow delete: if emailVerificado() && ehAdminOuPresidente();
     }
 
     // -------------------------------------------------------------
-    // contratos/{id} — ativação/encerramento simples por colaborador (Seção 2). Passa pela
-    // fila de solicitações para todo mundo, exceto o Presidente (ver solicitacoes/{id}).
+    // contratos/{id} — ativação/encerramento simples por colaborador. Dado interno de RH
+    // (não é a Seção 2 do regulamento, não alimenta o Fundo Shinatal — só a aba "Contratos"
+    // empresariais faz isso) — por isso grava direto, sem passar pela fila de solicitações.
     // -------------------------------------------------------------
     match /contratos/{id} {
       allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
-      allow create, update: if emailVerificado() && ehPresidente();
+      allow create, update: if emailVerificado() && podeGerenciarContratoColaborador();
       allow delete: if emailVerificado() && ehAdminOuPresidente();
     }
 

@@ -94,7 +94,7 @@ async function carregarTudo() {
     });
   }
 
-  const { saldoDisponivel } = calcularFundo(state.contratos, state.contratosEmpresariais);
+  const { saldoDisponivel } = calcularFundo(state.contratosEmpresariais);
   const elegiveis = state.usuarios.filter((u) => verificarElegibilidade(u).elegivel);
   const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, ANO_EXERCICIO), 0);
   state.fundo = { saldoDisponivel, somaPesos };
@@ -764,8 +764,8 @@ document.getElementById("corpo-diretorio").addEventListener("click", async (e) =
   try {
     // Apaga o cadastro + os registros pessoais de conduta ligados a este uid (faltas, atrasos,
     // advertências, avaliações) — LGPD Art. 18 (direito de exclusão). NÃO mexe em `contratos`:
-    // esses documentos alimentam calcularFundo() e representam dinheiro já contabilizado no
-    // fundo coletivo de todos os colaboradores, não é um dado pessoal isolado deste uid.
+    // é histórico interno de RH (ativação/encerramento de contrato), preservado como registro
+    // administrativo mesmo após a exclusão do colaborador — não alimenta mais o fundo.
     await Promise.all(
       ["faltas", "atrasos", "advertencias", "avaliacoes"].map((colecao) => excluirRegistrosPorUid(colecao, usuario.uid))
     );
@@ -829,9 +829,10 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
   const motivo = document.getElementById("acao-motivo").value.trim();
   const alvoNome = state.usuarios.find((u) => u.uid === uid)?.nome || null;
 
-  // Contratos e avaliação passam pela fila de aprovação do Presidente — exceto quando é o
-  // próprio Presidente agindo, que grava direto (ver firestore.rules e o plano aprovado).
-  const precisaAprovacao = !EH_PRESIDENTE() && ["avaliacao", "ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo);
+  // Só avaliação passa pela fila de aprovação do Presidente. Contrato individual do
+  // colaborador (ativar/encerrar) e alteração de status/desligamento são dado interno de
+  // RH — gravam direto (ver firestore.rules: contratos/{id} e usuarios/{uid}).
+  const precisaAprovacao = !EH_PRESIDENTE() && tipo === "avaliacao";
 
   try {
     if (tipo === "falta") {
