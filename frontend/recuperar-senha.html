@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="js/tailwind-config.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
@@ -88,6 +89,8 @@
         </div>
       </div>
 
+      <div id="turnstile-recuperar" class="flex justify-center"></div>
+
       <button type="submit" id="btn-enviar" class="btn-primario w-full flex items-center justify-center gap-2">
         <span id="btn-enviar-texto">Enviar link de redefinição</span>
         <span id="btn-enviar-spinner" class="hidden animate-spin material-symbols-outlined text-lg">progress_activity</span>
@@ -134,10 +137,13 @@
 
 <script type="module">
   import { enviarLinkRedefinicaoSenha } from "./js/auth.js";
-  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
+  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./js/ui-utils.js";
+  import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./js/turnstile-config.js";
 
   ativarRevelacaoAoRolar();
   sincronizarAlturaHeader();
+
+  const widgetTurnstile = await montarTurnstile("turnstile-recuperar", TURNSTILE_SITE_KEY);
 
   const form = document.getElementById("form-recuperar");
   const btn = document.getElementById("btn-enviar");
@@ -148,11 +154,34 @@
     e.preventDefault();
     const email = document.getElementById("email").value.trim();
 
+    if (TURNSTILE_CONFIGURADO && !tokenTurnstile(widgetTurnstile)) {
+      mostrarToast("Confirme que você não é um robô.", "erro");
+      return;
+    }
+
     btn.disabled = true;
     btnTexto.textContent = "Enviando...";
     spinner.classList.remove("hidden");
 
     try {
+      // Mesma barreira best-effort do login (ver comentário em login.html): evita que scripts
+      // simples fiquem disparando e-mails de redefinição em massa para inboxes de terceiros.
+      if (TURNSTILE_CONFIGURADO) {
+        const resposta = await fetch(`${TURNSTILE_WORKER_URL}/api/turnstile/verificar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: tokenTurnstile(widgetTurnstile) })
+        });
+        const dados = await resposta.json();
+        if (!dados.ok) {
+          mostrarToast("Não foi possível confirmar que você não é um robô. Tente novamente.", "erro");
+          resetarTurnstile(widgetTurnstile);
+          btn.disabled = false;
+          btnTexto.textContent = "Enviar link de redefinição";
+          spinner.classList.add("hidden");
+          return;
+        }
+      }
       await enviarLinkRedefinicaoSenha(email);
     } catch (erro) {
       // Por segurança não revelamos se o e-mail existe ou não — seguimos para a tela de sucesso.

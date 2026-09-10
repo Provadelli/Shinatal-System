@@ -102,6 +102,69 @@ firebase deploy --only hosting
 > Tudo que fica em `backend/` (regras, scripts, `service-account.json`) já está fora de
 > `frontend/`, então nunca é publicado — não depende mais de uma lista de exclusão.
 
+## 9. Configurar Cloudflare Turnstile (anti-bot em cadastro, login e recuperação de senha)
+
+O Shinatal usa o [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) (o
+"CAPTCHA" da Cloudflare) para reduzir automação/bots nos três formulários públicos. Como o
+site não tem servidor próprio, a verificação de verdade roda num **Cloudflare Worker**
+separado (`backend/cloudflare-worker/`) — sem ele, os formulários continuam funcionando
+normalmente, só sem a proteção (fallback automático, ver `frontend/js/turnstile-config.js`).
+
+### 9.1. Criar o widget no painel da Cloudflare
+
+1. Acesse [dash.cloudflare.com](https://dash.cloudflare.com) → **Turnstile** → **Add widget**.
+2. Domínio: adicione o(s) domínio(s) de produção (ex.: `shinetal-cda20.web.app`,
+   `shinetal-cda20.firebaseapp.com`, e/ou seu domínio na Vercel) — e também `localhost` se
+   for testar localmente.
+3. Modo: **Managed** (recomendado).
+4. Copie a **Site Key** (pública) e a **Secret Key** (nunca cole em código nem no chat — só vai
+   no Worker, no passo 9.3).
+
+### 9.2. Publicar o Cloudflare Worker
+
+```bash
+cd backend/cloudflare-worker
+npm install
+npx wrangler login          # abre o navegador para autenticar com a SUA conta Cloudflare
+```
+
+Antes do deploy, edite `wrangler.toml`:
+- `ALLOWED_ORIGINS`: troque pelos domínios reais de produção (e mantenha os `localhost` para
+  testar localmente) — sem o domínio certo aqui, o navegador bloqueia a resposta por CORS.
+- `FIREBASE_PROJECT_ID`/`FIREBASE_API_KEY`: já vêm preenchidos com os valores públicos deste
+  projeto; só troque se você criou um projeto Firebase próprio no passo 1.
+
+```bash
+npx wrangler secret put TURNSTILE_SECRET_KEY   # cole a Secret Key do passo 9.1 quando pedido
+npx wrangler deploy
+```
+
+O comando final imprime a URL do Worker publicado (algo como
+`https://shinatal-turnstile.SEU-SUBDOMINIO.workers.dev`).
+
+### 9.3. Ligar o front-end ao widget e ao Worker
+
+Abra `frontend/js/turnstile-config.js` e substitua os dois placeholders:
+
+```js
+export const TURNSTILE_SITE_KEY = "a Site Key copiada no passo 9.1";
+export const TURNSTILE_WORKER_URL = "a URL impressa pelo wrangler deploy no passo 9.2";
+```
+
+Pronto — os três formulários (cadastro, login, recuperar senha) passam a exigir o Turnstile
+automaticamente (`TURNSTILE_CONFIGURADO` vira `true`). Sem editar este arquivo, o site
+continua funcionando exatamente como antes (sem a proteção).
+
+> **Importante sobre o alcance real desta proteção:** no **cadastro**, o Worker é quem cria a
+> conta (Firebase Auth + perfil no Firestore) — só chama o Firebase depois de validar o
+> Turnstile, então essa é uma barreira de verdade. Já no **login** e na **recuperação de
+> senha**, o Worker só verifica o token *antes* do navegador chamar o Firebase Auth
+> diretamente — é uma barreira eficaz contra bots simples, mas não é uma garantia
+> criptográfica, porque esses dois são endpoints públicos do Firebase Auth que continuam
+> alcançáveis diretamente (o plano gratuito Spark não tem Cloud Functions/Blocking Functions
+> para fechar essa brecha no servidor). Ver comentários em `login.html` e
+> `recuperar-senha.html`.
+
 ## Resumo do que é gratuito aqui
 
 | Recurso                              | Uso no Shinatal                                | Custo   |
@@ -110,5 +173,6 @@ firebase deploy --only hosting
 | Firestore                             | Usuários, faltas, atrasos, advertências, fundo  | Grátis  |
 | Firebase Hosting (opcional)           | Publicar o site                                 | Grátis  |
 | Foto do colaborador                   | Base64 dentro do Firestore (sem Storage)        | Grátis  |
+| Cloudflare Turnstile + Worker (opcional) | Anti-bot em cadastro/login/recuperar senha   | Grátis  |
 
 Nenhuma Cloud Function, nenhum Firebase Storage e nenhum plano Blaze são necessários.

@@ -1,0 +1,15 @@
+name = "shinatal-turnstile"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Não-secretos (a apiKey do Firebase já é pública por design — ver frontend/js/firebase-init.js).
+# TURNSTILE_SECRET_KEY é secreta e NUNCA vai aqui: configure com
+#   wrangler secret put TURNSTILE_SECRET_KEY
+# (ou pelo painel Cloudflare: Workers & Pages > shinatal-turnstile > Settings > Variables).
+[vars]
+FIREBASE_API_KEY = "AIzaSyDlJ9A33891xJhxQ96SU-7oNmNNeFai3JI"
+FIREBASE_PROJECT_ID = "shinetal-cda20"
+# Lista separada por vírgula das origens que podem chamar este Worker. Ajuste para o(s) domínio(s)
+# reais de produção (Firebase Hosting e/ou Vercel) antes do primeiro deploy — sem o domínio certo
+# aqui, o navegador bloqueia a resposta por CORS mesmo com o resto funcionando.
+ALLOWED_ORIGINS = "https://shinatal.shinerio.com,https://shinetal-cda20.web.app,https://shinetal-cda20.firebaseapp.com,http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"

@@ -88,6 +88,38 @@ function mostrarToast(mensagem, tipo = "info") {
   }, 4200);
 }
 
+/**
+ * Renderiza um widget Cloudflare Turnstile em `containerId` usando a API JS explícita (em vez do
+ * modo automático `cf-turnstile`, que depende de timing entre o <script> externo e este módulo
+ * ES — a API explícita evita a corrida). Resolve com o id do widget (usado depois para ler o
+ * token e para resetar em caso de falha), ou `null` se o Turnstile ainda não foi configurado
+ * (site key placeholder — ver turnstile-config.js e SETUP.md).
+ */
+function montarTurnstile(containerId, siteKey) {
+  return new Promise((resolve) => {
+    const container = document.getElementById(containerId);
+    if (!container || !siteKey || siteKey.startsWith("SUBSTITUA")) {
+      resolve(null);
+      return;
+    }
+    (function aguardarScript() {
+      if (!window.turnstile) { setTimeout(aguardarScript, 80); return; }
+      resolve(window.turnstile.render(container, { sitekey: siteKey, theme: "light" }));
+    })();
+  });
+}
+
+/** Token atual do widget Turnstile (string vazia se ainda não resolvido ou não configurado). */
+function tokenTurnstile(widgetId) {
+  if (widgetId == null || !window.turnstile) return "";
+  return window.turnstile.getResponse(widgetId) || "";
+}
+
+/** Reseta o widget Turnstile — chamar após qualquer falha, já que cada token é de uso único. */
+function resetarTurnstile(widgetId) {
+  if (widgetId != null && window.turnstile) window.turnstile.reset(widgetId);
+}
+
 /** Liga o botão "olho" de mostrar/ocultar senha a um input de senha. */
 function ligarToggleSenha(botaoId, inputId) {
   const botao = document.getElementById(botaoId);
@@ -275,6 +307,9 @@ export {
   formatarDataHora,
   mostrarToast,
   ligarToggleSenha,
+  montarTurnstile,
+  tokenTurnstile,
+  resetarTurnstile,
   confirmarAcao,
   marcarNavAtiva,
   alternarAccordion,

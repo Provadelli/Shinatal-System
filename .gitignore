@@ -5,6 +5,8 @@ backend/scripts/service-account.json
 .DS_Store
 .env
 .env.*
+.wrangler/
+backend/cloudflare-worker/.dev.vars
 
 # Ferramentas locais (Claude Code) — não fazem parte do app, não vão para o repositório.
 .claude/

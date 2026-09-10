@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="js/tailwind-config.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
@@ -157,6 +158,8 @@
 
       <p id="erro-form" class="hidden text-christmas-red font-body text-label-sm bg-error-container/50 rounded-lg px-3 py-2"></p>
 
+      <div id="turnstile-cadastro" class="flex justify-center"></div>
+
       <p class="font-body text-label-sm text-on-surface-variant text-center">
         Ao criar sua conta, você está de acordo com o
         <a href="/privacidade" target="_blank" class="text-primary hover:underline">Aviso de Privacidade</a> do Shinatal.
@@ -203,10 +206,13 @@
   import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { traduzirErroAuth } from "./js/auth.js";
-  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
+  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./js/ui-utils.js";
+  import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./js/turnstile-config.js";
 
   ativarRevelacaoAoRolar();
   sincronizarAlturaHeader();
+
+  const widgetTurnstile = await montarTurnstile("turnstile-cadastro", TURNSTILE_SITE_KEY);
 
   let fotoBase64 = null;
   const inputFoto = document.getElementById("foto");
@@ -285,32 +291,55 @@
       mostrarErro("As senhas não coincidem.");
       return;
     }
+    if (TURNSTILE_CONFIGURADO && !tokenTurnstile(widgetTurnstile)) {
+      mostrarErro("Confirme que você não é um robô.");
+      return;
+    }
 
     btn.disabled = true;
     btnTexto.textContent = "Criando conta...";
     spinner.classList.remove("hidden");
 
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, senha);
-      await setDoc(doc(db, "usuarios", cred.user.uid), {
-        nome,
-        email,
-        cargo,
-        cargaHoraria,
-        fotoBase64: fotoBase64 || null,
-        role: "colaborador",
-        status: "ativo",
-        motivoPerdaIntegral: null,
-        dataAdmissao,
-        dataDesligamento: null,
-        criadoEm: serverTimestamp()
-      });
-      await sendEmailVerification(cred.user);
-      await signOut(auth);
+      if (TURNSTILE_CONFIGURADO) {
+        // Fluxo protegido: o Worker só cria a conta (Auth + perfil no Firestore) depois de
+        // validar o Turnstile — ver backend/cloudflare-worker/src/index.js.
+        const resposta = await fetch(`${TURNSTILE_WORKER_URL}/api/turnstile/cadastro`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: tokenTurnstile(widgetTurnstile),
+            nome, email, cargo, cargaHoraria, dataAdmissao,
+            fotoBase64: fotoBase64 || null, senha
+          })
+        });
+        const dados = await resposta.json();
+        if (!dados.ok) throw { code: dados.erro === "turnstile" ? "shinatal/turnstile-invalido" : dados.erro };
+      } else {
+        // Sem Turnstile configurado ainda (setup local) — mesmo fluxo direto de antes.
+        const cred = await createUserWithEmailAndPassword(auth, email, senha);
+        await setDoc(doc(db, "usuarios", cred.user.uid), {
+          nome, email, cargo, cargaHoraria,
+          fotoBase64: fotoBase64 || null,
+          role: "colaborador",
+          status: "ativo",
+          motivoPerdaIntegral: null,
+          dataAdmissao,
+          dataDesligamento: null,
+          criadoEm: serverTimestamp()
+        });
+        await sendEmailVerification(cred.user);
+        await signOut(auth);
+      }
       mostrarToast("Cadastro criado! Verifique seu e-mail para confirmar a conta antes de entrar.", "sucesso");
       setTimeout(() => (window.location.href = "/login"), 1500);
     } catch (erro) {
-      mostrarErro(traduzirErroAuth(erro));
+      mostrarErro(
+        erro?.code === "shinatal/turnstile-invalido"
+          ? "Não foi possível confirmar que você não é um robô. Tente novamente."
+          : traduzirErroAuth(erro)
+      );
+      resetarTurnstile(widgetTurnstile);
       btn.disabled = false;
       btnTexto.textContent = "Criar minha conta";
       spinner.classList.add("hidden");

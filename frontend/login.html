@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="js/tailwind-config.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
@@ -119,6 +120,8 @@
         </div>
       </div>
 
+      <div id="turnstile-login" class="flex justify-center"></div>
+
       <button type="submit" id="btn-entrar" class="btn-primario w-full flex items-center justify-center gap-2">
         <span id="btn-entrar-texto">Acessar Shinatal</span>
         <span id="btn-entrar-spinner" class="hidden animate-spin material-symbols-outlined text-lg">progress_activity</span>
@@ -155,11 +158,14 @@
 
 <script type="module">
   import { fazerLogin, traduzirErroAuth, PAGINA_POR_ROLE } from "./js/auth.js";
-  import { ligarToggleSenha, mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
+  import { ligarToggleSenha, mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./js/ui-utils.js";
+  import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./js/turnstile-config.js";
 
   ligarToggleSenha("btn-toggle-senha", "senha");
   ativarRevelacaoAoRolar();
   sincronizarAlturaHeader();
+
+  const widgetTurnstile = await montarTurnstile("turnstile-login", TURNSTILE_SITE_KEY);
 
   // Redirecionado aqui por exigirAutenticacao() (auth.js) por causa de uma sessão com e-mail
   // ainda não confirmado — mesma mensagem já usada em fazerLogin().
@@ -178,18 +184,44 @@
     const email = document.getElementById("email").value;
     const senha = document.getElementById("senha").value;
 
+    if (TURNSTILE_CONFIGURADO && !tokenTurnstile(widgetTurnstile)) {
+      mostrarToast("Confirme que você não é um robô.", "erro");
+      return;
+    }
+
     btn.disabled = true;
     btnTexto.textContent = "Entrando...";
     spinner.classList.remove("hidden");
 
     try {
+      // Barreira contra bots simples de força bruta/credential stuffing — o Worker verifica o
+      // Turnstile ANTES do navegador tentar o login. Não é uma garantia criptográfica (o
+      // signInWithEmailAndPassword abaixo é uma chamada pública do Firebase Auth que um atacante
+      // decidido poderia chamar direto, pulando esta checagem): o Spark (plano gratuito) não tem
+      // Cloud Functions/Blocking Functions para exigir isso no servidor. Ver nota em SETUP.md.
+      if (TURNSTILE_CONFIGURADO) {
+        const resposta = await fetch(`${TURNSTILE_WORKER_URL}/api/turnstile/verificar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: tokenTurnstile(widgetTurnstile) })
+        });
+        const dados = await resposta.json();
+        if (!dados.ok) throw { code: "shinatal/turnstile-invalido" };
+      }
+
       const perfil = await fazerLogin(email, senha);
       mostrarToast(`Bem-vindo(a), ${perfil.nome?.split(" ")[0] || ""}!`, "sucesso");
       setTimeout(() => {
         window.location.href = PAGINA_POR_ROLE[perfil.role] || "/dashboard";
       }, 500);
     } catch (erro) {
-      mostrarToast(traduzirErroAuth(erro), "erro");
+      mostrarToast(
+        erro?.code === "shinatal/turnstile-invalido"
+          ? "Não foi possível confirmar que você não é um robô. Tente novamente."
+          : traduzirErroAuth(erro),
+        "erro"
+      );
+      resetarTurnstile(widgetTurnstile);
       btn.disabled = false;
       btnTexto.textContent = "Acessar Shinatal";
       spinner.classList.add("hidden");
