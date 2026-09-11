@@ -5,19 +5,18 @@
 // no documento do contrato — nenhum funcionário precisa ser nomeado, só contado e datado.
 import { db } from "./firebase-init.js";
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
 import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML } from "./ui-utils.js";
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
-  quantidadeDoRegistro, calcularCotaColaborador, calcularMesReferenciaImplantacao, formatarMesReferencia,
+  quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
   montarPausasAposTransicao
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
-import { renderizarPerfilDetalhado } from "./perfil-view.js";
 import { criarSolicitacao } from "./solicitacoes-service.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
@@ -74,41 +73,6 @@ const state = { usuarios: [], contratosBase: [], contratosEmpresariais: [] };
 let contratoEmEdicao = null;
 let contratoFuncionariosAberto = null;
 let funcionariosHabilitado = false;
-
-/* ------------------------------------------------------------------ */
-/* Perfil (só o próprio — esta página não lista colaboradores). Busca sob */
-/* demanda, na primeira vez que o modal abre (self-scoped, já permitido). */
-/* ------------------------------------------------------------------ */
-
-let perfilCarregado = false;
-
-async function abrirPerfilProprio() {
-  if (!perfilCarregado) {
-    const [faltasSnap, atrasosSnap, advertenciasSnap, avaliacoesSnap, fundoSnap] = await Promise.all([
-      getDocs(query(collection(db, "faltas"), where("uid", "==", perfil.uid))),
-      getDocs(query(collection(db, "atrasos"), where("uid", "==", perfil.uid))),
-      getDocs(query(collection(db, "advertencias"), where("uid", "==", perfil.uid))),
-      getDocs(query(collection(db, "avaliacoes"), where("uid", "==", perfil.uid))),
-      getDoc(doc(db, "fundo", String(ANO_EXERCICIO)))
-    ]);
-    const dados = {
-      faltas: faltasSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-      atrasos: atrasosSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-      advertencias: advertenciasSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-      avaliacoes: avaliacoesSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
-    };
-    const fundo = fundoSnap.exists() ? fundoSnap.data() : { saldoDisponivel: 0, somaPesos: 0 };
-    const resultado = calcularCotaColaborador(perfil, dados, fundo.saldoDisponivel || 0, fundo.somaPesos || 0, ANO_EXERCICIO);
-    renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
-      usuario: perfil, dados, resultado, somaPesos: fundo.somaPesos || 0, anoExercicio: ANO_EXERCICIO
-    });
-    perfilCarregado = true;
-  }
-  abrirModal("modal-perfil");
-}
-
-document.getElementById("btn-perfil-desktop").addEventListener("click", abrirPerfilProprio);
-document.getElementById("avatar-mobile").addEventListener("click", abrirPerfilProprio);
 
 // Envolvido em try/catch: uma falha aqui (ex.: rede, regra do Firestore) não pode impedir o
 // resto do script — abaixo — de rodar e ligar os botões/modais da página.

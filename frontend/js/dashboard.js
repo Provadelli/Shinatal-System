@@ -3,14 +3,14 @@ import { db } from "./firebase-init.js";
 import {
   collection, query, where, getDocs, doc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { exigirAutenticacao, fazerLogout, enviarLinkRedefinicaoSenha } from "./auth.js";
+import { exigirAutenticacao, fazerLogout } from "./auth.js";
 import {
-  formatarMoeda, formatarData, mostrarToast, formatarJornadaSemanal,
-  iniciarContagemReenvio, alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
+  formatarMoeda, formatarData, mostrarToast,
+  alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
   construirAvatarHTML
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
-import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
+import { ROTULOS_CONCEITO } from "./perfil-view.js";
 import {
   sincronizarDiretorio, assinarFlagConduta, assinarDiretorio, assinarMeusVotos, votarConduta
 } from "./conduta-service.js";
@@ -32,36 +32,17 @@ renderizarListasDeModais(dados);
 // Fundo compartilhado (somaPesos + saldoDisponível) mantido pelo painel de gestão.
 // Recalcula a cota ao vivo sempre que o fundo mudar (novo contrato, etc).
 let fundoAtual = { saldoDisponivel: 0, somaPesos: 0 };
-let resultadoAtual = null;
-let minhaContagemConduta = null;
-
-/** Avaliação de desempenho (fundo/cota) e Avaliação de Conduta (social) atualizam o mesmo
- * "Perfil detalhado" de forma independente — cada uma tem seu próprio listener do Firestore, mas
- * o render final precisa combinar os dois últimos valores conhecidos de cada um. */
-function atualizarPerfilDetalhado() {
-  if (!resultadoAtual) return;
-  renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
-    usuario: perfil, dados, resultado: resultadoAtual, somaPesos: fundoAtual.somaPesos || 0,
-    anoExercicio: ANO_EXERCICIO, contagemConduta: minhaContagemConduta
-  });
-}
 
 onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
   fundoAtual = snap.exists() ? snap.data() : { saldoDisponivel: 0, somaPesos: 0 };
-  resultadoAtual = calcularCotaColaborador(
+  const resultado = calcularCotaColaborador(
     perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO
   );
-  renderizarCota(resultadoAtual);
-  atualizarPerfilDetalhado();
+  renderizarCota(resultado);
   document.getElementById("qtd-contratos-ativos").textContent = fundoAtual.totalContratosAtivos ?? 0;
   document.getElementById("qtd-contratos-encerrados").textContent = fundoAtual.totalContratosEncerrados ?? 0;
   document.getElementById("valor-fundo-total").textContent = formatarMoeda(fundoAtual.saldoDisponivel || 0);
   simular();
-});
-
-onSnapshot(doc(db, "condutaContagem", perfil.uid), (snap) => {
-  minhaContagemConduta = snap.exists() ? snap.data() : null;
-  atualizarPerfilDetalhado();
 });
 
 /* ------------------------------------------------------------------ */
@@ -87,19 +68,11 @@ function renderizarPerfil(p) {
 
   document.getElementById("avatar-desktop").innerHTML = avatarHtml;
   document.getElementById("avatar-mobile").innerHTML = avatarHtml;
-  document.getElementById("avatar-perfil").innerHTML = avatarHtml;
   document.getElementById("nome-desktop").textContent = (p.nome || "Perfil").split(" ")[0];
 
   document.getElementById("saudacao-nome").textContent = `Bem-vindo(a), ${(p.nome || "").split(" ")[0] || "colaborador(a)"}!`;
   document.getElementById("saudacao-data").textContent =
     new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
-
-  document.getElementById("perfil-nome").textContent = p.nome || "—";
-  document.getElementById("perfil-cargo").textContent = p.cargo ? `${p.cargo} · ${formatarJornadaSemanal(p.cargaHoraria)}` : "—";
-  document.getElementById("perfil-email").textContent = p.email || "—";
-  document.getElementById("perfil-admissao").textContent = p.dataAdmissao
-    ? `Admissão em ${formatarData(p.dataAdmissao)}`
-    : "—";
 }
 
 function badge(qtd, limiteAtencao) {
@@ -295,16 +268,3 @@ function simular() {
 ["sim-faltas", "sim-pontos"].forEach((id) => document.getElementById(id).addEventListener("input", simular));
 
 document.getElementById("btn-sair-desktop").addEventListener("click", fazerLogout);
-document.getElementById("btn-sair-modal").addEventListener("click", fazerLogout);
-
-document.getElementById("btn-trocar-senha").addEventListener("click", async (e) => {
-  const btn = e.currentTarget;
-  if (btn.disabled) return;
-  try {
-    await enviarLinkRedefinicaoSenha(perfil.email);
-    mostrarToast("Link enviado! Confira seu e-mail institucional.", "sucesso");
-    iniciarContagemReenvio("btn-trocar-senha", 60);
-  } catch (erro) {
-    mostrarToast("Não foi possível enviar o link agora. Tente novamente.", "erro");
-  }
-});

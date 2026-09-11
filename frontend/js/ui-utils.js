@@ -18,6 +18,37 @@ function construirAvatarHTML(usuario) {
     : iniciais;
 }
 
+/**
+ * Lê um arquivo de imagem, redimensiona (mantendo a proporção, lado maior = tamanhoMax) num
+ * <canvas> offscreen e devolve um data URL JPEG comprimido. Necessário porque este projeto não
+ * tem Cloud Storage (plano Spark) — fotoBase64 é sempre gravada inline em usuarios/{uid}, e o
+ * Firestore limita cada documento a ~1MiB; uma foto de celular sem esse redimensionamento nunca
+ * caberia.
+ * @param {File} arquivo
+ * @param {{tamanhoMax?: number, qualidade?: number}} [opcoes]
+ * @returns {Promise<string>} data URL "data:image/jpeg;base64,..."
+ */
+function redimensionarImagemParaBase64(arquivo, { tamanhoMax = 256, qualidade = 0.8 } = {}) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(tamanhoMax / img.width, tamanhoMax / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * escala);
+        canvas.height = Math.round(img.height * escala);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
+      img.src = e.target.result;
+    };
+    leitor.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
 /** Formata um número em Real brasileiro. */
 function formatarMoeda(valor) {
   const numero = Number.isFinite(valor) ? valor : 0;
@@ -299,6 +330,7 @@ function sincronizarAlturaHeader() {
 export {
   escaparHTML,
   construirAvatarHTML,
+  redimensionarImagemParaBase64,
   sincronizarAlturaHeader,
   formatarMoeda,
   formatarJornadaSemanal,

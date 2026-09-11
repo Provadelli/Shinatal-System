@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shinatal — Meu perfil</title>
+<link rel="icon" href="assets/favicon-shinatal.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+
+<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
+    <span class="tela-carregamento-glow" aria-hidden="true"></span>
+  </div>
+</div>
+<script>
+  (function () {
+    var texto = document.getElementById("tela-carregamento-texto");
+    "Carregando".split("").forEach(function (letra, i) {
+      var span = document.createElement("span");
+      span.className = "tela-carregamento-letra";
+      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
+      span.textContent = letra;
+      texto.appendChild(span);
+    });
+
+    var el = document.getElementById("tela-carregamento");
+    var inicio = Date.now();
+    var minimoMs = 650;
+    var escondida = false;
+    function esconder() {
+      if (escondida) return;
+      escondida = true;
+      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
+      setTimeout(function () {
+        el.classList.add("tela-carregamento-oculta");
+        setTimeout(function () { el.style.display = "none"; }, 550);
+      }, atraso);
+    }
+    if (document.readyState === "complete") esconder();
+    else window.addEventListener("load", esconder);
+    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
+  })();
+</script>
+
+<div id="bg-pao-acucar" aria-hidden="true"></div>
+
+<!-- ===== Nav superior (desktop) — minimal: sem os links de navegação por papel ===== -->
+<nav class="header-flutuante hidden md:flex">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Shinatal">
+      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
+    </a>
+    <div class="flex-1 flex items-center justify-center">
+      <span class="font-display text-headline-md text-on-surface">Meu perfil</span>
+    </div>
+    <div class="flex items-center gap-4 shrink-0">
+      <a data-link-voltar href="/login" class="font-body text-label-sm text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap">
+        <span class="material-symbols-outlined text-base">arrow_back</span> Voltar ao painel
+      </a>
+      <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
+        <span class="material-symbols-outlined">logout</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Header mobile ===== -->
+<header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
+  <a data-link-voltar href="/login" class="flex items-center gap-1 text-primary" aria-label="Voltar ao painel">
+    <span class="material-symbols-outlined text-lg">arrow_back</span>
+    <span class="font-body text-label-sm">Voltar</span>
+  </a>
+  <span class="font-display text-label-md text-on-surface">Meu perfil</span>
+  <button id="btn-sair-mobile" title="Sair" class="text-on-surface-variant">
+    <span class="material-symbols-outlined">logout</span>
+  </button>
+</header>
+
+<!-- ===== Conteúdo principal — coluna única, ordem fixa (foto/dados → segurança → histórico+conduta) ===== -->
+<main id="topo" class="w-full max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1">
+
+  <header class="mb-2 conteudo-sobre-fundo anim-entrada anim-entrada-1">
+    <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-on-surface">Meu perfil</h1>
+    <p class="font-body text-body-md text-on-surface-variant mt-1">Sua foto, sua senha e seu histórico no Shinatal.</p>
+  </header>
+
+  <!-- Foto + dados básicos -->
+  <div class="glass-card-active rounded-xl p-6 flex flex-col sm:flex-row items-center gap-6 anim-entrada anim-entrada-2">
+    <div class="relative shrink-0">
+      <div id="avatar-perfil" class="w-28 h-28 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-3xl overflow-hidden">?</div>
+      <label for="input-foto-perfil" title="Trocar foto" aria-label="Trocar foto de perfil" class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-9 h-9 flex items-center justify-center cursor-pointer shadow-md hover:bg-on-primary-container transition-colors">
+        <span class="material-symbols-outlined text-lg">edit</span>
+      </label>
+      <input type="file" id="input-foto-perfil" accept="image/*" class="hidden" />
+    </div>
+    <div class="text-center sm:text-left">
+      <h2 id="perfil-nome" class="font-display text-headline-md text-on-surface">—</h2>
+      <p id="perfil-cargo" class="font-body text-label-sm text-on-surface-variant uppercase tracking-wide">—</p>
+      <p id="perfil-email" class="font-body text-body-md text-on-surface-variant">—</p>
+      <p id="perfil-admissao" class="font-body text-label-sm text-on-surface-variant">—</p>
+    </div>
+  </div>
+
+  <!-- Segurança (trocar senha) -->
+  <div class="glass-panel rounded-xl p-6 anim-entrada anim-entrada-3">
+    <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary">lock</span> Segurança
+    </h3>
+    <p class="font-body text-label-sm text-on-surface-variant mb-4">
+      Vamos enviar um link seguro para o seu e-mail institucional para você criar uma nova senha.
+    </p>
+    <button id="btn-trocar-senha" class="btn-fantasma w-full flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined text-lg">mail</span> Enviar link para trocar senha
+    </button>
+  </div>
+
+  <!-- Histórico detalhado — a Avaliação de Conduta é sempre o último bloco renderizado aqui -->
+  <div class="glass-panel rounded-xl p-6 anim-entrada anim-entrada-4">
+    <div id="perfil-detalhado">Carregando...</div>
+  </div>
+</main>
+
+<footer class="footer-shinatal mt-4">
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+      <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
+        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
+        <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
+      </a>
+      <div class="flex items-center gap-2.5">
+        <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+        </a>
+      </div>
+      <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal</p>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="js/perfil.js"></script>
+</body>
+</html>

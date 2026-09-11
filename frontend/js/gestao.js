@@ -503,9 +503,6 @@ document.getElementById("corpo-diretorio").addEventListener("click", (e) => {
   abrirPerfil(btn.dataset.verPerfilUid);
 });
 
-document.getElementById("btn-perfil-desktop").addEventListener("click", () => abrirPerfil(perfil.uid));
-document.getElementById("avatar-mobile").addEventListener("click", () => abrirPerfil(perfil.uid));
-
 /* ------------------------------------------------------------------ */
 /* Status de contratos — ao vivo, pra não depender de recarregar a     */
 /* página quando outra aba/sessão ativa, encerra ou edita um contrato. */
