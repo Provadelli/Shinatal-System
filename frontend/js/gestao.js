@@ -15,8 +15,8 @@ import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
 import { criarSolicitacao } from "./solicitacoes-service.js";
 import {
-  iniciarHeartbeat, assinarFlagConduta, definirFlagConduta, assinarDiretorioOnline,
-  assinarMeusVotos, votarConduta, buscarContagemConduta, estaOnline
+  sincronizarDiretorio, removerDoDiretorio, assinarFlagConduta, definirFlagConduta,
+  assinarMeusVotos, votarConduta, buscarContagemConduta
 } from "./conduta-service.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
@@ -37,7 +37,13 @@ const avatarHtml = construirAvatarHTML(perfil);
 document.getElementById("avatar-desktop").innerHTML = avatarHtml;
 document.getElementById("avatar-mobile").innerHTML = avatarHtml;
 document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
-iniciarHeartbeat(perfil); // internamente não faz nada para o Presidente (não participa da função)
+sincronizarDiretorio(perfil); // não faz nada para o Presidente (não participa da função)
+
+// Declaradas aqui (e não junto do resto da lógica de Conduta, mais abaixo no arquivo) porque
+// `renderTudo()` já é chamado dentro do try/catch logo a seguir — um `let` só entra em vigor a
+// partir da linha em que é declarado, então precisa vir antes do primeiro uso.
+let condutaAtiva = false;
+let condutaMeusVotos = {};
 
 const state = {
   usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {}, estatisticasPublico: {},
@@ -50,6 +56,13 @@ try {
   await carregarTudo();
   renderTudo();
   await recalcularEPublicarFundo(); // também publica os números públicos da landing page
+  // Preenche o diretório público para quem ainda não tem entrada (colaboradores cadastrados
+  // antes desta feature existir, ou que nunca logaram desde então) — sem isto, o lado do
+  // colaborador comum (dashboard.js, que não pode ler usuarios/{uid} de terceiros) ficaria com
+  // uma lista incompleta até cada um logar pelo menos uma vez.
+  await Promise.all(
+    state.usuarios.filter((u) => u.role !== "presidente").map((u) => sincronizarDiretorio(u))
+  );
 } catch (erro) {
   console.error("[Shinatal] Falha ao carregar o painel de gestão:", erro);
   mostrarToast("Não foi possível carregar todos os dados. Alguns números podem estar desatualizados.", "erro");
@@ -124,6 +137,7 @@ function renderTudo() {
   renderContratosResumo();
   popularSelects();
   filtrarAcoesPorRole();
+  renderModalConduta(); // mantém a aba Conduta em dia sempre que state.usuarios mudar
 }
 
 function renderFundoCard() {
@@ -741,10 +755,6 @@ if (EH_PRESIDENTE()) {
 /* desliga a função para todo mundo.                                                             */
 /* ------------------------------------------------------------------ */
 
-let condutaAtiva = false;
-let condutaDiretorio = [];
-let condutaMeusVotos = {};
-
 function renderToggleConduta() {
   const area = document.getElementById("conduta-toggle-area");
   if (!EH_ADMIN_OU_PRESIDENTE()) {
@@ -787,14 +797,19 @@ function renderModalConduta() {
     container.innerHTML = `<p class="text-center py-6">Como Presidente, você não participa das avaliações de conduta (não vota e não pode ser avaliado).</p>`;
     return;
   }
-  const online = condutaDiretorio.filter((u) => u.uid !== perfil.uid && u.role !== "presidente" && estaOnline(u.ultimoAcesso));
-  if (!online.length) {
-    container.innerHTML = `<p class="text-center py-6">Nenhum colega online no momento.</p>`;
+  // O painel de gestão já tem a lista completa de colaboradores em memória (state.usuarios, lida
+  // com permissão de dp/rh/admin/presidente) — não precisa do diretório público, que existe só
+  // pro lado do colaborador comum (dashboard.js), que não pode ler usuarios/{uid} de terceiros.
+  const colegas = state.usuarios
+    .filter((u) => u.uid !== perfil.uid && u.role !== "presidente")
+    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+  if (!colegas.length) {
+    container.innerHTML = `<p class="text-center py-6">Nenhum colega disponível para avaliação no momento.</p>`;
     return;
   }
   container.innerHTML = `
     <p class="font-body text-label-sm text-on-surface-variant mb-1">Votos anônimos — não afeta a cota nem o fundo do Shinatal.</p>
-    ${online.map((u) => `
+    ${colegas.map((u) => `
       <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
         <div>
           <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
@@ -809,11 +824,7 @@ function renderModalConduta() {
 }
 
 assinarFlagConduta((ativa) => { condutaAtiva = ativa; renderModalConduta(); });
-assinarDiretorioOnline((lista) => { condutaDiretorio = lista; renderModalConduta(); });
 assinarMeusVotos(perfil.uid, (votos) => { condutaMeusVotos = votos; renderModalConduta(); });
-// A janela de "online" (últimos 5min) precisa ser reavaliada periodicamente — uma aba que fecha
-// sem gravar mais nada nunca dispara um novo evento do Firestore.
-setInterval(renderModalConduta, 30000);
 
 document.getElementById("conteudo-conduta").addEventListener("change", async (e) => {
   const select = e.target.closest("[data-votar-conduta]");
@@ -872,6 +883,7 @@ document.getElementById("corpo-diretorio").addEventListener("click", async (e) =
       ["faltas", "atrasos", "advertencias", "avaliacoes"].map((colecao) => excluirRegistrosPorUid(colecao, usuario.uid))
     );
     await deleteDoc(doc(db, "usuarios", usuario.uid));
+    await removerDoDiretorio(usuario.uid);
     await registrarLog("exclusao_colaborador", `Colaborador excluído do sistema (com histórico de faltas/atrasos/advertências/avaliações)`, usuario.uid, usuario.nome || usuario.email);
     mostrarToast("Colaborador excluído.", "sucesso");
     await carregarTudo();
@@ -906,6 +918,9 @@ document.getElementById("form-editar-colaborador").addEventListener("submit", as
   try {
     await updateDoc(doc(db, "usuarios", uid), { nome, cargo, cargaHoraria, dataAdmissao });
     await registrarLog("edicao_colaborador", `Dados de cadastro atualizados`, uid, nome);
+    // Este form não muda o papel — reaproveita o que já está carregado, sem esperar carregarTudo().
+    const role = state.usuarios.find((u) => u.uid === uid)?.role || "colaborador";
+    await sincronizarDiretorio({ uid, nome, cargo, role });
     mostrarToast("Colaborador atualizado com sucesso!", "sucesso");
     fecharModal("modal-editar-colaborador");
     await carregarTudo();
@@ -1018,6 +1033,8 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
       const novoRole = document.getElementById("acao-role").value;
       await updateDoc(doc(db, "usuarios", uid), { role: novoRole });
       await registrarLog("role", `Papel alterado para "${novoRole}"`, uid, alvoNome);
+      const alvo = state.usuarios.find((u) => u.uid === uid);
+      await sincronizarDiretorio({ uid, nome: alvo?.nome, cargo: alvo?.cargo, role: novoRole });
     }
 
     mostrarToast(precisaAprovacao ? "Solicitação enviada — aguardando aprovação do Presidente." : "Ação registrada com sucesso!", "sucesso");
@@ -1068,6 +1085,7 @@ document.getElementById("form-novo-colaborador").addEventListener("submit", asyn
     });
     await sendEmailVerification(cred.user);
     await signOut(authSecundario);
+    await sincronizarDiretorio({ uid: cred.user.uid, nome, cargo, role: "colaborador" });
     await registrarLog("novo_colaborador", `Colaborador criado (${email})`, cred.user.uid, nome);
     mostrarToast(`Colaborador ${nome} criado. Enviamos um e-mail de confirmação — ele(a) deve clicar no link e depois usar "Esqueci minha senha" para definir o acesso.`, "sucesso");
     fecharModal("modal-novo-colaborador");

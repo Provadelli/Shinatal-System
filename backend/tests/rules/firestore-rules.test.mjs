@@ -524,19 +524,38 @@ describe("configuracoes/avaliacaoConduta", () => {
 });
 
 describe("diretorioPublico/{uid}", () => {
-  it("colaborador grava a própria presença", async () => {
+  it("colaborador sincroniza a própria entrada", async () => {
     await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
     const db = ctx("colabA").firestore();
     await assertSucceeds(setDoc(doc(db, "diretorioPublico", "colabA"), {
-      nome: "colabA", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder"
+      nome: "colabA", cargo: "Operações", role: "colaborador"
     }));
   });
 
-  it("BOLA: colaborador NÃO grava presença em nome de outro uid", async () => {
+  it("BOLA: colaborador comum NÃO grava a entrada de outro uid", async () => {
     await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
+    await seedUsuario("colabB", "colaborador", { nome: "colabB", cargo: "Financeiro" });
     const db = ctx("colabA").firestore();
     await assertFails(setDoc(doc(db, "diretorioPublico", "colabB"), {
-      nome: "colabA", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder"
+      nome: "colabB", cargo: "Financeiro", role: "colaborador"
+    }));
+  });
+
+  it("admin sincroniza a entrada de outro colaborador (criar/editar pelo painel de gestão)", async () => {
+    await seedUsuario("admin1", "admin");
+    await seedUsuario("colabB", "colaborador", { nome: "colabB", cargo: "Financeiro" });
+    const db = ctx("admin1").firestore();
+    await assertSucceeds(setDoc(doc(db, "diretorioPublico", "colabB"), {
+      nome: "colabB", cargo: "Financeiro", role: "colaborador"
+    }));
+  });
+
+  it("DP/RH NÃO sincronizam a entrada de outro colaborador (só Admin/Presidente)", async () => {
+    await seedUsuario("dp1", "dp");
+    await seedUsuario("colabB", "colaborador", { nome: "colabB", cargo: "Financeiro" });
+    const db = ctx("dp1").firestore();
+    await assertFails(setDoc(doc(db, "diretorioPublico", "colabB"), {
+      nome: "colabB", cargo: "Financeiro", role: "colaborador"
     }));
   });
 
@@ -544,23 +563,32 @@ describe("diretorioPublico/{uid}", () => {
     await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
     const db = ctx("colabA").firestore();
     await assertFails(setDoc(doc(db, "diretorioPublico", "colabA"), {
-      nome: "colabA", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder", email: "vazamento@shinerio.com"
+      nome: "colabA", cargo: "Operações", role: "colaborador", email: "vazamento@shinerio.com"
     }));
   });
 
-  it("spoofing: nome/cargo divergentes do próprio usuarios/{uid} falham", async () => {
+  it("spoofing: nome/cargo/role divergentes do usuarios/{uid} real falham", async () => {
     await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
     const db = ctx("colabA").firestore();
     await assertFails(setDoc(doc(db, "diretorioPublico", "colabA"), {
-      nome: "Nome Falso", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder"
+      nome: "Nome Falso", cargo: "Operações", role: "colaborador"
     }));
   });
 
-  it("presidente NÃO cria o próprio doc de presença (não participa da função)", async () => {
+  it("presidente NÃO cria a própria entrada (não participa da função)", async () => {
     await seedUsuario("pres1", "presidente", { nome: "pres1", cargo: "Diretoria" });
     const db = ctx("pres1").firestore();
     await assertFails(setDoc(doc(db, "diretorioPublico", "pres1"), {
-      nome: "pres1", cargo: "Diretoria", role: "presidente", ultimoAcesso: "placeholder"
+      nome: "pres1", cargo: "Diretoria", role: "presidente"
+    }));
+  });
+
+  it("admin também NÃO consegue criar entrada para o Presidente", async () => {
+    await seedUsuario("admin1", "admin");
+    await seedUsuario("pres1", "presidente", { nome: "pres1", cargo: "Diretoria" });
+    const db = ctx("admin1").firestore();
+    await assertFails(setDoc(doc(db, "diretorioPublico", "pres1"), {
+      nome: "pres1", cargo: "Diretoria", role: "presidente"
     }));
   });
 
@@ -568,7 +596,7 @@ describe("diretorioPublico/{uid}", () => {
     await seedUsuario("colabA", "colaborador");
     await seedUsuario("colabB", "colaborador");
     await semRegras((db) => setDoc(doc(db, "diretorioPublico", "colabB"), {
-      nome: "colabB", cargo: "Financeiro", role: "colaborador", ultimoAcesso: "placeholder"
+      nome: "colabB", cargo: "Financeiro", role: "colaborador"
     }));
     const db = ctx("colabA").firestore();
     await assertSucceeds(getDocs(collection(db, "diretorioPublico")));

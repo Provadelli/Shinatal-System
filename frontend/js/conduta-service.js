@@ -4,30 +4,30 @@
 // autorização; este módulo só monta as chamadas ao Firestore no formato que as regras exigem.
 import { db } from "./firebase-init.js";
 import {
-  doc, setDoc, getDoc, onSnapshot, collection, query, where, runTransaction, serverTimestamp
+  doc, setDoc, deleteDoc, getDoc, onSnapshot, collection, query, where, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-/** "Online" = presença (diretorioPublico/{uid}.ultimoAcesso) registrada nos últimos 5 minutos. */
-const LIMIAR_ONLINE_MS = 5 * 60 * 1000;
-/** Intervalo do heartbeat — bem abaixo do limiar acima, pra dar margem de rede/latência. */
-const INTERVALO_HEARTBEAT_MS = 90 * 1000;
-
-let intervaloHeartbeat = null;
-
-/** Grava presença (nome/cargo/role/ultimoAcesso) e mantém viva enquanto a página estiver aberta.
- * Nunca deve ser chamado para o Presidente (não participa da função — a regra também bloqueia). */
-function iniciarHeartbeat(perfil) {
-  if (perfil.role === "presidente" || intervaloHeartbeat) return;
-  const gravar = () => setDoc(doc(db, "diretorioPublico", perfil.uid), {
-    nome: perfil.nome || "", cargo: perfil.cargo || "", role: perfil.role, ultimoAcesso: serverTimestamp()
-  }).catch((erro) => console.error("[Shinatal] Falha no heartbeat de presença:", erro));
-  gravar();
-  intervaloHeartbeat = setInterval(gravar, INTERVALO_HEARTBEAT_MS);
+/** Grava/atualiza a entrada de alguém no diretório público (nome/cargo/role, sem PII sensível).
+ * Chamada tanto pelo próprio usuário (ao carregar a página) quanto por Admin/Presidente em nome
+ * de qualquer colaborador (criar/editar/trocar papel) — a regra do Firestore valida os 3 campos
+ * contra o usuarios/{uid} real, então não há como gravar um valor inventado. Nunca deve ser
+ * chamada para o Presidente (não participa da função — a regra também bloqueia). */
+async function sincronizarDiretorio({ uid, nome, cargo, role }) {
+  if (role === "presidente") return;
+  try {
+    await setDoc(doc(db, "diretorioPublico", uid), { nome: nome || "", cargo: cargo || "", role });
+  } catch (erro) {
+    console.error("[Shinatal] Falha ao sincronizar o diretório de colaboradores:", erro);
+  }
 }
 
-function pararHeartbeat() {
-  if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
-  intervaloHeartbeat = null;
+/** Remove alguém do diretório público — chamado quando o colaborador é excluído do sistema. */
+async function removerDoDiretorio(uid) {
+  try {
+    await deleteDoc(doc(db, "diretorioPublico", uid));
+  } catch (erro) {
+    console.error("[Shinatal] Falha ao remover do diretório de colaboradores:", erro);
+  }
 }
 
 /** Assina o estado do interruptor global (configuracoes/avaliacaoConduta.ativo). Sem callback de
@@ -49,22 +49,16 @@ async function definirFlagConduta(ativo, uid) {
   });
 }
 
-/** Assina o diretório inteiro de presença; o filtro de "quem está online agora" (janela de
- * tempo) é responsabilidade de quem consome, já que precisa ser reavaliado periodicamente, não
- * só quando chega um novo evento do Firestore. */
-function assinarDiretorioOnline(cb) {
+/** Assina o diretório público inteiro (nome/cargo/role de todo mundo, exceto Presidente) — usado
+ * pelo lado do colaborador comum, que não pode ler usuarios/{uid} de outra pessoa. O painel de
+ * gestão (dp/rh/admin/presidente) não precisa disto: já tem a lista completa via state.usuarios. */
+function assinarDiretorio(cb) {
   return onSnapshot(collection(db, "diretorioPublico"), (snap) => {
     cb(snap.docs.map((d) => ({ uid: d.id, ...d.data() })));
   }, (erro) => {
-    console.error("[Shinatal] Falha ao ler o diretório de presença (as regras do Firestore foram publicadas?):", erro);
+    console.error("[Shinatal] Falha ao ler o diretório de colaboradores (as regras do Firestore foram publicadas?):", erro);
     cb([]);
   });
-}
-
-/** Verdadeiro se `ultimoAcesso` (Timestamp do Firestore) está dentro do limiar de "online". */
-function estaOnline(ultimoAcesso) {
-  if (!ultimoAcesso?.toDate) return false;
-  return Date.now() - ultimoAcesso.toDate().getTime() <= LIMIAR_ONLINE_MS;
 }
 
 /** Assina os próprios votos já dados pelo usuário logado (pra pré-selecionar o conceito atual
@@ -121,9 +115,8 @@ async function buscarContagemConduta(uid) {
 }
 
 export {
-  LIMIAR_ONLINE_MS, INTERVALO_HEARTBEAT_MS,
-  iniciarHeartbeat, pararHeartbeat, estaOnline,
+  sincronizarDiretorio, removerDoDiretorio,
   assinarFlagConduta, definirFlagConduta,
-  assinarDiretorioOnline, assinarMeusVotos,
+  assinarDiretorio, assinarMeusVotos,
   votarConduta, buscarContagemConduta
 };

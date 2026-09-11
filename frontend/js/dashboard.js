@@ -12,8 +12,7 @@ import {
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
 import {
-  iniciarHeartbeat, assinarFlagConduta, assinarDiretorioOnline, assinarMeusVotos,
-  votarConduta, estaOnline
+  sincronizarDiretorio, assinarFlagConduta, assinarDiretorio, assinarMeusVotos, votarConduta
 } from "./conduta-service.js";
 
 // dashboard.html chama alternarAccordion(...) via onclick inline — precisa estar global.
@@ -25,7 +24,7 @@ const perfil = await exigirAutenticacao(["colaborador"]);
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
 renderizarPerfil(perfil);
-iniciarHeartbeat(perfil);
+sincronizarDiretorio(perfil);
 
 const dados = await carregarRegistrosDoColaborador(perfil.uid);
 renderizarListasDeModais(dados);
@@ -201,14 +200,14 @@ function renderModalConduta() {
     container.innerHTML = `<p class="text-center py-6">Esta página ainda não está disponível.</p>`;
     return;
   }
-  const online = condutaDiretorio.filter((u) => u.uid !== perfil.uid && u.role !== "presidente" && estaOnline(u.ultimoAcesso));
-  if (!online.length) {
-    container.innerHTML = `<p class="text-center py-6">Nenhum colega online no momento.</p>`;
+  const colegas = condutaDiretorio.filter((u) => u.uid !== perfil.uid && u.role !== "presidente");
+  if (!colegas.length) {
+    container.innerHTML = `<p class="text-center py-6">Nenhum colega disponível para avaliação no momento.</p>`;
     return;
   }
   container.innerHTML = `
     <p class="font-body text-label-sm text-on-surface-variant mb-1">Votos anônimos — não afeta a cota nem o fundo do Shinatal.</p>
-    ${online.map((u) => `
+    ${colegas.map((u) => `
       <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
         <div>
           <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
@@ -223,11 +222,8 @@ function renderModalConduta() {
 }
 
 assinarFlagConduta((ativa) => { condutaAtiva = ativa; renderModalConduta(); });
-assinarDiretorioOnline((lista) => { condutaDiretorio = lista; renderModalConduta(); });
+assinarDiretorio((lista) => { condutaDiretorio = lista; renderModalConduta(); });
 assinarMeusVotos(perfil.uid, (votos) => { condutaMeusVotos = votos; renderModalConduta(); });
-// A janela de "online" (últimos 5min) precisa ser reavaliada periodicamente — uma aba que fecha
-// sem gravar mais nada nunca dispara um novo evento do Firestore.
-setInterval(renderModalConduta, 30000);
 
 document.getElementById("conteudo-conduta").addEventListener("change", async (e) => {
   const select = e.target.closest("[data-votar-conduta]");

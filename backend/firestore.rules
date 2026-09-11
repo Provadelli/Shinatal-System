@@ -228,16 +228,21 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['ativo', 'atualizadoEm', 'atualizadoPor']);
     }
 
-    // Diretório mínimo (nome/cargo/presença) usado só para montar a lista de "quem está online"
-    // — existe para NÃO precisar expandir a leitura de usuarios/{uid} (que tem e-mail, carga
-    // horária, motivo de desligamento etc.) para todo mundo. Cada um escreve só o próprio doc.
+    // Diretório mínimo (nome/cargo/role) usado só para montar a lista de colaboradores avaliáveis
+    // no lado do colaborador comum — existe para NÃO precisar expandir a leitura de usuarios/{uid}
+    // (que tem e-mail, carga horária, motivo de desligamento etc.) para todo mundo. Cada um
+    // sincroniza o próprio doc ao logar; Admin/Presidente também sincronizam em nome de qualquer
+    // colaborador (ao criar/editar/trocar o papel de alguém, pelo painel de gestão), pra o
+    // diretório já nascer completo, sem depender daquele colaborador logar primeiro. Sempre
+    // validado contra o usuarios/{uid} real — nunca aceita um valor inventado pelo cliente.
     match /diretorioPublico/{uid} {
       allow read: if emailVerificado();
-      allow write: if emailVerificado() && request.auth.uid == uid && podeParticiparConduta()
-        && request.resource.data.keys().hasOnly(['nome', 'cargo', 'role', 'ultimoAcesso'])
-        && request.resource.data.role == papel()
-        && request.resource.data.nome == perfil().nome
-        && request.resource.data.cargo == perfil().cargo;
+      allow write: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente())
+        && request.resource.data.keys().hasOnly(['nome', 'cargo', 'role'])
+        && request.resource.data.role != 'presidente'
+        && request.resource.data.role == get(/databases/$(database)/documents/usuarios/$(uid)).data.role
+        && request.resource.data.nome == get(/databases/$(database)/documents/usuarios/$(uid)).data.nome
+        && request.resource.data.cargo == get(/databases/$(database)/documents/usuarios/$(uid)).data.cargo;
       allow delete: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente());
     }
 
