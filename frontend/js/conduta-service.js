@@ -30,10 +30,15 @@ function pararHeartbeat() {
   intervaloHeartbeat = null;
 }
 
-/** Assina o estado do interruptor global (configuracoes/avaliacaoConduta.ativo). */
+/** Assina o estado do interruptor global (configuracoes/avaliacaoConduta.ativo). Sem callback de
+ * erro, um onSnapshot que falha (ex.: regras do Firestore desatualizadas em produção) nunca mais
+ * chama `cb` — a UI ficaria travada em "Carregando..." pra sempre, sem nenhum aviso. */
 function assinarFlagConduta(cb) {
   return onSnapshot(doc(db, "configuracoes", "avaliacaoConduta"), (snap) => {
     cb(snap.exists() ? !!snap.data().ativo : false);
+  }, (erro) => {
+    console.error("[Shinatal] Falha ao ler o estado da Avaliação de Conduta (as regras do Firestore foram publicadas?):", erro);
+    cb(false);
   });
 }
 
@@ -50,6 +55,9 @@ async function definirFlagConduta(ativo, uid) {
 function assinarDiretorioOnline(cb) {
   return onSnapshot(collection(db, "diretorioPublico"), (snap) => {
     cb(snap.docs.map((d) => ({ uid: d.id, ...d.data() })));
+  }, (erro) => {
+    console.error("[Shinatal] Falha ao ler o diretório de presença (as regras do Firestore foram publicadas?):", erro);
+    cb([]);
   });
 }
 
@@ -70,6 +78,9 @@ function assinarMeusVotos(avaliadorUid, cb) {
     const porAlvo = {};
     snap.docs.forEach((d) => { porAlvo[d.data().avaliadoUid] = d.data().conceito; });
     cb(porAlvo);
+  }, (erro) => {
+    console.error("[Shinatal] Falha ao ler os próprios votos de conduta (as regras do Firestore foram publicadas?):", erro);
+    cb({});
   });
 }
 
