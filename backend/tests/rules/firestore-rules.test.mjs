@@ -690,6 +690,14 @@ describe("votosConduta/{votoId}", () => {
     await assertSucceeds(getDoc(doc(db, "votosConduta", "colabA_colabB")));
   });
 
+  it("ler o próprio voto ANTES de existir também é permitido (necessário pro tx.get() do primeiro voto)", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(getDoc(doc(db, "votosConduta", "colabA_colabB")));
+  });
+
   it("ninguém apaga um voto (allow delete: if false)", async () => {
     await ativarConduta();
     await seedUsuario("colabA", "colaborador");

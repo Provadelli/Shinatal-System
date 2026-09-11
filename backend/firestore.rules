@@ -249,7 +249,12 @@ service cloud.firestore {
     // Voto individual (1 por par avaliador→avaliado, id determinístico). Só o autor lê o
     // próprio voto — é essa regra, e não só a UI, que garante o anonimato.
     match /votosConduta/{votoId} {
-      allow read: if emailVerificado() && resource.data.avaliadorUid == request.auth.uid;
+      // `resource == null ||` primeiro: a transação de votarConduta() sempre faz um tx.get()
+      // no próprio voto ANTES de criá-lo (pra saber se está criando ou editando), e nesse
+      // primeiro voto o documento ainda não existe — sem esse curto-circuito, acessar
+      // `resource.data` num documento inexistente é erro de avaliação, e a regra nega a leitura
+      // (não só devolve "não encontrado"), o que travava TODO primeiro voto de todo mundo.
+      allow read: if emailVerificado() && (resource == null || resource.data.avaliadorUid == request.auth.uid);
       allow create, update: if emailVerificado()
         && avaliacaoCondutaAtiva() && podeParticiparConduta()
         && request.resource.data.avaliadorUid == request.auth.uid
