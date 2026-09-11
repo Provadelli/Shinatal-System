@@ -26,10 +26,11 @@ function botaoExcluir(tipo, id, tiposExcluiveis) {
  *   somaPesos: number,
  *   anoExercicio: number,
  *   tiposExcluiveis?: string[],           // ex.: ['falta','atraso','advertencia','avaliacao']
- *   aoExcluir?: (tipo:string, id:string) => void
+ *   aoExcluir?: (tipo:string, id:string) => void,
+ *   contagemConduta?: {excelente:number, bom:number, regular:number, insatisfatorio:number}|null
  * }} params
  */
-function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaPesos, anoExercicio, tiposExcluiveis = [], aoExcluir = null }) {
+function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaPesos, anoExercicio, tiposExcluiveis = [], aoExcluir = null, contagemConduta = null }) {
   const participacaoPct = somaPesos > 0 ? (resultado.pesoIndividual / somaPesos) * 100 : 0;
   const { porMes } = contarPontosAtraso(dados.atrasos, anoExercicio);
   const mesesComAtraso = Object.entries(porMes).filter(([, qtd]) => qtd > 0).sort(([a], [b]) => a.localeCompare(b));
@@ -131,6 +132,19 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         </div>
         ${!resultado.elegivel ? `<p class="font-body text-label-sm text-christmas-red mt-2">${resultado.motivoInelegibilidade}</p>` : ""}
       </div>
+
+      ${usuario.role !== "presidente" && contagemConduta ? `
+      <div class="border-t border-outline-variant/30 pt-4">
+        <p class="font-body font-semibold text-on-surface mb-1">Avaliação de conduta entre colegas</p>
+        <p class="font-body text-label-sm text-on-surface-variant mb-2">Votos anônimos dos colegas — não afeta a cota nem o fundo do Shinatal.</p>
+        <div class="grid grid-cols-2 gap-2">
+          ${["excelente", "bom", "regular", "insatisfatorio"].map((c) => `
+            <div class="bg-surface-container rounded-lg px-3 py-2 flex justify-between items-center">
+              <span class="font-body text-label-sm text-on-surface-variant">${ROTULOS_CONCEITO[c]}</span>
+              <span class="font-display font-bold text-on-surface">${contagemConduta[c] || 0}</span>
+            </div>`).join("")}
+        </div>
+      </div>` : ""}
     </div>`;
 
   if (aoExcluir) {
@@ -140,4 +154,4 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
   }
 }
 
-export { renderizarPerfilDetalhado };
+export { renderizarPerfilDetalhado, ROTULOS_CONCEITO };

@@ -29,6 +29,17 @@ firebase.json / .firebaserc   Configuração do projeto Firebase (raiz do reposi
 O motor de cálculo da premiação (Seções do Regulamento Interno) vive em
 `frontend/js/calculo-shinatal.js`, isolado de I/O — é a peça mais sensível do projeto.
 
+### Avaliação de Conduta (entre colegas)
+
+Aba "Conduta", disponível no dashboard do colaborador e no painel de gestão (dp/rh/admin) —
+todo mundo participa, exceto o Presidente (não vota e não pode ser avaliado). Cada um avalia os
+colegas que estiverem online (presença por heartbeat, `diretorioPublico/{uid}`), usando os mesmos
+4 conceitos da Seção 11 (Excelente/Bom/Regular/Insatisfatório), mas é **puramente social**: os
+votos são anônimos (só o autor lê o próprio voto — ver `backend/firestore.rules`) e nunca entram
+em `calculo-shinatal.js`, ou seja, não afetam a cota nem o fundo. A função nasce desligada; só
+Admin ou Presidente pode ligá-la globalmente (`configuracoes/avaliacaoConduta`). No perfil de cada
+colaborador aparece só a contagem de votos por conceito, nunca quem votou.
+
 ## Como rodar / publicar
 
 Veja **[docs/SETUP.md](docs/SETUP.md)** (configuração do projeto Firebase, variáveis, deploy)

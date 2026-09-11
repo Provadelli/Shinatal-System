@@ -10,7 +10,11 @@ import {
   construirAvatarHTML
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
-import { renderizarPerfilDetalhado } from "./perfil-view.js";
+import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
+import {
+  iniciarHeartbeat, assinarFlagConduta, assinarDiretorioOnline, assinarMeusVotos,
+  votarConduta, estaOnline
+} from "./conduta-service.js";
 
 // dashboard.html chama alternarAccordion(...) via onclick inline — precisa estar global.
 window.alternarAccordion = alternarAccordion;
@@ -21,6 +25,7 @@ const perfil = await exigirAutenticacao(["colaborador"]);
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
 renderizarPerfil(perfil);
+iniciarHeartbeat(perfil);
 
 const dados = await carregarRegistrosDoColaborador(perfil.uid);
 renderizarListasDeModais(dados);
@@ -28,20 +33,36 @@ renderizarListasDeModais(dados);
 // Fundo compartilhado (somaPesos + saldoDisponível) mantido pelo painel de gestão.
 // Recalcula a cota ao vivo sempre que o fundo mudar (novo contrato, etc).
 let fundoAtual = { saldoDisponivel: 0, somaPesos: 0 };
+let resultadoAtual = null;
+let minhaContagemConduta = null;
+
+/** Avaliação de desempenho (fundo/cota) e Avaliação de Conduta (social) atualizam o mesmo
+ * "Perfil detalhado" de forma independente — cada uma tem seu próprio listener do Firestore, mas
+ * o render final precisa combinar os dois últimos valores conhecidos de cada um. */
+function atualizarPerfilDetalhado() {
+  if (!resultadoAtual) return;
+  renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
+    usuario: perfil, dados, resultado: resultadoAtual, somaPesos: fundoAtual.somaPesos || 0,
+    anoExercicio: ANO_EXERCICIO, contagemConduta: minhaContagemConduta
+  });
+}
 
 onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
   fundoAtual = snap.exists() ? snap.data() : { saldoDisponivel: 0, somaPesos: 0 };
-  const resultado = calcularCotaColaborador(
+  resultadoAtual = calcularCotaColaborador(
     perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO
   );
-  renderizarCota(resultado);
-  renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
-    usuario: perfil, dados, resultado, somaPesos: fundoAtual.somaPesos || 0, anoExercicio: ANO_EXERCICIO
-  });
+  renderizarCota(resultadoAtual);
+  atualizarPerfilDetalhado();
   document.getElementById("qtd-contratos-ativos").textContent = fundoAtual.totalContratosAtivos ?? 0;
   document.getElementById("qtd-contratos-encerrados").textContent = fundoAtual.totalContratosEncerrados ?? 0;
   document.getElementById("valor-fundo-total").textContent = formatarMoeda(fundoAtual.saldoDisponivel || 0);
   simular();
+});
+
+onSnapshot(doc(db, "condutaContagem", perfil.uid), (snap) => {
+  minhaContagemConduta = snap.exists() ? snap.data() : null;
+  atualizarPerfilDetalhado();
 });
 
 /* ------------------------------------------------------------------ */
@@ -165,6 +186,64 @@ function renderizarListasDeModais(dados) {
         .join("")
     : `<p class="text-center py-6">Nenhuma advertência registrada. 🎉</p>`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Conduta — avaliação anônima entre colegas (puramente social, não entra na cota nem no fundo) */
+/* ------------------------------------------------------------------ */
+
+let condutaAtiva = false;
+let condutaDiretorio = [];
+let condutaMeusVotos = {};
+
+function renderModalConduta() {
+  const container = document.getElementById("conteudo-conduta");
+  if (!condutaAtiva) {
+    container.innerHTML = `<p class="text-center py-6">Esta página ainda não está disponível.</p>`;
+    return;
+  }
+  const online = condutaDiretorio.filter((u) => u.uid !== perfil.uid && u.role !== "presidente" && estaOnline(u.ultimoAcesso));
+  if (!online.length) {
+    container.innerHTML = `<p class="text-center py-6">Nenhum colega online no momento.</p>`;
+    return;
+  }
+  container.innerHTML = `
+    <p class="font-body text-label-sm text-on-surface-variant mb-1">Votos anônimos — não afeta a cota nem o fundo do Shinatal.</p>
+    ${online.map((u) => `
+      <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
+        <div>
+          <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
+          <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
+        </div>
+        <select data-votar-conduta="${u.uid}" class="input-shinatal !pl-3 !py-1.5 w-40">
+          <option value="">Avaliar...</option>
+          ${["excelente", "bom", "regular", "insatisfatorio"].map((c) =>
+            `<option value="${c}" ${condutaMeusVotos[u.uid] === c ? "selected" : ""}>${ROTULOS_CONCEITO[c]}</option>`).join("")}
+        </select>
+      </div>`).join("")}`;
+}
+
+assinarFlagConduta((ativa) => { condutaAtiva = ativa; renderModalConduta(); });
+assinarDiretorioOnline((lista) => { condutaDiretorio = lista; renderModalConduta(); });
+assinarMeusVotos(perfil.uid, (votos) => { condutaMeusVotos = votos; renderModalConduta(); });
+// A janela de "online" (últimos 5min) precisa ser reavaliada periodicamente — uma aba que fecha
+// sem gravar mais nada nunca dispara um novo evento do Firestore.
+setInterval(renderModalConduta, 30000);
+
+document.getElementById("conteudo-conduta").addEventListener("change", async (e) => {
+  const select = e.target.closest("[data-votar-conduta]");
+  if (!select || !select.value) return;
+  const novoConceito = select.value;
+  select.disabled = true;
+  try {
+    await votarConduta({ avaliadorUid: perfil.uid, avaliadoUid: select.dataset.votarConduta, conceito: novoConceito });
+    mostrarToast("Avaliação registrada.", "sucesso");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Não foi possível registrar sua avaliação.", "erro");
+  } finally {
+    select.disabled = false;
+  }
+});
 
 /* ------------------------------------------------------------------ */
 /* Modais e ações                                                      */

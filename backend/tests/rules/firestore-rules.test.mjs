@@ -480,3 +480,274 @@ describe("logs/{id}", () => {
     await assertSucceeds(deleteDoc(doc(db, "logs", "l4")));
   });
 });
+
+// ---------------------------------------------------------------------------
+// Avaliação de Conduta (entre colegas) — feature social/anônima, separada de avaliacoes/{id}.
+// ---------------------------------------------------------------------------
+
+/** Liga o interruptor global direto (ignorando regras) — a maioria dos testes de voto/contagem
+ * precisa da função já ativa para chegar a testar a regra que realmente querem exercitar. */
+async function ativarConduta() {
+  await semRegras((db) => setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true }));
+}
+
+describe("configuracoes/avaliacaoConduta", () => {
+  it("colaborador lê a flag mesmo desligada (sem doc = tratado como desligada pelo app)", async () => {
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(getDoc(doc(db, "configuracoes", "avaliacaoConduta")));
+  });
+
+  it("colaborador NÃO liga a função", async () => {
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true }));
+  });
+
+  it("admin liga a função", async () => {
+    await seedUsuario("admin1", "admin");
+    const db = ctx("admin1").firestore();
+    await assertSucceeds(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true }));
+  });
+
+  it("presidente liga a função", async () => {
+    await seedUsuario("pres1", "presidente");
+    const db = ctx("pres1").firestore();
+    await assertSucceeds(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true }));
+  });
+
+  it("DP/RH NÃO ligam a função", async () => {
+    await seedUsuario("dp1", "dp");
+    const db = ctx("dp1").firestore();
+    await assertFails(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true }));
+  });
+});
+
+describe("diretorioPublico/{uid}", () => {
+  it("colaborador grava a própria presença", async () => {
+    await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(setDoc(doc(db, "diretorioPublico", "colabA"), {
+      nome: "colabA", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder"
+    }));
+  });
+
+  it("BOLA: colaborador NÃO grava presença em nome de outro uid", async () => {
+    await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "diretorioPublico", "colabB"), {
+      nome: "colabA", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder"
+    }));
+  });
+
+  it("mass assignment: campo extra não previsto falha (hasOnly)", async () => {
+    await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "diretorioPublico", "colabA"), {
+      nome: "colabA", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder", email: "vazamento@shinerio.com"
+    }));
+  });
+
+  it("spoofing: nome/cargo divergentes do próprio usuarios/{uid} falham", async () => {
+    await seedUsuario("colabA", "colaborador", { nome: "colabA", cargo: "Operações" });
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "diretorioPublico", "colabA"), {
+      nome: "Nome Falso", cargo: "Operações", role: "colaborador", ultimoAcesso: "placeholder"
+    }));
+  });
+
+  it("presidente NÃO cria o próprio doc de presença (não participa da função)", async () => {
+    await seedUsuario("pres1", "presidente", { nome: "pres1", cargo: "Diretoria" });
+    const db = ctx("pres1").firestore();
+    await assertFails(setDoc(doc(db, "diretorioPublico", "pres1"), {
+      nome: "pres1", cargo: "Diretoria", role: "presidente", ultimoAcesso: "placeholder"
+    }));
+  });
+
+  it("qualquer usuário verificado lê o diretório inteiro", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "diretorioPublico", "colabB"), {
+      nome: "colabB", cargo: "Financeiro", role: "colaborador", ultimoAcesso: "placeholder"
+    }));
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(getDocs(collection(db, "diretorioPublico")));
+  });
+});
+
+describe("votosConduta/{votoId}", () => {
+  it("colaborador vota num colega com a função ativa", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(setDoc(doc(db, "votosConduta", "colabA_colabB"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente",
+      criadoEm: "placeholder", atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("voto falha com a função desligada", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "votosConduta", "colabA_colabB"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente",
+      criadoEm: "placeholder", atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("autovoto falha", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "votosConduta", "colabA_colabA"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabA", conceito: "excelente",
+      criadoEm: "placeholder", atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("votar num uid de Presidente falha", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("pres1", "presidente");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "votosConduta", "colabA_pres1"), {
+      avaliadorUid: "colabA", avaliadoUid: "pres1", conceito: "excelente",
+      criadoEm: "placeholder", atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("presidente votando falha (não participa)", async () => {
+    await ativarConduta();
+    await seedUsuario("pres1", "presidente");
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("pres1").firestore();
+    await assertFails(setDoc(doc(db, "votosConduta", "pres1_colabA"), {
+      avaliadorUid: "pres1", avaliadoUid: "colabA", conceito: "excelente",
+      criadoEm: "placeholder", atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("id do documento que não bate com avaliadorUid_avaliadoUid falha", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "votosConduta", "id-qualquer"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente",
+      criadoEm: "placeholder", atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("BOLA: o avaliado NÃO lê o voto que recebeu (anonimato)", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "votosConduta", "colabA_colabB"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente"
+    }));
+    const db = ctx("colabB").firestore();
+    await assertFails(getDoc(doc(db, "votosConduta", "colabA_colabB")));
+  });
+
+  it("o autor lê o próprio voto", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "votosConduta", "colabA_colabB"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente"
+    }));
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(getDoc(doc(db, "votosConduta", "colabA_colabB")));
+  });
+
+  it("ninguém apaga um voto (allow delete: if false)", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "votosConduta", "colabA_colabB"), {
+      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente"
+    }));
+    const db = ctx("colabA").firestore();
+    await assertFails(deleteDoc(doc(db, "votosConduta", "colabA_colabB")));
+  });
+});
+
+describe("condutaContagem/{avaliadoUid}", () => {
+  it("primeiro voto cria a contagem com soma 1", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(setDoc(doc(db, "condutaContagem", "colabB"), {
+      excelente: 1, bom: 0, regular: 0, insatisfatorio: 0, atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("tentar semear a contagem já nascendo com soma > 1 falha", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), {
+      excelente: 5, bom: 0, regular: 0, insatisfatorio: 0, atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("trocar de conceito (-1/+1) é aceito", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 0, bom: 1, regular: 0, insatisfatorio: 0 }));
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(setDoc(doc(db, "condutaContagem", "colabB"), {
+      excelente: 1, bom: 0, regular: 0, insatisfatorio: 0, atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("pular +5 num campo numa única escrita falha (bounding)", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 0, bom: 0, regular: 0, insatisfatorio: 0 }));
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), {
+      excelente: 5, bom: 0, regular: 0, insatisfatorio: 0, atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("reduzir a soma total falha", async () => {
+    await ativarConduta();
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 1, bom: 0, regular: 0, insatisfatorio: 0 }));
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), {
+      excelente: 0, bom: 0, regular: 0, insatisfatorio: 0, atualizadoEm: "placeholder"
+    }));
+  });
+
+  it("o avaliado lê a própria contagem", async () => {
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 1, bom: 0, regular: 0, insatisfatorio: 0 }));
+    const db = ctx("colabB").firestore();
+    await assertSucceeds(getDoc(doc(db, "condutaContagem", "colabB")));
+  });
+
+  it("BOLA: colaborador qualquer NÃO lê a contagem de outro colaborador", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 1, bom: 0, regular: 0, insatisfatorio: 0 }));
+    const db = ctx("colabA").firestore();
+    await assertFails(getDoc(doc(db, "condutaContagem", "colabB")));
+  });
+
+  it("DP/RH/Admin/Presidente leem a contagem de qualquer colaborador (mesmo escopo de ver perfil)", async () => {
+    await seedUsuario("rh1", "rh");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 1, bom: 0, regular: 0, insatisfatorio: 0 }));
+    const db = ctx("rh1").firestore();
+    await assertSucceeds(getDoc(doc(db, "condutaContagem", "colabB")));
+  });
+});

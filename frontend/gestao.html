@@ -66,6 +66,7 @@
         Solicitações
         <span id="badge-solicitacoes-desktop" class="hidden absolute -top-2 -right-3 min-w-[1.3em] h-[1.3em] px-1 rounded-full bg-christmas-red text-white text-[10px] font-bold flex items-center justify-center">0</span>
       </button>
+      <button id="nav-conduta-desktop" data-abrir-modal="modal-conduta" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Conduta</button>
     </div>
     <div class="flex items-center gap-3 lg:gap-4 shrink-0">
       <span id="badge-role" class="hidden lg:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold whitespace-nowrap">
@@ -98,6 +99,9 @@
     <button id="nav-solicitacoes-mobile" data-abrir-modal="modal-solicitacoes" title="Solicitações" class="hidden text-on-surface-variant hover:text-primary transition-colors relative">
       <span class="material-symbols-outlined">inbox</span>
       <span id="badge-solicitacoes-mobile" class="hidden absolute -top-1 -right-1 min-w-[1.1em] h-[1.1em] px-1 rounded-full bg-christmas-red text-white text-[9px] font-bold flex items-center justify-center">0</span>
+    </button>
+    <button id="nav-conduta-mobile" data-abrir-modal="modal-conduta" title="Conduta" class="text-on-surface-variant hover:text-primary transition-colors">
+      <span class="material-symbols-outlined">diversity_3</span>
     </button>
     <button id="btn-sair-mobile" class="text-on-surface-variant"><span class="material-symbols-outlined">logout</span></button>
   </div>
@@ -286,6 +290,18 @@
     <div class="p-5 overflow-y-auto">
       <ul id="lista-solicitacoes" class="space-y-3 font-body text-body-md text-on-surface-variant">Carregando...</ul>
     </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Conduta (avaliação entre colegas) ===== -->
+<div id="modal-conduta" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
+      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">diversity_3</span> Avaliação de Conduta (entre colegas)</h3>
+      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div id="conduta-toggle-area" class="hidden shrink-0 px-5 pt-4"></div>
+    <div id="conteudo-conduta" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
   </div>
 </div>
 

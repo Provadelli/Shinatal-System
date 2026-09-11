@@ -12,8 +12,12 @@ import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
-import { renderizarPerfilDetalhado } from "./perfil-view.js";
+import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
 import { criarSolicitacao } from "./solicitacoes-service.js";
+import {
+  iniciarHeartbeat, assinarFlagConduta, definirFlagConduta, assinarDiretorioOnline,
+  assinarMeusVotos, votarConduta, buscarContagemConduta, estaOnline
+} from "./conduta-service.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
 const ROTULOS_ROLE = { admin: "Administrador", dp: "Departamento Pessoal", rh: "Recursos Humanos", presidente: "Presidente" };
@@ -33,6 +37,7 @@ const avatarHtml = construirAvatarHTML(perfil);
 document.getElementById("avatar-desktop").innerHTML = avatarHtml;
 document.getElementById("avatar-mobile").innerHTML = avatarHtml;
 document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
+iniciarHeartbeat(perfil); // internamente não faz nada para o Presidente (não participa da função)
 
 const state = {
   usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {}, estatisticasPublico: {},
@@ -460,7 +465,7 @@ function renderLancamentosExistentesAcao() {
     </div>`).join("");
 }
 
-function abrirPerfil(uidAlvo) {
+async function abrirPerfil(uidAlvo) {
   const usuario = uidAlvo === perfil.uid ? perfil : state.usuarios.find((u) => u.uid === uidAlvo);
   if (!usuario) return;
   perfilAbertoUid = uidAlvo;
@@ -468,10 +473,12 @@ function abrirPerfil(uidAlvo) {
     uidAlvo === perfil.uid ? "Meu perfil" : `Perfil de ${usuario.nome || usuario.email}`;
   const dados = state.mapaDados[uidAlvo] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
   const resultado = computarResultado(usuario);
+  // Presidente não participa da Avaliação de Conduta — nunca tem contagem pra buscar.
+  const contagemConduta = usuario.role === "presidente" ? null : await buscarContagemConduta(uidAlvo).catch(() => null);
   renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
     usuario, dados, resultado, somaPesos: state.fundo.somaPesos, anoExercicio: ANO_EXERCICIO,
     tiposExcluiveis: TIPOS_EXCLUIVEIS_POR_ROLE[perfil.role] || [],
-    aoExcluir: excluirRegistro
+    aoExcluir: excluirRegistro, contagemConduta
   });
   abrirModal("modal-perfil");
 }
@@ -727,6 +734,101 @@ if (EH_PRESIDENTE()) {
     }
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* Conduta — avaliação anônima entre colegas (puramente social, não entra na cota nem no fundo). */
+/* Presidente não participa (não vota, não é avaliado), mas é ele (junto com Admin) quem liga/   */
+/* desliga a função para todo mundo.                                                             */
+/* ------------------------------------------------------------------ */
+
+let condutaAtiva = false;
+let condutaDiretorio = [];
+let condutaMeusVotos = {};
+
+function renderToggleConduta() {
+  const area = document.getElementById("conduta-toggle-area");
+  if (!EH_ADMIN_OU_PRESIDENTE()) {
+    area.classList.add("hidden");
+    area.innerHTML = "";
+    return;
+  }
+  area.classList.remove("hidden");
+  area.innerHTML = `
+    <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-4 py-3 mb-3">
+      <div>
+        <p class="font-body font-semibold text-on-surface">Avaliação de Conduta ${condutaAtiva ? "ativada" : "desativada"}</p>
+        <p class="font-body text-label-sm text-on-surface-variant">Só Admin/Presidente podem ${condutaAtiva ? "desativar" : "ativar"} esta função para todo mundo.</p>
+      </div>
+      <button id="btn-toggle-conduta" class="${condutaAtiva ? "btn-fantasma" : "btn-primario"} !py-2 whitespace-nowrap">${condutaAtiva ? "Desativar" : "Ativar"}</button>
+    </div>`;
+  document.getElementById("btn-toggle-conduta").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await definirFlagConduta(!condutaAtiva, perfil.uid);
+    } catch (erro) {
+      console.error(erro);
+      mostrarToast("Não foi possível atualizar a configuração.", "erro");
+      btn.disabled = false;
+    }
+  });
+}
+
+function renderModalConduta() {
+  renderToggleConduta();
+  const container = document.getElementById("conteudo-conduta");
+  if (!condutaAtiva) {
+    container.innerHTML = EH_ADMIN_OU_PRESIDENTE()
+      ? `<p class="text-center py-6">Ative acima para liberar esta aba aos demais colaboradores.</p>`
+      : `<p class="text-center py-6">Esta página ainda não está disponível.</p>`;
+    return;
+  }
+  if (EH_PRESIDENTE()) {
+    container.innerHTML = `<p class="text-center py-6">Como Presidente, você não participa das avaliações de conduta (não vota e não pode ser avaliado).</p>`;
+    return;
+  }
+  const online = condutaDiretorio.filter((u) => u.uid !== perfil.uid && u.role !== "presidente" && estaOnline(u.ultimoAcesso));
+  if (!online.length) {
+    container.innerHTML = `<p class="text-center py-6">Nenhum colega online no momento.</p>`;
+    return;
+  }
+  container.innerHTML = `
+    <p class="font-body text-label-sm text-on-surface-variant mb-1">Votos anônimos — não afeta a cota nem o fundo do Shinatal.</p>
+    ${online.map((u) => `
+      <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
+        <div>
+          <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
+          <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
+        </div>
+        <select data-votar-conduta="${u.uid}" class="input-shinatal !pl-3 !py-1.5 w-40">
+          <option value="">Avaliar...</option>
+          ${["excelente", "bom", "regular", "insatisfatorio"].map((c) =>
+            `<option value="${c}" ${condutaMeusVotos[u.uid] === c ? "selected" : ""}>${ROTULOS_CONCEITO[c]}</option>`).join("")}
+        </select>
+      </div>`).join("")}`;
+}
+
+assinarFlagConduta((ativa) => { condutaAtiva = ativa; renderModalConduta(); });
+assinarDiretorioOnline((lista) => { condutaDiretorio = lista; renderModalConduta(); });
+assinarMeusVotos(perfil.uid, (votos) => { condutaMeusVotos = votos; renderModalConduta(); });
+// A janela de "online" (últimos 5min) precisa ser reavaliada periodicamente — uma aba que fecha
+// sem gravar mais nada nunca dispara um novo evento do Firestore.
+setInterval(renderModalConduta, 30000);
+
+document.getElementById("conteudo-conduta").addEventListener("change", async (e) => {
+  const select = e.target.closest("[data-votar-conduta]");
+  if (!select || !select.value) return;
+  select.disabled = true;
+  try {
+    await votarConduta({ avaliadorUid: perfil.uid, avaliadoUid: select.dataset.votarConduta, conceito: select.value });
+    mostrarToast("Avaliação registrada.", "sucesso");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Não foi possível registrar sua avaliação.", "erro");
+  } finally {
+    select.disabled = false;
+  }
+});
 
 /* Editar colaborador (nome, cargo, jornada, admissão) — a jornada define o % da cota
    (Seção 4.2 do regulamento: 8h=100%, 6h=75%, 4h=50%, já aplicado em calculo-shinatal.js). */

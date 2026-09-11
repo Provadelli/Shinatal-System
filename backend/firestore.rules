@@ -35,6 +35,21 @@ service cloud.firestore {
     // não é mais a Seção 2 do regulamento, não passa pela fila do Presidente).
     function podeGerenciarContratoColaborador() { return papel() in ['rh', 'admin', 'presidente']; }
 
+    // Avaliação de Conduta (entre colegas) — feature social/anônima, ver seção dedicada mais
+    // abaixo. Todo mundo participa (vota e é votado), MENOS o Presidente.
+    function podeParticiparConduta() { return estaLogado() && papel() != 'presidente'; }
+    // Checa o papel de um uid arbitrário (não o do requisitante) — usado para garantir que o
+    // ALVO de um voto/presença de conduta também não seja o Presidente.
+    function ehPresidenteUid(uid) {
+      return get(/databases/$(database)/documents/usuarios/$(uid)).data.role == 'presidente';
+    }
+    // Estado do interruptor global da Avaliação de Conduta (Admin/Presidente). Se o doc nunca
+    // foi criado, get() falha e a regra nega por padrão — a função nasce desligada até alguém
+    // explicitamente ligá-la.
+    function avaliacaoCondutaAtiva() {
+      return get(/databases/$(database)/documents/configuracoes/avaliacaoConduta).data.ativo == true;
+    }
+
     // E-mail institucional (defesa em profundidade — o token do Firebase Auth não pode ser
     // falsificado pelo cliente, ao contrário de uma checagem só em JavaScript).
     function emailInstitucional() {
@@ -196,6 +211,83 @@ service cloud.firestore {
       allow create: if emailVerificado() && ehDpRhAdmin();
       allow update: if false;
       allow delete: if emailVerificado() && ehAdminOuPresidente();
+    }
+
+    // -------------------------------------------------------------
+    // Avaliação de Conduta (entre colegas) — feature social/anônima, TOTALMENTE separada de
+    // avaliacoes/{id} (Seção 11) e nunca lida por calculo-shinatal.js: não afeta cota nem fundo.
+    // Presidente nunca participa (nem como avaliador, nem como avaliado). Votos são anônimos:
+    // só o autor de um voto consegue lê-lo — nem o avaliado, nem Admin/Presidente conseguem
+    // ver quem votou o quê, só a contagem agregada.
+    // -------------------------------------------------------------
+
+    // Interruptor global — só Admin/Presidente ligam/desligam a função para todo mundo.
+    match /configuracoes/avaliacaoConduta {
+      allow read: if emailVerificado();
+      allow write: if emailVerificado() && ehAdminOuPresidente()
+        && request.resource.data.keys().hasOnly(['ativo', 'atualizadoEm', 'atualizadoPor']);
+    }
+
+    // Diretório mínimo (nome/cargo/presença) usado só para montar a lista de "quem está online"
+    // — existe para NÃO precisar expandir a leitura de usuarios/{uid} (que tem e-mail, carga
+    // horária, motivo de desligamento etc.) para todo mundo. Cada um escreve só o próprio doc.
+    match /diretorioPublico/{uid} {
+      allow read: if emailVerificado();
+      allow write: if emailVerificado() && request.auth.uid == uid && podeParticiparConduta()
+        && request.resource.data.keys().hasOnly(['nome', 'cargo', 'role', 'ultimoAcesso'])
+        && request.resource.data.role == papel()
+        && request.resource.data.nome == perfil().nome
+        && request.resource.data.cargo == perfil().cargo;
+      allow delete: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente());
+    }
+
+    // Voto individual (1 por par avaliador→avaliado, id determinístico). Só o autor lê o
+    // próprio voto — é essa regra, e não só a UI, que garante o anonimato.
+    match /votosConduta/{votoId} {
+      allow read: if emailVerificado() && resource.data.avaliadorUid == request.auth.uid;
+      allow create, update: if emailVerificado()
+        && avaliacaoCondutaAtiva() && podeParticiparConduta()
+        && request.resource.data.avaliadorUid == request.auth.uid
+        && request.resource.data.avaliadoUid != request.auth.uid
+        && !ehPresidenteUid(request.resource.data.avaliadoUid)
+        && votoId == request.resource.data.avaliadorUid + '_' + request.resource.data.avaliadoUid
+        && request.resource.data.conceito in ['excelente', 'bom', 'regular', 'insatisfatorio']
+        && request.resource.data.keys().hasOnly(['avaliadorUid', 'avaliadoUid', 'conceito', 'criadoEm', 'atualizadoEm']);
+      allow delete: if false;
+    }
+
+    // Contagem agregada e anônima por pessoa avaliada — o que aparece no perfil. Leitura no
+    // mesmo escopo de quem já pode ver o perfil detalhado de alguém (PODE_VER_PERFIL() no
+    // front-end = ehDpRhAdmin() aqui). Escrita feita numa transação client-side junto com o
+    // voto individual (ver conduta-service.js) — as regras não conseguem correlacionar as duas
+    // escritas da mesma transação, então cada campo é limitado a mudar no máximo 1 voto por
+    // escrita (mesmo nível de rigor pragmático já usado no resto deste arquivo, ex.: avaliacoes
+    // não tem hasOnly()).
+    match /condutaContagem/{avaliadoUid} {
+      allow read: if emailVerificado() && (avaliadoUid == request.auth.uid || ehDpRhAdmin());
+
+      allow create: if emailVerificado() && avaliacaoCondutaAtiva() && podeParticiparConduta()
+        && avaliadoUid != request.auth.uid && !ehPresidenteUid(avaliadoUid)
+        && request.resource.data.keys().hasOnly(['excelente', 'bom', 'regular', 'insatisfatorio', 'atualizadoEm'])
+        && request.resource.data.excelente + request.resource.data.bom
+           + request.resource.data.regular + request.resource.data.insatisfatorio == 1;
+
+      allow update: if emailVerificado() && avaliacaoCondutaAtiva() && podeParticiparConduta()
+        && avaliadoUid != request.auth.uid && !ehPresidenteUid(avaliadoUid)
+        && request.resource.data.keys().hasOnly(['excelente', 'bom', 'regular', 'insatisfatorio', 'atualizadoEm'])
+        // Cada campo só pode mudar em no máximo 1 voto por escrita, e a soma total nunca cai —
+        // só sobe 0 ou 1 — cobre tanto "voto novo" (+1 num campo) quanto "trocar de conceito"
+        // (-1 num campo, +1 em outro, soma igual).
+        && request.resource.data.excelente - resource.data.excelente >= -1 && request.resource.data.excelente - resource.data.excelente <= 1
+        && request.resource.data.bom - resource.data.bom >= -1 && request.resource.data.bom - resource.data.bom <= 1
+        && request.resource.data.regular - resource.data.regular >= -1 && request.resource.data.regular - resource.data.regular <= 1
+        && request.resource.data.insatisfatorio - resource.data.insatisfatorio >= -1 && request.resource.data.insatisfatorio - resource.data.insatisfatorio <= 1
+        && (request.resource.data.excelente + request.resource.data.bom + request.resource.data.regular + request.resource.data.insatisfatorio)
+           >= (resource.data.excelente + resource.data.bom + resource.data.regular + resource.data.insatisfatorio)
+        && (request.resource.data.excelente + request.resource.data.bom + request.resource.data.regular + request.resource.data.insatisfatorio)
+           <= (resource.data.excelente + resource.data.bom + resource.data.regular + resource.data.insatisfatorio) + 1;
+
+      allow delete: if false;
     }
   }
 }
