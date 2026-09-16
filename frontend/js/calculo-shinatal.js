@@ -127,9 +127,8 @@ function mesesEntreDatas(inicioISO, fimISO) {
 /**
  * "Mês de referência" de implantação (regra do dia 15, mesma lógica de `calcularAvosTrabalhados`
  * para admissão): implantado até o dia 15 conta o mês corrente; do dia 16 em diante, conta a
- * partir do mês seguinte. Rótulo/exibição apenas — NÃO é usado por `mesesEntreDatas` nem por
- * nenhum cálculo financeiro (duração prevista, meses decorridos, estorno) desta ou de outras
- * funções, que continuam com a diferença de mês corrida de sempre.
+ * partir do mês seguinte. Usado tanto para o rótulo de exibição quanto como base de
+ * `calcularMesesDesdeInicio` (duração prevista, meses decorridos, estorno — Seção 2.1).
  * @param {string} dataInicioISO 'aaaa-mm-dd'
  * @returns {{ano:number, mes:number}} mes 0-11
  */
@@ -144,6 +143,21 @@ function calcularMesReferenciaImplantacao(dataInicioISO) {
 /** Formata o mês de referência como "mm/aaaa" para exibição. */
 function formatarMesReferencia({ ano, mes }) {
   return `${String(mes + 1).padStart(2, "0")}/${ano}`;
+}
+
+/**
+ * Meses decorridos desde o início do contrato (aplicando a regra do dia 15 de
+ * `calcularMesReferenciaImplantacao`) até uma data de referência, contados de forma inclusiva —
+ * o próprio mês de referência já conta como o 1º mês. Base tanto da duração prevista do contrato
+ * quanto dos meses efetivamente decorridos usados no estorno (Seção 2.1/2.2), para que os dois
+ * fiquem sempre na mesma régua.
+ * @param {string} dataInicioISO 'aaaa-mm-dd'
+ * @param {string} dataReferenciaISO 'aaaa-mm-dd'
+ */
+function calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO) {
+  const { ano, mes } = calcularMesReferenciaImplantacao(dataInicioISO);
+  const ref = new Date(dataReferenciaISO + "T00:00:00");
+  return (ref.getFullYear() - ano) * 12 + (ref.getMonth() - mes) + 1;
 }
 
 /* ------------------------------------------------------------------ */
@@ -218,15 +232,19 @@ function validarCNPJ(valor) {
 
 const CREDITO_AJUSTE_FUNCIONARIO_CONTRATO = 150;
 
-/** Duração prevista entre o início e o encerramento previsto do contrato. */
+/** Duração prevista entre o início e o encerramento previsto do contrato (regra do dia 15 —
+ * ver `calcularMesesDesdeInicio`). */
 function calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO) {
   if (!dataInicioISO || !dataFimPrevistaISO) return 0;
-  return Math.max(0, mesesEntreDatas(dataInicioISO, dataFimPrevistaISO));
+  return Math.max(0, calcularMesesDesdeInicio(dataInicioISO, dataFimPrevistaISO));
 }
 
-/** Meses previstos do contrato, limitados a 12 (o crédito nunca ultrapassa R$150/func. — Seção 2). */
+/** Meses previstos do contrato, limitados a 12 (o crédito nunca ultrapassa R$150/func. — Seção 2).
+ * Contratos com menos de 2 meses previstos não são contabilizados (não geram crédito). */
 function calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO) {
-  return Math.min(calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO), MESES_ANO);
+  const meses = calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO);
+  if (meses < 2) return 0;
+  return Math.min(meses, MESES_ANO);
 }
 
 /** R$150/12 por funcionário do quadro inicial, × os meses vigentes previstos do contrato (Seção 2.1). */
@@ -322,7 +340,7 @@ function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, d
   if (!dataInicioISO || valorCreditadoAteAData <= 0) return 0;
   const mesesAlvo = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
   if (mesesAlvo <= 0) return 0;
-  const mesesBrutos = Math.max(0, mesesEntreDatas(dataInicioISO, dataReferenciaISO));
+  const mesesBrutos = Math.max(0, calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO));
   const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferenciaISO);
   const mesesPausadosQuadro = quantidadeFuncionariosIniciais > 0 ? funcionarioMesesPausados / quantidadeFuncionariosIniciais : 0;
   const mesesDecorridos = Math.max(0, mesesBrutos - calcularMesesPausados(pausas, dataReferenciaISO) - mesesPausadosQuadro);
@@ -638,5 +656,6 @@ export {
   calcularFuncionarioMesesPausados,
   montarPausasAposTransicao,
   calcularMesReferenciaImplantacao,
-  formatarMesReferencia
+  formatarMesReferencia,
+  calcularMesesDesdeInicio
 };
