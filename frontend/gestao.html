@@ -7,14 +7,14 @@
 <link rel="icon" href="assets/favicon-shinatal.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/tailwind.css" />
 <link rel="stylesheet" href="css/styles.css" />
+<script type="module" src="js/perf-adaptativo.js"></script>
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
-  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
   <div id="tela-carregamento-texto" class="tela-carregamento-texto">
     <span class="tela-carregamento-glow" aria-hidden="true"></span>
   </div>
@@ -55,7 +55,7 @@
 <nav class="header-flutuante hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
     <a href="/gestao" class="flex items-center gap-2 shrink-0" aria-label="Painel de Gestão do Shinatal">
-      <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
+      <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
       <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal whitespace-nowrap">· Gestão</span>
     </a>
     <div class="flex-1 min-w-0 flex flex-wrap gap-x-2 gap-y-1 lg:gap-x-5 items-center justify-center">
@@ -85,7 +85,7 @@
 
 <header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
   <a href="/gestao" class="flex items-center gap-2" aria-label="Painel de Gestão do Shinatal">
-    <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-6 w-auto shrink-0" />
+    <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-6 w-auto shrink-0" />
     <span class="hidden min-[360px]:inline font-body not-italic text-on-surface-variant font-normal text-sm whitespace-nowrap">· Gestão</span>
   </a>
   <div class="flex items-center gap-2.5 shrink-0">
@@ -233,7 +233,7 @@
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
       <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
         <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
       </a>
       <div class="flex items-center gap-2.5">

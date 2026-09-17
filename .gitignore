@@ -1,4 +1,5 @@
 node_modules/
+frontend/css/tailwind.css
 backend/scripts/service-account.json
 .firebase/
 *.log

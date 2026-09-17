@@ -13,7 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Site estático (frontend/) sem bundler — nada para compilar antes do deploy.
+      # CSS do Tailwind é pré-compilado aqui (npm ci já dispara o postinstall que roda o build;
+      # o passo explícito abaixo fica só pra deixar visível no log quando/como foi gerado).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:css
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

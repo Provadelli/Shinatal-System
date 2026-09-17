@@ -141,6 +141,14 @@ h1, h2, h3, .font-display {
   #bg-pao-acucar { width: min(85vw, 420px); opacity: 0.16; left: -20%; }
 }
 
+/* Aba oculta: pausa a deriva (poupa GPU/bateria sem trabalho nenhum) — ver perf-adaptativo.js. */
+#bg-pao-acucar.anim-pausada { animation-play-state: paused; }
+
+/* "Modo leve": mobile (matchMedia) OU sinal de deviceMemory/connection fraco (ver
+   perf-adaptativo.js). Nunca remove o elemento — só a animação — pra manter a identidade
+   visual (marca d'água do Pão de Açúcar) intacta, só sem o Ken Burns. */
+html.modo-leve #bg-pao-acucar { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
@@ -164,6 +172,15 @@ h1, h2, h3, .font-display {
   border-bottom: 1px solid var(--shinatal-borda);
   box-shadow: 0 2px 12px rgba(35, 32, 27, 0.05);
 }
+
+/* O custo do backdrop-filter vem majoritariamente de ligar a camada de composição offscreen a
+   cada frame de scroll (não do raio do blur em si) — por isso removemos o efeito inteiro em vez
+   de só reduzir o blur, compensando com opacidade mais alta pra manter a leitura de "header
+   flutuante". Mobile/touch sempre (custo de GPU mais crítico ali); desktop só em modo-leve. */
+@media (max-width: 767px), (pointer: coarse) {
+  .header-flutuante { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 255, 255, 0.98); }
+}
+html.modo-leve .header-flutuante { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 255, 255, 0.98); }
 
 /* Compensa a altura do header fixo — aplicar no <body> de cada página. --altura-header é medida
    ao vivo por sincronizarAlturaHeader() (ui-utils.js), que cobre o header quebrando em 2 linhas

@@ -8,7 +8,7 @@ import {
   collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML, debounce } from "./ui-utils.js";
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
@@ -214,7 +214,7 @@ function renderTabela() {
   }).join("");
 }
 
-document.getElementById("busca-contratos").addEventListener("input", renderTabela);
+document.getElementById("busca-contratos").addEventListener("input", debounce(renderTabela, 200));
 document.getElementById("filtro-status-contrato").addEventListener("change", renderTabela);
 
 /* ------------------------------------------------------------------ */

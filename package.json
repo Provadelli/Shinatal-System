@@ -1,0 +1,14 @@
+{
+  "name": "shinatal-tooling",
+  "private": true,
+  "devDependencies": {
+    "tailwindcss": "3.4.17",
+    "sharp": "^0.35.4"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --watch",
+    "postinstall": "npm run build:css",
+    "optimize:images": "node scripts/optimize-images.mjs"
+  }
+}

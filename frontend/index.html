@@ -8,9 +8,9 @@
 <link rel="icon" href="assets/favicon-shinatal.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="js/tailwind-config.js"></script>
+<link rel="stylesheet" href="css/tailwind.css" />
 <link rel="stylesheet" href="css/styles.css" />
+<script type="module" src="js/perf-adaptativo.js"></script>
 <style>
   /* Spotlight que segue o cursor no card do fundo — só em telas com mouse (pointer:fine) e sem prefers-reduced-motion. */
   #card-fundo { --mx: 50%; --my: 30%; }
@@ -33,7 +33,7 @@
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden pt-header-fixo">
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
-  <img src="assets/logoshinatal-cropped.png" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
   <div id="tela-carregamento-texto" class="tela-carregamento-texto">
     <span class="tela-carregamento-glow" aria-hidden="true"></span>
   </div>
@@ -75,7 +75,7 @@
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
         <span class="font-body text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
@@ -111,7 +111,7 @@
   <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-7 w-auto" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-7 w-auto" />
         <span class="font-body text-[9px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
@@ -148,7 +148,7 @@
         <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação voluntária 2026
       </p>
       <h1 class="font-display text-headline-lg-mobile md:text-headline-xl leading-[1.05] anim-entrada anim-entrada-2">
-        Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
+        Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
       </h1>
       <div class="max-w-md space-y-1 anim-entrada anim-entrada-3">
         <p class="font-body text-body-lg font-bold text-on-surface-variant">
@@ -206,7 +206,7 @@
       </div>
 
       <!-- Chapéu de natal pendurado na quina do card, como se estivesse realmente apoiado ali -->
-      <img src="assets/chapeu-natal.png" alt="" aria-hidden="true"
+      <img src="assets/chapeu-natal.webp" alt="" aria-hidden="true" width="240" height="240"
         class="absolute -top-4 -right-3 sm:-top-8 sm:-right-6 md:-top-10 md:-right-9 w-14 sm:w-16 md:w-20 h-auto rotate-12 z-20 drop-shadow-lg pointer-events-none select-none anim-entrada anim-entrada-4" />
     </div>
   </section>
@@ -218,7 +218,9 @@
         <div class="relative">
           <div class="absolute -inset-3 rounded-xl bg-festive-gold/40 blur-2xl pointer-events-none" aria-hidden="true"></div>
           <div class="relative rounded-xl overflow-hidden glass-card-active" style="box-shadow: 0 0 0 1px rgba(176,141,47,0.4), 0 0 45px rgba(176,141,47,0.55);">
-            <img src="assets/foto1.jfif" alt="Celebração do Shinatal"
+            <img src="assets/foto1-800.webp"
+              srcset="assets/foto1-400.webp 400w, assets/foto1-800.webp 800w, assets/foto1-1200.webp 960w"
+              sizes="(min-width: 768px) 50vw, 100vw" width="960" height="1280" alt="Celebração do Shinatal"
               class="w-full h-auto object-cover aspect-[4/3]" loading="lazy" />
             <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,244,214,0.45) 0%, rgba(255,244,214,0) 45%);" aria-hidden="true"></div>
           </div>
@@ -272,22 +274,30 @@
 
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
         <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto2.jfif" alt="Celebração em cada detalhe" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="assets/foto2-640.webp"
+            srcset="assets/foto2-320.webp 320w, assets/foto2-640.webp 640w, assets/foto2-960.webp 960w"
+            sizes="(min-width: 1024px) 25vw, 50vw" width="960" height="1280" alt="Celebração em cada detalhe" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
           <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Celebração em cada detalhe</p>
         </div>
         <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto3.jfif" alt="Bem-estar como reconhecimento" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="assets/foto3-640.webp"
+            srcset="assets/foto3-320.webp 320w, assets/foto3-640.webp 640w, assets/foto3-960.webp 960w"
+            sizes="(min-width: 1024px) 25vw, 50vw" width="960" height="1280" alt="Bem-estar como reconhecimento" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
           <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Bem-estar como reconhecimento</p>
         </div>
         <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto4.jfif" alt="Brindes a um ano de conquistas" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="assets/foto4-640.webp"
+            srcset="assets/foto4-320.webp 320w, assets/foto4-640.webp 640w, assets/foto4-960.webp 960w"
+            sizes="(min-width: 1024px) 25vw, 50vw" width="960" height="720" alt="Brindes a um ano de conquistas" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
           <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Brindes a um ano de conquistas</p>
         </div>
         <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto5.jfif" alt="Lembranças de gratidão" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="assets/foto5-640.webp"
+            srcset="assets/foto5-320.webp 320w, assets/foto5-640.webp 640w, assets/foto5-960.webp 720w"
+            sizes="(min-width: 1024px) 25vw, 50vw" width="720" height="1280" alt="Lembranças de gratidão" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
           <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Lembranças de gratidão</p>
         </div>
@@ -389,7 +399,7 @@
 
       <div class="flex flex-col items-center sm:items-start gap-4 text-center sm:text-left">
         <a href="/" class="inline-flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-          <img src="assets/logoshinatal-cropped.png" alt="Shinatal" class="h-9 w-auto footer-logo-invertido" />
+          <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-9 w-auto footer-logo-invertido" />
         </a>
         <p class="font-body text-body-md text-on-surface-variant max-w-xs">
           Programa anual de premiação da Shine Rio, celebrando dedicação com o espírito natalino do Rio de Janeiro.

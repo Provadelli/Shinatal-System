@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
-import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, debounce } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -181,7 +181,7 @@ function renderDiretorio(filtro = "") {
     // fórmula — a divisão em si (cotaBase = peso/somaPesos × saldo) segue a Seção 6 à risca.
     const participacaoPct = state.fundo.somaPesos > 0 ? (resultado.pesoIndividual / state.fundo.somaPesos) * 100 : 0;
     return `
-      <tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/60 transition-colors">
+      <tr data-uid="${u.uid}" class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/60 transition-colors">
         <td class="py-3 px-3">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-xs overflow-hidden shrink-0">${avatar}</div>
@@ -194,8 +194,8 @@ function renderDiretorio(filtro = "") {
         <td class="py-3 px-3 font-body text-body-md text-on-surface-variant">${escaparHTML(u.cargo) || "—"} <span class="text-label-sm">(${formatarJornadaSemanal(u.cargaHoraria)})</span></td>
         <td class="py-3 px-3 text-center font-body text-body-md ${totalFaltas ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${totalFaltas}</td>
         <td class="py-3 px-3 text-center font-body text-body-md ${totalAdvertencias ? "text-christmas-red font-semibold" : "text-on-surface-variant"}">${totalAdvertencias}</td>
-        <td class="py-3 px-3 text-center font-body text-body-md text-on-surface-variant" title="Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total">${participacaoPct.toFixed(1)}%</td>
-        <td class="py-3 px-3 font-body text-body-md ${resultado.elegivel ? "text-on-surface" : "text-christmas-red"}">${cotaLabel}</td>
+        <td class="cel-participacao py-3 px-3 text-center font-body text-body-md text-on-surface-variant" title="Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total">${participacaoPct.toFixed(1)}%</td>
+        <td class="cel-cota py-3 px-3 font-body text-body-md ${resultado.elegivel ? "text-on-surface" : "text-christmas-red"}">${cotaLabel}</td>
         <td class="py-3 px-3 text-right whitespace-nowrap">
           ${PODE_VER_PERFIL() ? `
           <button data-ver-perfil-uid="${u.uid}" title="Ver perfil" aria-label="Ver perfil" class="text-on-surface-variant hover:text-primary transition-colors p-1">
@@ -215,6 +215,31 @@ function renderDiretorio(filtro = "") {
         </td>
       </tr>`;
   }).join("");
+}
+
+/* Atualização leve do diretório quando só o SALDO do fundo muda (listener da linha ~513) — o
+   conjunto de colaboradores não muda aqui (state.usuarios só é populado uma vez, em
+   carregarTudo()), então não há necessidade de reconstruir a tabela inteira: só a cota e a
+   participação de cada linha já renderizada precisam de um novo valor. Se uma busca estiver
+   filtrando a tabela, linhas fora do filtro simplesmente não têm `tr[data-uid]` no DOM e são
+   ignoradas — o full-render (renderDiretorio) continua sendo quem decide QUAIS linhas aparecem. */
+function patchDiretorio() {
+  for (const u of state.usuarios) {
+    const linha = document.querySelector(`#corpo-diretorio tr[data-uid="${u.uid}"]`);
+    if (!linha) continue;
+    const resultado = computarResultado(u);
+    const cotaLabel = resultado.elegivel ? formatarMoeda(resultado.cotaFinal) : "Inelegível";
+    const participacaoPct = state.fundo.somaPesos > 0 ? (resultado.pesoIndividual / state.fundo.somaPesos) * 100 : 0;
+
+    const celCota = linha.querySelector(".cel-cota");
+    celCota.textContent = cotaLabel;
+    celCota.classList.toggle("text-on-surface", resultado.elegivel);
+    celCota.classList.toggle("text-christmas-red", !resultado.elegivel);
+
+    const celParticipacao = linha.querySelector(".cel-participacao");
+    celParticipacao.textContent = `${participacaoPct.toFixed(1)}%`;
+    celParticipacao.title = `Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total`;
+  }
 }
 
 /* Card "Status de contratos": alimentado diretamente pela aba Contratos (coleção
@@ -393,7 +418,7 @@ document.getElementById("lista-lancamentos-existentes").addEventListener("click"
   excluirRegistro(btn.dataset.tipo, btn.dataset.id, btn.dataset.uid);
 });
 
-document.getElementById("busca-diretorio").addEventListener("input", (e) => renderDiretorio(e.target.value));
+document.getElementById("busca-diretorio").addEventListener("input", debounce((e) => renderDiretorio(e.target.value), 200));
 
 /* ------------------------------------------------------------------ */
 /* Perfil (próprio ou de outro colaborador) — mesma vitrine do dashboard */
@@ -510,7 +535,9 @@ document.getElementById("corpo-diretorio").addEventListener("click", (e) => {
 
 // Só leitura: nunca dispara recalcularEPublicarFundo()/gravações a partir daqui, senão várias
 // abas abertas ao mesmo tempo entrariam em disputa de escrita redundante no mesmo agregado.
-onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
+// Callbacks envolvidos em debounce (~150ms): protege contra rajadas de múltiplas emissões (ex.:
+// um writeBatch tocando vários documentos de uma vez) sem mudar nenhuma lógica de renderização.
+onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), debounce((snap) => {
   if (!snap.exists()) return;
   const dados = snap.data();
   state.fundo = {
@@ -522,14 +549,14 @@ onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
   };
   renderFundoCard();
   renderContratosResumo();
-  renderDiretorio(document.getElementById("busca-diretorio")?.value || "");
-});
+  patchDiretorio();
+}, 150));
 
-onSnapshot(collection(db, "contratosEmpresariais"), (snap) => {
+onSnapshot(collection(db, "contratosEmpresariais"), debounce((snap) => {
   state.contratosEmpresariais = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   renderFundoCard();
   renderContratosResumo();
-});
+}, 150));
 
 /* ------------------------------------------------------------------ */
 /* Log de atividade — só Admin (ver filtrarAcoesPorRole)                */
@@ -550,7 +577,7 @@ async function registrarLog(tipo, descricao, alvoUid = null, alvoNome = null) {
 
 if (EH_ADMIN_OU_PRESIDENTE()) {
   const qLog = query(collection(db, "logs"), orderBy("criadoEm", "desc"), limit(100));
-  onSnapshot(qLog, (snap) => {
+  onSnapshot(qLog, debounce((snap) => {
     const lista = document.getElementById("lista-log");
     if (!snap.size) {
       lista.innerHTML = `<li class="text-center py-6">Nenhuma ação registrada ainda.</li>`;
@@ -567,7 +594,7 @@ if (EH_ADMIN_OU_PRESIDENTE()) {
           <span class="text-label-sm whitespace-nowrap">${l.criadoEm ? formatarDataHora(l.criadoEm) : "—"}</span>
         </li>`;
     }).join("");
-  });
+  }, 150));
 
   document.getElementById("btn-excluir-log").addEventListener("click", async () => {
     const ok = await confirmarAcao({
@@ -677,7 +704,7 @@ function renderDetalhesSolicitacao(s) {
 
 if (EH_PRESIDENTE()) {
   const qSolPendentes = query(collection(db, "solicitacoes"), where("status", "==", "pendente"), orderBy("criadoEm", "desc"));
-  onSnapshot(qSolPendentes, (snap) => {
+  onSnapshot(qSolPendentes, debounce((snap) => {
     const qtd = snap.size;
     [document.getElementById("badge-solicitacoes-desktop"), document.getElementById("badge-solicitacoes-mobile")].forEach((b) => {
       b.textContent = String(qtd);
@@ -703,7 +730,7 @@ if (EH_PRESIDENTE()) {
           </div>
         </li>`;
     }).join("");
-  }, (erro) => {
+  }, 150), (erro) => {
     // Sem isso, uma falha aqui (ex.: índice composto do Firestore ausente) fica muda — a aba
     // simplesmente nunca preenche, sem nenhum aviso visível.
     console.error("[Shinatal] Falha ao carregar solicitações pendentes:", erro);

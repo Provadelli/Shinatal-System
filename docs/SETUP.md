@@ -74,6 +74,16 @@ firebase deploy --only firestore:rules
 
 ## 7. Rodar localmente
 
+Primeiro, na raiz do repositório (uma vez por clone/branch nova):
+
+```bash
+npm install
+```
+
+Isso instala o Tailwind CLI e o `sharp`, e já gera `frontend/css/tailwind.css` (via
+`postinstall`) — sem ele, as páginas carregam sem estilo. Editando classes Tailwind ou
+`tailwind.config.js` depois? Rode `npm run watch:css` para recompilar a cada salvamento.
+
 Como as páginas usam `<script type="module">`, é preciso servir os arquivos por HTTP (abrir
 o `index.html` direto com `file://` não funciona por causa da política de módulos ES).
 Sirva a pasta `frontend/` (é ela que vira o site), por exemplo:

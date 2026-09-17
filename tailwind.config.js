@@ -1,8 +1,6 @@
-// Shinatal — Design tokens compartilhados (Tailwind CDN config)
-// Paleta clara/elegante e natalina: bege/branco de base, com vermelho, dourado e verde como
-// destaque (sem azul — "secondary"/"rio-deep-blue" viraram um bronze/bege escuro).
-// Carregar DEPOIS do <script src="https://cdn.tailwindcss.com">.
-tailwind.config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ["./frontend/**/*.html", "./frontend/js/**/*.js"],
   theme: {
     extend: {
       colors: {

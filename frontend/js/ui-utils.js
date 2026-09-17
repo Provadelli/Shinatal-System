@@ -327,8 +327,20 @@ function sincronizarAlturaHeader() {
   }
 }
 
+/** Atrasa a chamada de fn até `ms` depois da última invocação — usado em buscas locais e em
+ * listeners onSnapshot que podem emitir em rajada, pra evitar refazer trabalho de render a cada
+ * disparo. */
+function debounce(fn, ms) {
+  let temporizador;
+  return (...args) => {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => fn(...args), ms);
+  };
+}
+
 export {
   escaparHTML,
+  debounce,
   construirAvatarHTML,
   redimensionarImagemParaBase64,
   sincronizarAlturaHeader,
