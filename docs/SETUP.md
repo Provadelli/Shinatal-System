@@ -74,15 +74,19 @@ firebase deploy --only firestore:rules
 
 ## 7. Rodar localmente
 
-Primeiro, na raiz do repositório (uma vez por clone/branch nova):
+O CSS do Tailwind já vem pré-compilado e commitado (`frontend/css/tailwind.css`), então só para
+visualizar o site **não precisa instalar nada** — pule direto para o bloco `npx serve` abaixo.
+
+`npm install` na raiz só é necessário se for **editar** classes Tailwind, `tailwind.config.js`,
+ou rodar o script de otimização de imagens:
 
 ```bash
 npm install
 ```
 
-Isso instala o Tailwind CLI e o `sharp`, e já gera `frontend/css/tailwind.css` (via
-`postinstall`) — sem ele, as páginas carregam sem estilo. Editando classes Tailwind ou
-`tailwind.config.js` depois? Rode `npm run watch:css` para recompilar a cada salvamento.
+Isso instala o Tailwind CLI e o `sharp`. Depois de editar, rode `npm run build:css` (ou `npm run
+watch:css` para recompilar a cada salvamento) e **commite o `tailwind.css` atualizado junto** —
+sem isso, quem não rodar `npm install` continua vendo a versão antiga do CSS.
 
 Como as páginas usam `<script type="module">`, é preciso servir os arquivos por HTTP (abrir
 o `index.html` direto com `file://` não funciona por causa da política de módulos ES).

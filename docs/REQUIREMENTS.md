@@ -2,12 +2,14 @@
 
 ## Para rodar/editar o frontend
 
-- HTML/CSS/JS puro, sem bundler — mas o CSS do Tailwind é pré-compilado (não roda mais via CDN
-  no navegador). Rode `npm install` uma vez na raiz do repositório: isso instala o Tailwind CLI
-  e o `sharp` (conversão de imagens) e já gera `frontend/css/tailwind.css` (via `postinstall`).
-  Depois disso, qualquer servidor estático funciona normalmente — veja a seção 7 de
-  [SETUP.md](SETUP.md). Editou classes Tailwind ou `tailwind.config.js`? Rode `npm run
-  build:css` (ou `npm run watch:css` para recompilar a cada salvamento).
+- HTML/CSS/JS puro, sem bundler — o CSS do Tailwind é pré-compilado (não roda mais via CDN no
+  navegador) e o arquivo gerado (`frontend/css/tailwind.css`) **já vai commitado no repositório**,
+  então só visualizar o site (`npx serve frontend`, Live Server, etc.) funciona sem instalar
+  nada — veja a seção 7 de [SETUP.md](SETUP.md). `npm install` na raiz só é necessário se for
+  **editar** classes Tailwind/`tailwind.config.js` ou otimizar imagens: instala o Tailwind CLI e
+  o `sharp`, e já regenera o CSS (via `postinstall`). Depois de editar, rode `npm run build:css`
+  (ou `npm run watch:css` para recompilar a cada salvamento) e commite o CSS atualizado junto —
+  o CI também regenera antes do deploy, como uma segunda camada de segurança.
 - As páginas usam `<script type="module">`, então precisam ser servidas por HTTP (não abra
   os `.html` direto com `file://`).
 - Firebase Web SDK é carregado via CDN (`gstatic.com`) diretamente nos módulos JS — não há
