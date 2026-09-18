@@ -30,7 +30,7 @@
   }
 </style>
 </head>
-<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden pt-header-fixo">
+<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden">
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -71,7 +71,7 @@
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <!-- ===================== HEADER FIXO (desktop: opções centralizadas) ===================== -->
-<nav class="header-flutuante hidden md:flex">
+<nav class="header-flutuante header-transparente hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
       <span class="flex flex-col leading-none gap-0.5">
@@ -107,7 +107,7 @@
 </nav>
 
 <!-- ===================== HEADER FIXO (mobile) ===================== -->
-<header class="header-flutuante md:hidden">
+<header class="header-flutuante header-transparente md:hidden">
   <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
       <span class="flex flex-col leading-none gap-0.5">
@@ -141,73 +141,80 @@
 
 <!-- ===================== HERO ===================== -->
 <main class="relative z-10">
-  <section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid md:grid-cols-2 gap-10 items-center py-14 md:py-24">
+  <span id="sentinela-header-scroll" aria-hidden="true" class="block h-px w-full"></span>
+  <section class="secao-hero-video flex items-center">
+    <video id="video-hero" poster="assets/hero-poster.webp" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
+      <source src="assets/background-video.mp4" type="video/mp4" />
+    </video>
 
-    <div class="flex flex-col items-start space-y-6 conteudo-sobre-fundo">
-      <p class="selo-premiacao font-display text-label-sm font-semibold uppercase tracking-widest anim-entrada anim-entrada-1">
-        <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação voluntária 2026
-      </p>
-      <h1 class="font-display text-headline-lg-mobile md:text-headline-xl leading-[1.05] anim-entrada anim-entrada-2">
-        Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
-      </h1>
-      <div class="max-w-md space-y-1 anim-entrada anim-entrada-3">
-        <p class="font-body text-body-lg font-bold text-on-surface-variant">
-          Shinatal, o reconhecimento de quem faz a shine rio acontecer.
+    <div class="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-10 items-center">
+
+      <div class="flex flex-col items-start space-y-6">
+        <p class="selo-premiacao font-display text-label-sm font-semibold uppercase tracking-widest anim-entrada anim-entrada-1">
+          <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação voluntária 2026
         </p>
-        <p class="font-body text-body-lg text-on-surface-variant">
-          Na shine rio, o ano termina com reconhecimento, gratidão e uma premiação. Durante todo o ano, construímos juntos. No natal, compartilhamos juntos.
-        </p>
-      </div>
-
-      <div class="flex flex-wrap gap-3 pt-2 anim-entrada anim-entrada-4">
-        <a href="/login" class="btn-primario flex items-center gap-2">
-          <span class="material-symbols-outlined text-xl">login</span> Fazer login
-        </a>
-        <a href="/cadastro" class="btn-fantasma flex items-center gap-2">
-          <span class="material-symbols-outlined text-xl">person_add</span> Criar cadastro
-        </a>
-        <a href="#como-funciona" class="font-body text-label-sm text-primary hover:underline inline-flex items-center gap-1 px-2">
-          Como funciona o Shinatal
-          <span class="material-symbols-outlined text-base">arrow_forward</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Card do fundo arrecadado -->
-    <div class="relative w-full max-w-2xl mx-auto anim-entrada anim-entrada-3">
-      <div id="card-fundo" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">
-        <div class="absolute top-0 left-0 right-0 h-1.5" style="background: linear-gradient(90deg, var(--shinatal-red) 0%, var(--shinatal-red) 65%, var(--shinatal-gold) 100%);"></div>
-        <p id="fundo-rotulo" class="font-premium text-on-surface-variant mb-5 relative flex items-center justify-center gap-2 text-base sm:text-lg">
-          <span class="material-symbols-outlined not-italic text-festive-gold text-lg">savings</span>
-          <span id="fundo-rotulo-texto">Fundo Shinatal</span>
-        </p>
-
-        <div class="relative py-3 w-full flex items-center justify-center">
-          <!-- Para ajustar o tamanho do número: mude as classes text-5xl/6xl/7xl abaixo.
-               Para trocar as cores do degradê: edite --shinatal-gradiente-valor em css/styles.css. -->
-          <p class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] relative px-2 sm:whitespace-nowrap">
-            <span id="valor-arrecadado"><span class="skeleton inline-block w-48 h-12 align-middle rounded-lg"></span></span>
+        <h1 class="font-display text-headline-lg-mobile md:text-headline-xl leading-[1.05] text-white anim-entrada anim-entrada-2">
+          Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
+        </h1>
+        <div class="max-w-md space-y-1 anim-entrada anim-entrada-3">
+          <p class="font-body text-body-lg font-bold text-white">
+            Shinatal, o reconhecimento de quem faz a shine rio acontecer.
+          </p>
+          <p class="font-body text-body-lg text-white/80">
+            Na shine rio, o ano termina com reconhecimento, gratidão e uma premiação. Durante todo o ano, construímos juntos. No natal, compartilhamos juntos.
           </p>
         </div>
 
-        <div id="qtd-colaboradores" class="mt-6 relative flex flex-col items-center gap-1">
-          <p id="qtd-colaboradores-ano" class="font-body text-body-md text-on-surface-variant flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-primary text-xl">groups</span>
-            <span class="skeleton inline-block w-56 h-5 align-middle rounded"></span>
+        <div class="flex flex-wrap gap-3 pt-2 anim-entrada anim-entrada-4">
+          <a href="/login" class="btn-primario flex items-center gap-2">
+            <span class="material-symbols-outlined text-xl">login</span> Fazer login
+          </a>
+          <a href="/cadastro" class="btn-fantasma !border-white/70 !text-white flex items-center gap-2">
+            <span class="material-symbols-outlined text-xl">person_add</span> Criar cadastro
+          </a>
+          <a href="#como-funciona" class="font-body text-label-sm !text-festive-gold hover:underline inline-flex items-center gap-1 px-2">
+            Como funciona o Shinatal
+            <span class="material-symbols-outlined text-base">arrow_forward</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card do fundo arrecadado -->
+      <div class="relative w-full max-w-2xl mx-auto anim-entrada anim-entrada-3">
+        <div id="card-fundo" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">
+          <div class="absolute top-0 left-0 right-0 h-1.5" style="background: linear-gradient(90deg, var(--shinatal-red) 0%, var(--shinatal-red) 65%, var(--shinatal-gold) 100%);"></div>
+          <p id="fundo-rotulo" class="font-premium text-on-surface-variant mb-5 relative flex items-center justify-center gap-2 text-base sm:text-lg">
+            <span class="material-symbols-outlined not-italic text-festive-gold text-lg">savings</span>
+            <span id="fundo-rotulo-texto">Fundo Shinatal</span>
           </p>
-          <p id="qtd-colaboradores-total" class="font-body text-label-sm text-on-surface-variant">
-            <span class="skeleton inline-block w-32 h-4 align-middle rounded"></span>
+
+          <div class="relative py-3 w-full flex items-center justify-center">
+            <!-- Para ajustar o tamanho do número: mude as classes text-5xl/6xl/7xl abaixo.
+                 Para trocar as cores do degradê: edite --shinatal-gradiente-valor em css/styles.css. -->
+            <p class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] relative px-2 sm:whitespace-nowrap">
+              <span id="valor-arrecadado"><span class="skeleton inline-block w-48 h-12 align-middle rounded-lg"></span></span>
+            </p>
+          </div>
+
+          <div id="qtd-colaboradores" class="mt-6 relative flex flex-col items-center gap-1">
+            <p id="qtd-colaboradores-ano" class="font-body text-body-md text-on-surface-variant flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-primary text-xl">groups</span>
+              <span class="skeleton inline-block w-56 h-5 align-middle rounded"></span>
+            </p>
+            <p id="qtd-colaboradores-total" class="font-body text-label-sm text-on-surface-variant">
+              <span class="skeleton inline-block w-32 h-4 align-middle rounded"></span>
+            </p>
+          </div>
+
+          <p class="font-body text-label-sm text-outline mt-6 relative max-w-sm">
+            Valor atualizado conforme novos contratos são ativados pela Shine Rio.
           </p>
         </div>
 
-        <p class="font-body text-label-sm text-outline mt-6 relative max-w-sm">
-          Valor atualizado conforme novos contratos são ativados pela Shine Rio.
-        </p>
+        <!-- Chapéu de natal pendurado na quina do card, como se estivesse realmente apoiado ali -->
+        <img src="assets/chapeu-natal.webp" alt="" aria-hidden="true" width="240" height="240"
+          class="absolute -top-4 -right-3 sm:-top-8 sm:-right-6 md:-top-10 md:-right-9 w-14 sm:w-16 md:w-20 h-auto rotate-12 z-20 drop-shadow-lg pointer-events-none select-none anim-entrada anim-entrada-4" />
       </div>
-
-      <!-- Chapéu de natal pendurado na quina do card, como se estivesse realmente apoiado ali -->
-      <img src="assets/chapeu-natal.webp" alt="" aria-hidden="true" width="240" height="240"
-        class="absolute -top-4 -right-3 sm:-top-8 sm:-right-6 md:-top-10 md:-right-9 w-14 sm:w-16 md:w-20 h-auto rotate-12 z-20 drop-shadow-lg pointer-events-none select-none anim-entrada anim-entrada-4" />
     </div>
   </section>
 
@@ -452,6 +459,49 @@
 
   ativarRevelacaoAoRolar();
   sincronizarAlturaHeader();
+
+  // ---------------------------------------------------------------
+  // Header transparente sobre o vídeo do hero, vira sólido ao rolar.
+  // Reaproveita o mesmo padrão de IntersectionObserver de ativarRevelacaoAoRolar()
+  // em vez de um scroll listener cru.
+  // ---------------------------------------------------------------
+  const sentinelaHeader = document.getElementById("sentinela-header-scroll");
+  if (sentinelaHeader && "IntersectionObserver" in window) {
+    // Sem rootMargin: o sentinela (1px, topo do documento) só está "intersectando" a viewport
+    // enquanto scrollY é ~0 — sai assim que o usuário rola, mesmo que o header fixo já estivesse
+    // cobrindo aquele ponto visualmente (o observer não sabe de z-index, só de geometria).
+    const observadorHeader = new IntersectionObserver(([entrada]) => {
+      document.querySelectorAll(".header-flutuante").forEach((el) =>
+        el.classList.toggle("header-transparente", entrada.isIntersecting)
+      );
+    }, { threshold: 0 });
+    observadorHeader.observe(sentinelaHeader);
+  } else if (sentinelaHeader) {
+    document.querySelectorAll(".header-flutuante").forEach((el) => el.classList.remove("header-transparente"));
+  }
+
+  // ---------------------------------------------------------------
+  // Vídeo do hero — só autoplay sem prefers-reduced-motion, sem modo-leve (mobile/
+  // deviceMemory baixo, ver perf-adaptativo.js) e sem connection.saveData. Sem
+  // autoplay no HTML: sem esses sinais, o elemento fica só no poster, nunca baixa o mp4.
+  // ---------------------------------------------------------------
+  const videoHero = document.getElementById("video-hero");
+  if (videoHero) {
+    const prefereReduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const modoLeve = document.documentElement.classList.contains("modo-leve");
+    const saveData = navigator.connection?.saveData;
+    const podeAutoplay = !prefereReduzido && !modoLeve && !saveData;
+
+    if (podeAutoplay) {
+      videoHero.preload = "auto";
+      videoHero.play().catch(() => {});
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (!podeAutoplay) return;
+      if (document.hidden) videoHero.pause();
+      else videoHero.play().catch(() => {});
+    });
+  }
 
   // Spotlight que acompanha o cursor no card do fundo (só em dispositivos com mouse).
   const cardFundo = document.getElementById("card-fundo");
