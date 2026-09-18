@@ -296,6 +296,93 @@ function ativarRevelacaoAoRolar(seletor = "[data-reveal]") {
 }
 
 /**
+ * Liga as setas/indicadores de um carrossel de cards com "espiadinha" lateral (scroll-snap
+ * nativo, sem lib) dentro do elemento marcado com `data-carrossel-etapas`. Navegação em loop
+ * infinito (passar do último volta pro primeiro, e vice-versa — as setas nunca desabilitam).
+ * Um IntersectionObserver por slide (com `root` = a própria pista) detecta qual card está
+ * centralizado e atualiza o ponto ativo e o destaque (opacidade/escala) do card — funciona
+ * tanto com clique nas setas/pontos quanto com swipe manual.
+ */
+function ativarCarrosselEtapas(seletor = "[data-carrossel-etapas]") {
+  document.querySelectorAll(seletor).forEach((carrossel) => {
+    const pista = carrossel.querySelector(".carrossel-etapas-pista");
+    const slides = [...carrossel.querySelectorAll(".carrossel-etapas-slide")];
+    const setaPrev = carrossel.querySelector(".carrossel-seta-prev");
+    const setaNext = carrossel.querySelector(".carrossel-seta-next");
+    const pontos = [...carrossel.querySelectorAll(".carrossel-ponto")];
+    if (!pista || !slides.length) return;
+
+    let indiceAtivo = 0;
+
+    // Só troca as classes visuais (pontos/destaque do slide) — não mexe em indiceAtivo.
+    // Chamada tanto por irPara() (otimista, na hora do clique) quanto pelo
+    // IntersectionObserver (quando a mudança vem de arrasto manual, não de clique).
+    function mostrarAtivo(indice) {
+      pontos.forEach((p, i) => p.classList.toggle("is-ativo", i === indice));
+      slides.forEach((s, i) => s.classList.toggle("is-ativo", i === indice));
+    }
+
+    function irPara(indice) {
+      // Loop infinito via módulo — nunca "trava" nas pontas, sempre dá a volta.
+      const alvo = ((indice % slides.length) + slides.length) % slides.length;
+      // indiceAtivo atualizado aqui, na hora, não só quando o IntersectionObserver confirmar —
+      // testado ao vivo: numa aba sem foco/oculta (navegador suspende o observer), cliques
+      // repetidos nunca avançavam porque cada um recalculava a partir do mesmo indiceAtivo
+      // desatualizado, sempre mirando o mesmo slide. Atualização otimista resolve isso e ainda
+      // deixa a UI responder no mesmo clique, sem esperar o observer confirmar.
+      indiceAtivo = alvo;
+      mostrarAtivo(alvo);
+      const slide = slides[alvo];
+      // Delta via getBoundingClientRect (geometria realmente renderizada), não offsetLeft/
+      // clientWidth — com o padding percentual da pista, a conta baseada em offsetLeft não
+      // batia com o centro real do slide.
+      const pistaRect = pista.getBoundingClientRect();
+      const slideRect = slide.getBoundingClientRect();
+      const delta = (slideRect.left + slideRect.width / 2) - (pistaRect.left + pistaRect.width / 2);
+      // Atribuição direta a scrollLeft (não scrollTo()/scroll-behavior/rAF): testado ao vivo —
+      // qualquer animação de scroll em vários quadros (scrollTo({behavior:"smooth"}), CSS
+      // scroll-behavior:smooth, ou até um rAF próprio escrevendo scrollLeft quadro a quadro)
+      // brigava com scroll-snap-type:mandatory e o carrossel ficava travado a meio caminho ou
+      // no primeiro slide. Um salto instantâneo não dá brecha nenhuma pro snap "roubar" o
+      // controle no meio da transição — o próprio snap ainda garante o encaixe preciso no
+      // arrasto manual (touch/mouse), que não passa por aqui.
+      pista.scrollLeft = pista.scrollLeft + delta;
+    }
+
+    setaPrev?.addEventListener("click", () => irPara(indiceAtivo - 1));
+    setaNext?.addEventListener("click", () => irPara(indiceAtivo + 1));
+    pontos.forEach((ponto, i) => ponto.addEventListener("click", () => irPara(i)));
+
+    if ("IntersectionObserver" in window) {
+      // Com os cards vizinhos "espiando" nas laterais, mais de um pode cruzar o threshold no
+      // mesmo lote de callback (ex.: no primeiro disparo, assíncrono, logo após centralizar o
+      // 1º card) — usar o de maior intersectionRatio em vez de "o último do forEach" evita
+      // marcar o card errado como ativo (bug visto ao vivo: o 2º card ficava ativo na carga).
+      const observer = new IntersectionObserver((entradas) => {
+        const maisVisivel = entradas
+          .filter((entrada) => entrada.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (maisVisivel) {
+          // Confirma/sincroniza indiceAtivo — cobre o caso de arrasto manual (touch/mouse),
+          // que não passa por irPara() e por isso não teve a atualização otimista.
+          indiceAtivo = slides.indexOf(maisVisivel.target);
+          mostrarAtivo(indiceAtivo);
+        }
+      }, { root: pista, threshold: 0.6 });
+      slides.forEach((slide) => observer.observe(slide));
+    }
+
+    // Centraliza o 1º card já na carga — mesmo cálculo de delta via getBoundingClientRect que
+    // irPara() usa, e atribuição direta a scrollLeft.
+    const pistaRectInicial = pista.getBoundingClientRect();
+    const slide0Rect = slides[0].getBoundingClientRect();
+    const deltaInicial = (slide0Rect.left + slide0Rect.width / 2) - (pistaRectInicial.left + pistaRectInicial.width / 2);
+    pista.scrollLeft = pista.scrollLeft + deltaInicial;
+    mostrarAtivo(0);
+  });
+}
+
+/**
  * Mede a altura real do header fixo (.header-flutuante — só o que estiver de fato visível,
  * desktop ou mobile) e publica como --altura-header no :root, consumida por .pt-header-fixo
  * (styles.css). Sem isso, .pt-header-fixo usa um valor fixo que assume o header sempre com uma
@@ -359,5 +446,6 @@ export {
   alternarAccordion,
   iniciarContagemReenvio,
   animarNumero,
-  ativarRevelacaoAoRolar
+  ativarRevelacaoAoRolar,
+  ativarCarrosselEtapas
 };

@@ -62,6 +62,17 @@ h1, h2, h3, .font-display {
 
 .text-gradiente-valor {
   color: var(--shinatal-gold);
+  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.4);
+}
+
+/* Números de colaboradores dentro de #card-fundo — branco no resto da frase, leve
+   destaque dourado em degradê só no número. */
+/* Números de colaboradores — branco como o resto da frase, mas com peso maior e um leve
+   halo dourado (bem sutil) só pra diferenciar do texto ao redor sem virar um destaque forte. */
+.valor-colaboradores-destaque {
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.5), 0 0 8px rgba(176, 141, 47, 0.4);
 }
 
 /* ---------- Cards: sólidos, com sombra suave em vez de vidro/blur ---------- */
@@ -111,21 +122,85 @@ h1, h2, h3, .font-display {
   background: linear-gradient(135deg, var(--shinatal-verde-escuro) 0%, var(--shinatal-verde-900) 60%, var(--shinatal-gold) 145%);
 }
 
+/* ---------- Carrossel infinito de fotos ("Sobre o Shinatal") ---------- */
+/* Mesma técnica de .barra-shinatal-pista (lista duplicada + translateX 0 → -50% em loop
+   linear), só que mais lenta — imagem pede contemplação, não leitura rápida. */
+.faixa-fotos-sobre {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 6%, black 94%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, black 6%, black 94%, transparent 100%);
+}
+.faixa-fotos-pista {
+  display: flex;
+  width: max-content;
+  animation: faixa-fotos-loop 32s linear infinite;
+}
+.faixa-fotos-grupo {
+  display: flex;
+  gap: 1rem;
+  /* O gap entre os grupos (real + duplicado, pro loop contínuo) fica de fora do "gap" da
+     pista de propósito: com só 2 filhos, um gap ali quebraria a matemática do translateX(-50%)
+     (que assume a pista com exatamente o dobro da largura de um grupo). Margem à direita do
+     próprio grupo mantém os dois grupos com a mesma largura total (conteúdo + esse respiro),
+     então -50% continua caindo exatamente no início do 2º grupo — sem esse respiro as imagens
+     do fim de um grupo grudavam nas do início do próximo. */
+  margin-right: 1rem;
+}
+.faixa-fotos-item {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(78vw, 300px);
+  aspect-ratio: 4 / 5;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgba(3, 23, 13, 0.35);
+  transition: transform 0.35s ease, filter 0.35s ease;
+}
+.faixa-fotos-item img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.faixa-fotos-item:hover {
+  transform: scale(1.04);
+  filter: brightness(1.06);
+}
+.faixa-fotos-sobre:hover .faixa-fotos-pista {
+  animation-play-state: paused;
+}
+@keyframes faixa-fotos-loop {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .faixa-fotos-pista { animation: none !important; }
+}
+
 /* ---------- Seção bege com iluminação dourada suave ("Como funciona" + "Nossos valores", unificadas) ---------- */
+/* Iluminação dourada nas quatro extremidades — mais presente que o glow sutil anterior de
+   só dois cantos, dá vida ao fundo bege das seções "Como funciona"/"Nossos valores". */
 .fundo-bege-dourado-suave {
   background:
-    radial-gradient(650px 420px at 10% -10%, rgba(176, 141, 47, 0.18), transparent 70%),
-    radial-gradient(550px 380px at 90% 110%, rgba(176, 141, 47, 0.14), transparent 70%),
+    radial-gradient(900px 520px at 0% 0%, rgba(176, 141, 47, 0.28), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, rgba(176, 141, 47, 0.24), transparent 60%),
+    radial-gradient(900px 520px at 0% 100%, rgba(176, 141, 47, 0.22), transparent 60%),
+    radial-gradient(900px 520px at 100% 100%, rgba(176, 141, 47, 0.26), transparent 60%),
     #F0E9D8;
 }
 
 /* ---------- Hero com vídeo de fundo (home) ---------- */
+/* position: sticky (não relative) de propósito: o hero fica "grudado" no topo enquanto
+   o scroll avança pela altura reservada dele, e a seção seguinte (#sobre-nos, z-index
+   maior e fundo opaco) sobe por cima — o efeito de "página subindo sobre o hero" só
+   na home. Ver #sobre-nos logo abaixo de "Quem somos" no HTML. */
 .secao-hero-video {
-  position: relative;
+  position: sticky;
+  top: 0;
   isolation: isolate;
-}
-@media (min-width: 768px) {
-  .secao-hero-video { min-height: calc(100dvh - var(--altura-header, 3.5rem)); }
+  overflow: hidden;
+  min-height: calc(100dvh - var(--altura-header, 3.5rem));
 }
 #video-hero {
   position: absolute;
@@ -146,6 +221,58 @@ h1, h2, h3, .font-display {
   pointer-events: none;
 }
 .hero-video-conteudo { position: relative; z-index: 2; }
+
+/* Card "Fundo Shinatal" translúcido sobre o vídeo (id, não .glass-card-active — essa
+   classe é reaproveitada em outros lugares que precisam continuar opacos: card de
+   login, foto de "Quem somos", cards de "Como funciona"/"Valores"). O blur soma com
+   o overlay escurecido do hero (acima) pra manter o texto legível. */
+#card-fundo {
+  background: rgba(255, 255, 255, 0.27);
+  border-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+@media (max-width: 767px), (pointer: coarse) {
+  #card-fundo {
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+}
+/* Card translúcido: textos pensados pra fundo branco opaco ficavam apagados contra o vídeo
+   borrado atrás. Cor mais escura + halo claro (sem offset perceptível) garante legibilidade
+   independente do frame do vídeo por trás. */
+#card-fundo #fundo-rotulo-texto,
+#card-fundo #qtd-colaboradores-ano,
+#card-fundo #qtd-colaboradores-total {
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.55), 0 0 14px rgba(3, 23, 13, 0.25);
+}
+#card-fundo p.text-outline {
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.45);
+}
+
+/* "Quem somos" — sobe por cima do hero sticky ao rolar (ver .secao-hero-video acima).
+   Sem z-index explícito de propósito: hero e as seções seguintes (#sobre-nos,
+   #sobre-shinatal, #como-funciona) são todas position:relative/sticky sem z-index
+   próprio, então empilham na ordem natural do DOM — cada seção seguinte cobre a
+   anterior automaticamente enquanto sobe, sem precisar (nem correr o risco de) um
+   z-index positivo "vazar" e ficar por cima de conteúdo mais abaixo da página.
+   Cantos arredondados no topo, como se fosse a borda de uma página subindo. */
+#sobre-nos {
+  position: relative;
+  border-radius: 2rem 2rem 0 0;
+}
+
+/* Foto de "Quem somos" — reage ao mouse/toque (zoom + brilho suaves). */
+.foto-quem-somos { overflow: hidden; }
+.foto-quem-somos img {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
+}
+.foto-quem-somos:hover img {
+  transform: scale(1.05);
+  filter: brightness(1.05) saturate(1.08);
+}
 
 /* Deriva muito lenta (Ken Burns sutil) — desativada com prefers-reduced-motion mais abaixo. */
 @keyframes deriva-pao-acucar {
@@ -316,16 +443,14 @@ html.modo-leve .header-flutuante.header-transparente {
 }
 
 /* ---------- Selo "Programa de Premiação" ---------- */
+/* Sem fundo/pill de propósito — só texto, visível sobre o vídeo do hero: sombra escura
+   pra contraste em frames claros do vídeo, brilho dourado suave como efeito. */
 .selo-premiacao {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--shinatal-surface);
-  border: 1px solid var(--shinatal-gold-soft);
-  color: var(--shinatal-verde-escuro);
-  border-radius: 9999px;
-  padding: 0.4rem 0.9rem;
-  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.05);
+  color: var(--shinatal-gold);
+  text-shadow: 0 1px 3px rgba(3, 23, 13, 0.55), 0 0 18px rgba(176, 141, 47, 0.35);
 }
 
 /* ---------- Entrada de texto ao carregar a página ---------- */
@@ -420,6 +545,32 @@ html.modo-leve .header-flutuante.header-transparente {
   .barra-shinatal-pista { animation: none !important; }
 }
 
+/* ---------- Faixa "Shinatal" grudada no topo de #sobre-nos (home, dirigida por scroll) ---------- */
+/* Reaproveita .barra-shinatal-pista/-grupo/-marca/-item (mesmo visual da faixa das páginas
+   públicas), mas aqui fica presa à borda superior da seção enquanto ela sobe sobre o hero
+   sticky, e some (opacity) quando o topo da seção encontra o header — ver o observer
+   dedicado a #sentinela-faixa-shinatal no script da home. */
+.barra-shinatal-secao {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 2rem;
+  overflow: hidden;
+  background: var(--shinatal-preto);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+.barra-shinatal-secao.faixa-oculta {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra-shinatal-secao { display: none; }
+}
+
 /* ---------- Revelar ao rolar (seções abaixo da dobra) ---------- */
 .reveal-on-scroll {
   opacity: 0;
@@ -429,6 +580,157 @@ html.modo-leve .header-flutuante.header-transparente {
 .reveal-on-scroll.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Cards de "Como funciona"/"Nossos valores" — lift suave no hover, mais premium/minimalista
+   que o cartão estático. Classe própria (não em .glass-card-active, que é reaproveitada no
+   card de login, na foto de "Quem somos" e em modais — não deve levar hover ali). */
+.cartao-info {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+.cartao-info:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 34px rgba(35, 32, 27, 0.14), 0 4px 10px rgba(35, 32, 27, 0.08);
+}
+
+/* ---------- Carrossel "Como funciona" — cards com "espiadinha" lateral, fade nas bordas
+   (mask-image, mesma técnica de .faixa-fotos-sobre/.faixa-valores-coluna) e navegação em
+   loop infinito (as setas nunca desabilitam, sempre dão a volta) — sensação de sequência
+   sem fim, mais elegante que um único card cortado bruscamente nas bordas. ---------- */
+.carrossel-etapas {
+  position: relative;
+  max-width: 920px;
+  margin: 0 auto;
+}
+.carrossel-etapas-pista {
+  display: flex;
+  overflow-x: auto;
+  /* mandatory é seguro aqui: a navegação por setas/pontos escreve scrollLeft quadro a quadro
+     via rAF (ver scrollSuavePara em ativarCarrosselEtapas), não scrollTo()/scroll-behavior —
+     só o arrasto manual (touch/mouse) aciona o snap nativo, sem conflito com JS. */
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.5rem 9%;
+  mask-image: linear-gradient(90deg, transparent 0, black 12%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 12%, black 88%, transparent 100%);
+}
+.carrossel-etapas-pista::-webkit-scrollbar { display: none; }
+.carrossel-etapas-slide {
+  flex: 0 0 82%;
+  margin: 0 0.6rem;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+  padding: 2.75rem 2rem;
+  min-height: 240px;
+  justify-content: center;
+  opacity: 0.4;
+  transform: scale(0.92);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.carrossel-etapas-slide.is-ativo {
+  opacity: 1;
+  transform: scale(1);
+}
+@media (min-width: 640px) {
+  .carrossel-etapas-slide { flex-basis: 60%; }
+}
+.carrossel-etapas-icone {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.carrossel-etapas-icone .material-symbols-outlined { font-size: 2rem; }
+.carrossel-etapas-texto {
+  font-family: "Inter", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  max-width: 30rem;
+  color: var(--shinatal-ink);
+}
+.carrossel-seta {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--shinatal-surface);
+  border: 1px solid var(--shinatal-borda);
+  box-shadow: 0 4px 14px rgba(35, 32, 27, 0.12);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  z-index: 2;
+}
+.carrossel-seta:hover { transform: translateY(-50%) scale(1.08); }
+/* Dentro da moldura (sobre a área já esmaecida pelo mask-image), não flutuando fora do
+   container — evita o enquadramento estranho de antes, onde as setas ficavam soltas nas
+   bordas da seção. Loop infinito: as setas nunca ficam disabled. */
+.carrossel-seta-prev { left: 0.25rem; }
+.carrossel-seta-next { right: 0.25rem; }
+@media (min-width: 768px) {
+  .carrossel-seta-prev { left: 1rem; }
+  .carrossel-seta-next { right: 1rem; }
+}
+.carrossel-etapas-indicadores {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+.carrossel-ponto {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--shinatal-borda);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+.carrossel-ponto.is-ativo {
+  width: 1.5rem;
+  background: var(--shinatal-gold);
+}
+
+/* ---------- Carrossel vertical "Nossos valores" (loop infinito, fade perto do título) ---------- */
+.faixa-valores-coluna {
+  position: relative;
+  height: 420px;
+  overflow: hidden;
+  mask-image: linear-gradient(180deg, transparent 0, black 18%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, black 18%, black 88%, transparent 100%);
+}
+.faixa-valores-pista {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: faixa-valores-loop 30s linear infinite;
+}
+.faixa-valores-pista-lenta { animation-duration: 36s; }
+.faixa-valores-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.faixa-valores-coluna:hover .faixa-valores-pista { animation-play-state: paused; }
+@keyframes faixa-valores-loop {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .faixa-valores-pista { animation: none !important; }
 }
 
 /* ---------- Footer minimalista ---------- */
@@ -468,8 +770,13 @@ html.modo-leve .header-flutuante.header-transparente {
 
 /* Mesma logo (traço sólido sobre fundo transparente), agora recolorida para o vermelho natalino
    --shinatal-red (#6E2430) — valores calculados numericamente para reproduzir a cor exata. */
+/* Vermelho mais vivo/chamativo (mira --shinatal-red-festivo, não o --shinatal-red original
+   mais discreto) + leve brilho — valores de filter ajustados visualmente, não por fórmula. */
+/* "Shinatal" — vinho (--shinatal-red, cor original), com leve sombra pra destaque/
+   profundidade sem ficar brilhante. "Bem-vindo ao" continua branco (texto normal do h1). */
 .logo-vermelho {
-  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%);
+  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%)
+    drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
 }
 .footer-link {
   display: inline-flex;

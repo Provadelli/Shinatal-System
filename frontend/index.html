@@ -30,7 +30,7 @@
   }
 </style>
 </head>
-<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden">
+<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-clip">
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -157,10 +157,10 @@
           Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
         </h1>
         <div class="max-w-md space-y-1 anim-entrada anim-entrada-3">
-          <p class="font-body text-body-lg font-bold text-white">
+          <p class="font-display text-body-lg font-bold text-white">
             Shinatal, o reconhecimento de quem faz a shine rio acontecer.
           </p>
-          <p class="font-body text-body-lg text-white/80">
+          <p class="font-body text-body-lg text-white">
             Na shine rio, o ano termina com reconhecimento, gratidão e uma premiação. Durante todo o ano, construímos juntos. No natal, compartilhamos juntos.
           </p>
         </div>
@@ -220,11 +220,28 @@
 
   <!-- ===================== SOBRE NÓS (história da Shine Rio) ===================== -->
   <section id="sobre-nos" class="bg-surface-container-low border-y border-outline-variant/40 py-14 md:py-20 scroll-mt-24">
+    <span id="sentinela-faixa-shinatal" aria-hidden="true" class="block h-px w-full"></span>
+    <div class="barra-shinatal-secao" aria-hidden="true">
+      <div class="barra-shinatal-pista">
+        <ul class="barra-shinatal-grupo">
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Reconhecimento</li>
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Gratidão</li>
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Shine Rio</li>
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Celebração 2026</li>
+        </ul>
+        <ul class="barra-shinatal-grupo">
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Reconhecimento</li>
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Gratidão</li>
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Shine Rio</li>
+          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Celebração 2026</li>
+        </ul>
+      </div>
+    </div>
     <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid md:grid-cols-2 gap-10 items-center">
       <div class="order-2 md:order-1">
         <div class="relative">
           <div class="absolute -inset-3 rounded-xl bg-festive-gold/40 blur-2xl pointer-events-none" aria-hidden="true"></div>
-          <div class="relative rounded-xl overflow-hidden glass-card-active" style="box-shadow: 0 0 0 1px rgba(176,141,47,0.4), 0 0 45px rgba(176,141,47,0.55);">
+          <div class="relative rounded-lg overflow-hidden glass-card-active foto-quem-somos" style="box-shadow: 0 0 0 1px rgba(176,141,47,0.28), 0 0 32px rgba(176,141,47,0.3);">
             <img src="assets/foto1-800.webp"
               srcset="assets/foto1-400.webp 400w, assets/foto1-800.webp 800w, assets/foto1-1200.webp 960w"
               sizes="(min-width: 768px) 50vw, 100vw" width="960" height="1280" alt="Celebração do Shinatal"
@@ -279,34 +296,33 @@
         </p>
       </div>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-        <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto2-640.webp"
-            srcset="assets/foto2-320.webp 320w, assets/foto2-640.webp 640w, assets/foto2-960.webp 960w"
-            sizes="(min-width: 1024px) 25vw, 50vw" width="960" height="1280" alt="Celebração em cada detalhe" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
-          <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Celebração em cada detalhe</p>
+    </div>
+
+    <div class="faixa-fotos-sobre mt-10">
+      <div class="faixa-fotos-pista">
+        <div class="faixa-fotos-grupo">
+          <div class="faixa-fotos-item">
+            <img src="assets/foto1-800.webp" srcset="assets/foto1-400.webp 400w, assets/foto1-800.webp 800w, assets/foto1-1200.webp 960w" sizes="300px" width="960" height="1280" alt="Celebração do Shinatal" loading="lazy" />
+          </div>
+          <div class="faixa-fotos-item">
+            <img src="assets/foto2-640.webp" srcset="assets/foto2-320.webp 320w, assets/foto2-640.webp 640w, assets/foto2-960.webp 960w" sizes="300px" width="960" height="1280" alt="Celebração em cada detalhe" loading="lazy" />
+          </div>
+          <div class="faixa-fotos-item">
+            <img src="assets/foto3-640.webp" srcset="assets/foto3-320.webp 320w, assets/foto3-640.webp 640w, assets/foto3-960.webp 960w" sizes="300px" width="960" height="1280" alt="Bem-estar como reconhecimento" loading="lazy" />
+          </div>
+          <div class="faixa-fotos-item">
+            <img src="assets/foto4-640.webp" srcset="assets/foto4-320.webp 320w, assets/foto4-640.webp 640w, assets/foto4-960.webp 960w" sizes="300px" width="960" height="720" alt="Brindes a um ano de conquistas" loading="lazy" />
+          </div>
+          <div class="faixa-fotos-item">
+            <img src="assets/foto5-640.webp" srcset="assets/foto5-320.webp 320w, assets/foto5-640.webp 640w, assets/foto5-960.webp 960w" sizes="300px" width="720" height="1280" alt="Lembranças de gratidão" loading="lazy" />
+          </div>
         </div>
-        <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto3-640.webp"
-            srcset="assets/foto3-320.webp 320w, assets/foto3-640.webp 640w, assets/foto3-960.webp 960w"
-            sizes="(min-width: 1024px) 25vw, 50vw" width="960" height="1280" alt="Bem-estar como reconhecimento" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
-          <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Bem-estar como reconhecimento</p>
-        </div>
-        <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto4-640.webp"
-            srcset="assets/foto4-320.webp 320w, assets/foto4-640.webp 640w, assets/foto4-960.webp 960w"
-            sizes="(min-width: 1024px) 25vw, 50vw" width="960" height="720" alt="Brindes a um ano de conquistas" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
-          <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Brindes a um ano de conquistas</p>
-        </div>
-        <div class="rounded-xl overflow-hidden relative aspect-square shadow-lg" style="background: var(--shinatal-verde-900);">
-          <img src="assets/foto5-640.webp"
-            srcset="assets/foto5-320.webp 320w, assets/foto5-640.webp 640w, assets/foto5-960.webp 720w"
-            sizes="(min-width: 1024px) 25vw, 50vw" width="720" height="1280" alt="Lembranças de gratidão" class="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-          <div class="absolute inset-0" style="background: linear-gradient(0deg, var(--shinatal-verde-900) 0%, rgba(3,23,13,0.35) 55%, transparent 100%);"></div>
-          <p class="absolute bottom-0 left-0 right-0 p-4 font-display text-label-md text-white leading-tight">Lembranças de gratidão</p>
+        <div class="faixa-fotos-grupo" aria-hidden="true">
+          <div class="faixa-fotos-item"><img src="assets/foto1-800.webp" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto2-640.webp" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto3-640.webp" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto4-640.webp" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto5-640.webp" alt="" loading="lazy" /></div>
         </div>
       </div>
     </div>
@@ -317,82 +333,138 @@
     <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
       <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-6">Como funciona o programa</h2>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-secondary">
-          <span class="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">redeem</span>
-          </span>
-          <p class="font-body text-body-md text-on-surface-variant">Fundo formado a cada novo contrato fechado pela Shine Rio.</p>
+      <div class="carrossel-etapas" data-carrossel-etapas>
+        <div class="carrossel-etapas-pista">
+          <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-secondary">
+            <span class="carrossel-etapas-icone bg-secondary/10 text-secondary">
+              <span class="material-symbols-outlined">redeem</span>
+            </span>
+            <p class="carrossel-etapas-texto">Fundo formado a cada novo contrato fechado pela Shine Rio.</p>
+          </article>
+          <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-rio-deep-blue">
+            <span class="carrossel-etapas-icone bg-rio-deep-blue/10 text-rio-deep-blue">
+              <span class="material-symbols-outlined">groups</span>
+            </span>
+            <p class="carrossel-etapas-texto">Participam todos os funcionários orgânicos alocados no escritório administrativo da empresa.</p>
+          </article>
+          <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-festive-gold">
+            <span class="carrossel-etapas-icone bg-festive-gold/15 text-tertiary">
+              <span class="material-symbols-outlined">check_circle</span>
+            </span>
+            <p class="carrossel-etapas-texto">Assiduidade e bom desempenho contam pontos a seu favor.</p>
+          </article>
+          <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-primary">
+            <span class="carrossel-etapas-icone bg-primary/10 text-primary">
+              <span class="material-symbols-outlined">event_available</span>
+            </span>
+            <p class="carrossel-etapas-texto">Pagamento em parcela única, preferencialmente em dezembro.</p>
+          </article>
         </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
-          <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">groups</span>
-          </span>
-          <p class="font-body text-body-md text-on-surface-variant">Participam todos os funcionários orgânicos alocados no escritório administrativo da empresa.</p>
+        <button type="button" class="carrossel-seta carrossel-seta-prev" aria-label="Etapa anterior">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button type="button" class="carrossel-seta carrossel-seta-next" aria-label="Próxima etapa">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+        <div class="carrossel-etapas-indicadores">
+          <button type="button" class="carrossel-ponto is-ativo" aria-label="Ir para etapa 1"></button>
+          <button type="button" class="carrossel-ponto" aria-label="Ir para etapa 2"></button>
+          <button type="button" class="carrossel-ponto" aria-label="Ir para etapa 3"></button>
+          <button type="button" class="carrossel-ponto" aria-label="Ir para etapa 4"></button>
         </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
-          <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">check_circle</span>
-          </span>
-          <p class="font-body text-body-md text-on-surface-variant">Assiduidade e bom desempenho contam pontos a seu favor.</p>
-        </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
-          <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">event_available</span>
-          </span>
-          <p class="font-body text-body-md text-on-surface-variant">Pagamento em parcela única, preferencialmente em dezembro.</p>
-        </div>
-      </div>
-
-      <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-container-lowest rounded-lg px-5 py-4 border border-outline-variant/40">
-        <p class="font-body text-body-md text-on-surface-variant">
-          O regulamento completo, com todos os critérios de cálculo, fica disponível no seu painel assim
-          que você entra com seu login.
-        </p>
-        <a href="/login" class="btn-primario shrink-0 flex items-center gap-2">
-          <span class="material-symbols-outlined text-lg">login</span> Entrar ou criar cadastro
-        </a>
       </div>
     </div>
 
-    <div id="nossos-valores" data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative mt-14 md:mt-20 pt-14 md:pt-20 border-t border-outline-variant/40 scroll-mt-24">
+    <div id="nossos-valores" data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative mt-14 md:mt-20 pt-14 md:pt-20 scroll-mt-24">
       <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-6">Nossos valores</h2>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
-          <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">workspace_premium</span>
-          </span>
-          <div>
-            <p class="font-body font-bold text-on-surface text-body-md mb-1">Compromisso e reconhecimento</p>
-            <p class="font-body text-body-md text-on-surface-variant">Nosso trabalho gera resultados. E os resultados são compartilhados.</p>
+      <div class="faixa-valores grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="faixa-valores-coluna">
+          <div class="faixa-valores-pista">
+            <div class="faixa-valores-grupo">
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
+                <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">workspace_premium</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Compromisso e reconhecimento</p>
+                  <p class="font-body text-body-md text-on-surface-variant">Nosso trabalho gera resultados. E os resultados são compartilhados.</p>
+                </div>
+              </div>
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
+                <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">diversity_3</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Qualidade que gera resultados</p>
+                  <p class="font-body text-body-md text-on-surface-variant">Cada colaborador faz a diferença na qualidade, na produtividade e na competitividade da Shine Rio.</p>
+                </div>
+              </div>
+            </div>
+            <div class="faixa-valores-grupo" aria-hidden="true">
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
+                <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">workspace_premium</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Compromisso e reconhecimento</p>
+                  <p class="font-body text-body-md text-on-surface-variant">Nosso trabalho gera resultados. E os resultados são compartilhados.</p>
+                </div>
+              </div>
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
+                <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">diversity_3</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Qualidade que gera resultados</p>
+                  <p class="font-body text-body-md text-on-surface-variant">Cada colaborador faz a diferença na qualidade, na produtividade e na competitividade da Shine Rio.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
-          <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">trending_up</span>
-          </span>
-          <div>
-            <p class="font-body font-bold text-on-surface text-body-md mb-1">Crescimento conjunto</p>
-            <p class="font-body text-body-md text-on-surface-variant">Cada novo contrato e cada contrato mantido fortalecem a participação de todos.</p>
-          </div>
-        </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
-          <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">diversity_3</span>
-          </span>
-          <div>
-            <p class="font-body font-bold text-on-surface text-body-md mb-1">Qualidade que gera resultados</p>
-            <p class="font-body text-body-md text-on-surface-variant">Cada colaborador faz a diferença na qualidade, na produtividade e na competitividade da Shine Rio.</p>
-          </div>
-        </div>
-        <div class="glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
-          <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
-            <span class="material-symbols-outlined text-xl">redeem</span>
-          </span>
-          <div>
-            <p class="font-body font-bold text-on-surface text-body-md mb-1">Participação de todos</p>
-            <p class="font-body text-body-md text-on-surface-variant">A caixinha é construída ao longo do ano e compartilhada proporcionalmente com quem fez parte dessa jornada.</p>
+        <div class="faixa-valores-coluna">
+          <div class="faixa-valores-pista faixa-valores-pista-lenta">
+            <div class="faixa-valores-grupo">
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
+                <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">trending_up</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Crescimento conjunto</p>
+                  <p class="font-body text-body-md text-on-surface-variant">Cada novo contrato e cada contrato mantido fortalecem a participação de todos.</p>
+                </div>
+              </div>
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
+                <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">redeem</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Participação de todos</p>
+                  <p class="font-body text-body-md text-on-surface-variant">A caixinha é construída ao longo do ano e compartilhada proporcionalmente com quem fez parte dessa jornada.</p>
+                </div>
+              </div>
+            </div>
+            <div class="faixa-valores-grupo" aria-hidden="true">
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
+                <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">trending_up</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Crescimento conjunto</p>
+                  <p class="font-body text-body-md text-on-surface-variant">Cada novo contrato e cada contrato mantido fortalecem a participação de todos.</p>
+                </div>
+              </div>
+              <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
+                <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
+                  <span class="material-symbols-outlined text-xl">redeem</span>
+                </span>
+                <div>
+                  <p class="font-body font-bold text-on-surface text-body-md mb-1">Participação de todos</p>
+                  <p class="font-body text-body-md text-on-surface-variant">A caixinha é construída ao longo do ano e compartilhada proporcionalmente com quem fez parte dessa jornada.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -455,9 +527,10 @@
 <script type="module">
   import { db } from "./js/firebase-init.js";
   import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar, sincronizarAlturaHeader } from "./js/ui-utils.js";
+  import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar, ativarCarrosselEtapas, sincronizarAlturaHeader } from "./js/ui-utils.js";
 
   ativarRevelacaoAoRolar();
+  ativarCarrosselEtapas();
   sincronizarAlturaHeader();
 
   // ---------------------------------------------------------------
@@ -481,16 +554,33 @@
   }
 
   // ---------------------------------------------------------------
-  // Vídeo do hero — só autoplay sem prefers-reduced-motion, sem modo-leve (mobile/
-  // deviceMemory baixo, ver perf-adaptativo.js) e sem connection.saveData. Sem
-  // autoplay no HTML: sem esses sinais, o elemento fica só no poster, nunca baixa o mp4.
+  // Faixa "Shinatal" grudada no topo de #sobre-nos — visível enquanto a seção sobe
+  // sobre o hero sticky, some quando o topo dela encontra o header. rootMargin
+  // "-100% no fundo" colapsa a área observada numa linha no topo da viewport, então
+  // isIntersecting vira false exatamente quando a seção termina de cobrir o hero
+  // (diferente do sentinela do header acima, que dispara quase no primeiro pixel).
+  // ---------------------------------------------------------------
+  const sentinelaFaixa = document.getElementById("sentinela-faixa-shinatal");
+  const faixaSecao = document.querySelector(".barra-shinatal-secao");
+  if (sentinelaFaixa && faixaSecao && "IntersectionObserver" in window) {
+    const observadorFaixa = new IntersectionObserver(([entrada]) => {
+      faixaSecao.classList.toggle("faixa-oculta", !entrada.isIntersecting);
+    }, { rootMargin: "0px 0px -100% 0px", threshold: 0 });
+    observadorFaixa.observe(sentinelaFaixa);
+  }
+
+  // ---------------------------------------------------------------
+  // Vídeo do hero — autoplay para todo o público, exceto quem pede menos movimento
+  // (prefers-reduced-motion) ou está com Data Saver ligado (connection.saveData) —
+  // ambos sinais explícitos do usuário, não uma suposição de "dispositivo fraco".
+  // Sem autoplay no HTML: sem esses sinais, o elemento fica só no poster, nunca
+  // baixa o mp4.
   // ---------------------------------------------------------------
   const videoHero = document.getElementById("video-hero");
   if (videoHero) {
     const prefereReduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const modoLeve = document.documentElement.classList.contains("modo-leve");
     const saveData = navigator.connection?.saveData;
-    const podeAutoplay = !prefereReduzido && !modoLeve && !saveData;
+    const podeAutoplay = !prefereReduzido && !saveData;
 
     if (podeAutoplay) {
       videoHero.preload = "auto";
@@ -548,9 +638,9 @@
 
     const ano = new Date().getFullYear();
     const qtdAnoEl = document.getElementById("qtd-colaboradores-ano");
-    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Somos <strong id="num-colaboradores" class="text-on-surface">0</strong> colaboradores em ${ano}`;
+    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Somos <strong id="num-colaboradores" class="valor-colaboradores-destaque">0</strong> colaboradores em ${ano}`;
     document.getElementById("qtd-colaboradores-total").innerHTML =
-      `<strong id="num-colaboradores-total">0</strong> colaboradores no total`;
+      `<strong id="num-colaboradores-total" class="valor-colaboradores-destaque">0</strong> colaboradores no total`;
     animarNumero(document.getElementById("num-colaboradores"), colaboradores, { formatador: (v) => Math.round(v).toString() });
     animarNumero(document.getElementById("num-colaboradores-total"), colaboradores + colaboradoresAnosAnteriores, { formatador: (v) => Math.round(v).toString() });
   }
