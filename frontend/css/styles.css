@@ -134,7 +134,11 @@ h1, h2, h3, .font-display {
   display: flex;
   width: max-content;
   animation: faixa-fotos-loop 32s linear infinite;
+  will-change: transform;
 }
+/* Pausa quando a faixa sai da viewport (ver pausarAnimacaoForaDaTela em ui-utils.js) —
+   evita gastar CPU/GPU com um loop de 32s rodando fora de tela numa sessão de scroll longa. */
+.faixa-fotos-pista.anim-pausada { animation-play-state: paused; }
 .faixa-fotos-grupo {
   display: flex;
   gap: 1rem;
@@ -229,13 +233,16 @@ h1, h2, h3, .font-display {
 #card-fundo {
   background: rgba(255, 255, 255, 0.27);
   border-color: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  /* Raio de blur reduzido de propósito: o card fica por cima do vídeo em reprodução contínua,
+     então o navegador reamostra a região borrada a cada quadro — um blur menor custa bem menos
+     GPU por frame sem perder o efeito de vidro fosco. */
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
 }
 @media (max-width: 767px), (pointer: coarse) {
   #card-fundo {
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(11px) saturate(125%);
+    -webkit-backdrop-filter: blur(11px) saturate(125%);
   }
 }
 /* Card translúcido: textos pensados pra fundo branco opaco ficavam apagados contra o vídeo
@@ -500,7 +507,10 @@ html.modo-leve .header-flutuante.header-transparente {
   display: flex;
   width: max-content;
   animation: barra-shinatal-loop 9s linear infinite;
+  will-change: transform;
 }
+/* Pausa quando a faixa sai da viewport (ver pausarAnimacaoForaDaTela em ui-utils.js). */
+.barra-shinatal-pista.anim-pausada { animation-play-state: paused; }
 .barra-shinatal-grupo {
   display: flex;
   align-items: center;
@@ -717,8 +727,11 @@ html.modo-leve .header-flutuante.header-transparente {
   flex-direction: column;
   gap: 1rem;
   animation: faixa-valores-loop 30s linear infinite;
+  will-change: transform;
 }
 .faixa-valores-pista-lenta { animation-duration: 36s; }
+/* Pausa quando a faixa sai da viewport (ver pausarAnimacaoForaDaTela em ui-utils.js). */
+.faixa-valores-pista.anim-pausada { animation-play-state: paused; }
 .faixa-valores-grupo {
   display: flex;
   flex-direction: column;

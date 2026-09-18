@@ -527,10 +527,11 @@
 <script type="module">
   import { db } from "./js/firebase-init.js";
   import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar, ativarCarrosselEtapas, sincronizarAlturaHeader } from "./js/ui-utils.js";
+  import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar, ativarCarrosselEtapas, pausarAnimacaoForaDaTela, sincronizarAlturaHeader } from "./js/ui-utils.js";
 
   ativarRevelacaoAoRolar();
   ativarCarrosselEtapas();
+  pausarAnimacaoForaDaTela(".barra-shinatal-pista, .faixa-fotos-pista, .faixa-valores-pista");
   sincronizarAlturaHeader();
 
   // ---------------------------------------------------------------
@@ -594,12 +595,25 @@
   }
 
   // Spotlight que acompanha o cursor no card do fundo (só em dispositivos com mouse).
+  // Atualização agrupada por requestAnimationFrame — no máximo uma escrita de estilo (e
+  // repaint do ::after) por quadro, em vez de uma a cada mousemove bruto (que dispara com
+  // frequência bem maior que a taxa de atualização da tela em mouses de alto polling).
   const cardFundo = document.getElementById("card-fundo");
   if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-    cardFundo.addEventListener("mousemove", (e) => {
+    let spotlightX = 0, spotlightY = 0, spotlightAgendado = false;
+    function aplicarSpotlight() {
+      spotlightAgendado = false;
       const rect = cardFundo.getBoundingClientRect();
-      cardFundo.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-      cardFundo.style.setProperty("--my", `${e.clientY - rect.top}px`);
+      cardFundo.style.setProperty("--mx", `${spotlightX - rect.left}px`);
+      cardFundo.style.setProperty("--my", `${spotlightY - rect.top}px`);
+    }
+    cardFundo.addEventListener("mousemove", (e) => {
+      spotlightX = e.clientX;
+      spotlightY = e.clientY;
+      if (!spotlightAgendado) {
+        spotlightAgendado = true;
+        requestAnimationFrame(aplicarSpotlight);
+      }
     });
   }
 

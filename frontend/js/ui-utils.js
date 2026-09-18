@@ -383,6 +383,25 @@ function ativarCarrosselEtapas(seletor = "[data-carrossel-etapas]") {
 }
 
 /**
+ * Pausa (animation-play-state, via a classe .anim-pausada) elementos com animação CSS contínua
+ * assim que saem da viewport, e retoma ao voltar — pensado pras faixas decorativas em loop
+ * infinito (marquees de texto/fotos/valores), que sem isso continuam animando indefinidamente
+ * mesmo depois que o usuário rola bem além delas, gastando CPU/GPU à toa numa sessão de scroll
+ * longa. Reaproveita o nome de classe já usado em #bg-pao-acucar (perf-adaptativo.js), só que
+ * aqui a pausa é por visibilidade na tela, não por aba oculta.
+ */
+function pausarAnimacaoForaDaTela(seletor) {
+  const elementos = document.querySelectorAll(seletor);
+  if (!elementos.length || !("IntersectionObserver" in window)) return;
+  const observer = new IntersectionObserver((entradas) => {
+    entradas.forEach((entrada) => {
+      entrada.target.classList.toggle("anim-pausada", !entrada.isIntersecting);
+    });
+  }, { threshold: 0 });
+  elementos.forEach((el) => observer.observe(el));
+}
+
+/**
  * Mede a altura real do header fixo (.header-flutuante — só o que estiver de fato visível,
  * desktop ou mobile) e publica como --altura-header no :root, consumida por .pt-header-fixo
  * (styles.css). Sem isso, .pt-header-fixo usa um valor fixo que assume o header sempre com uma
@@ -447,5 +466,6 @@ export {
   iniciarContagemReenvio,
   animarNumero,
   ativarRevelacaoAoRolar,
-  ativarCarrosselEtapas
+  ativarCarrosselEtapas,
+  pausarAnimacaoForaDaTela
 };
