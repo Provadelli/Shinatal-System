@@ -199,10 +199,23 @@ testes automatizada, não apenas revisão teórica.
   para leitura/edição. O Worker valida o payload no servidor e desfaz a conta se a gravação falhar.
   Legado: `backend/scripts/limpar-nao-verificados.js` (simulação por padrão) move/exclui os
   perfis já existentes de contas não verificadas.
+- **Endurecimentos após revisão de código:** (1) o perfil criado na promoção precisa ser
+  **idêntico** ao cadastro pendente e nascer `ativo` (`perfilConfereComPendente` nas rules) — sem
+  isso, depois de confirmar o e-mail a pessoa podia gravar qualquer carga horária, data de admissão
+  ou status, campos que alimentam a elegibilidade e o peso no Fundo; (2) o dono só cria o próprio
+  `cadastrosPendentes` enquanto o e-mail **não** está confirmado, e a exclusão de colaborador (painel e
+  `excluir-usuario.js`) apaga também o pendente — assim um colaborador excluído, cuja conta de Auth
+  continua existindo, não se re-promove no próximo login; (3) falha transitória na ativação mostra
+  "tente novamente" em vez de "contate o DP/RH", e a corrida entre duas abas não desloga o usuário.
 - **Verificação:** o teste `BUG CORRIGIDO` falha contra as regras antigas e passa contra as novas;
-  suite `backend/tests/rules` com 111/112 casos passando (a única falha, `admin NÃO escreve direto em
-  contratos`, é anterior a esta mudança — a regra de `contratos` permite o Admin e o teste ficou
-  desatualizado).
+  suite `backend/tests/rules` com **123/123** casos passando. O teste `admin NÃO escreve direto em
+  contratos`, que já falhava antes desta mudança, estava desatualizado (a regra de `contratos` —
+  dado interno de RH — permite RH/Admin/Presidente desde `ec108ca`) e foi corrigido para refletir a
+  regra vigente.
+- **Limitação conhecida (não corrigida):** ao ser promovido, o colaborador não entra na soma de
+  pesos publicada em `fundo/{ano}` até um gestor abrir `/gestao` (que recalcula o Fundo a cada
+  carregamento); só DP/RH/Admin/Presidente podem gravar em `fundo`, e conceder isso ao colaborador
+  seria pior. Até lá, a cota exibida no dashboard dele fica ligeiramente acima do real.
 
 ### [BAIXA] Ausência de Firebase App Check
 

@@ -113,7 +113,7 @@
         <label class="label-shinatal" for="nome">Nome completo</label>
         <div class="relative">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">badge</span>
-          <input class="input-shinatal" id="nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome completo" required />
+          <input class="input-shinatal" id="nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome completo" required maxlength="120" />
         </div>
       </div>
 
@@ -122,7 +122,7 @@
           <label class="label-shinatal" for="cargo">Cargo / área de atuação</label>
           <div class="relative">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">work</span>
-            <input class="input-shinatal" id="cargo" name="cargo" type="text" placeholder="Ex: Operações" required />
+            <input class="input-shinatal" id="cargo" name="cargo" type="text" placeholder="Ex: Operações" required maxlength="80" />
           </div>
         </div>
         <div>
@@ -219,11 +219,9 @@
 </footer>
 
 <script type="module">
-  import { db } from "./js/firebase-init.js";
   import { auth } from "./js/firebase-init.js";
-  import { createUserWithEmailAndPassword, sendEmailVerification, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { traduzirErroAuth } from "./js/auth.js";
+  import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { traduzirErroAuth, gravarCadastroPendente } from "./js/auth.js";
   import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./js/ui-utils.js";
   import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./js/turnstile-config.js";
 
@@ -338,18 +336,7 @@
         // cadastro fica "em espera" (cadastrosPendentes): só vira colaborador de verdade
         // (usuarios/{uid}) no primeiro login, depois de confirmar o e-mail — ver auth.js.
         const cred = await createUserWithEmailAndPassword(auth, email, senha);
-        try {
-          await setDoc(doc(db, "cadastrosPendentes", cred.user.uid), {
-            nome, email, cargo, cargaHoraria,
-            fotoBase64: fotoBase64 || null,
-            dataAdmissao,
-            criadoEm: serverTimestamp()
-          });
-        } catch (erroGravacao) {
-          // Não deixa conta órfã no Auth (bloquearia o e-mail por "já existe uma conta").
-          await deleteUser(cred.user).catch(() => {});
-          throw erroGravacao;
-        }
+        await gravarCadastroPendente(cred.user, { nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64: fotoBase64 || null });
         await sendEmailVerification(cred.user);
         await signOut(auth);
       }

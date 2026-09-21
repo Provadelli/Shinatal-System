@@ -203,24 +203,29 @@ clica no link do e-mail ──> 1º login ──> usuarios/{uid} criado a partir
   ```bash
   npm run limpar-nao-verificados                       # simulação — nada é alterado
   npm run limpar-nao-verificados -- --apply            # executa
-  npm run limpar-nao-verificados -- --dias 7 --apply   # prazo de exclusão de 7 dias (padrão: 3)
+  npm run limpar-nao-verificados -- --dias 7 --apply   # prazo de exclusão de 7 dias (padrão: 3; também aceita --dias=7)
   ```
 
   Contas não verificadas com menos de N dias têm o perfil **movido** para `cadastrosPendentes`;
   as mais antigas têm a conta e o perfil **excluídos** (se houver faltas/atrasos/advertências/
-  avaliações/contratos ligados ao `uid`, o script só avisa e não exclui). Nunca toca contas
+  avaliações/contratos ligados ao `uid`, o script só avisa e não exclui). Também apaga cadastros
+  pendentes órfãos (sem conta de Auth) e sobras (a pessoa já tem perfil). Argumento desconhecido ou
+  inválido aborta o script em vez de ser ignorado. Nunca toca contas
   verificadas nem perfis de Admin/DP/RH/Presidente.
 
 ### Ordem de publicação ao atualizar um projeto que já está no ar
 
-1. `firebase deploy --only firestore:rules`
-2. `cd backend/cloudflare-worker && npx wrangler deploy`
-3. Publicar o front-end (merge/push → GitHub Actions → Firebase Hosting, ou `firebase deploy --only hosting`)
+1. `cd backend/cloudflare-worker && npx wrangler deploy`
+2. Publicar o front-end (merge/push → GitHub Actions → Firebase Hosting, ou `firebase deploy --only hosting`)
+3. `firebase deploy --only firestore:rules` — **por último**
 4. `npm run limpar-nao-verificados` (revise a simulação) e depois com `-- --apply`, para tirar do
    painel quem já estava cadastrado sem confirmar o e-mail.
 
-Entre os passos 1 e 3 novos cadastros podem falhar por alguns instantes (regras e front/Worker
-ainda em versões diferentes); quem já tem conta verificada não é afetado.
+**Por que as regras vão por último:** as regras novas passam a recusar o `usuarios/{uid}` de conta
+não verificada, que é o que o Worker *antigo* ainda grava. Com Worker antigo + regras novas, todo
+cadastro falharia deixando uma conta órfã no Auth (bloqueando o e-mail). Já com Worker novo + regras
+antigas, o cadastro falha *limpo* (o Worker desfaz a conta) por alguns instantes, e o front novo
+funciona com as regras antigas. Quem já tem conta verificada não é afetado em nenhum passo.
 
 ## Resumo do que é gratuito aqui
 

@@ -70,6 +70,26 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/cadastrosPendentes/$(uid)).data;
     }
 
+    // O perfil que está sendo criado tem que ser IDÊNTICO ao cadastro pendente (que já passou por
+    // cadastroPendenteValido()) e nascer 'ativo', sem motivo de perda nem desligamento. Sem isso,
+    // depois de confirmar o e-mail a pessoa poderia gravar no perfil qualquer carga horária,
+    // data de admissão ou status — campos que alimentam a elegibilidade e o peso no Fundo, e que
+    // ela não consegue editar depois.
+    function perfilConfereComPendente(uid) {
+      let p = cadastroPendente(uid);
+      let d = request.resource.data;
+      return d.nome == p.nome
+        && d.email == p.email
+        && d.cargaHoraria == p.cargaHoraria
+        && d.get('cargo', null) == p.get('cargo', null)
+        && d.get('dataAdmissao', null) == p.get('dataAdmissao', null)
+        && d.get('fotoBase64', null) == p.get('fotoBase64', null)
+        && d.get('criadoPor', null) == p.get('criadoPor', null)
+        && d.status == 'ativo'
+        && d.get('motivoPerdaIntegral', null) == null
+        && d.get('dataDesligamento', null) == null;
+    }
+
     // Schema de cadastrosPendentes/{uid}: mesmos campos que o perfil terá, sem role/status (esses
     // só são atribuídos na promoção para usuarios/{uid}, e sempre como 'colaborador'/'ativo').
     function cadastroPendenteValido() {
@@ -99,7 +119,7 @@ service cloud.firestore {
 
       // O novo registro só pode nascer como 'colaborador', com e-mail @shinerio.com CONFIRMADO
       // (restrição aplicada no token do servidor, não só no formulário), igual ao e-mail da
-      // conta e vindo de um cadastro pendente (o mesmo criadoPor, quando houver).
+      // conta e idêntico ao cadastro pendente (perfilConfereComPendente, inclusive o criadoPor).
       // hasOnly() fecha o schema aos campos que o fluxo realmente grava (promoverCadastroPendente
       // em auth.js) — sem isso, o SDK client aceitava qualquer campo extra no create (mass
       // assignment), mesmo que a UI nunca ofereça essa opção.
@@ -107,7 +127,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.resource.data.email == request.auth.token.email
         && exists(/databases/$(database)/documents/cadastrosPendentes/$(uid))
-        && request.resource.data.get('criadoPor', null) == cadastroPendente(uid).get('criadoPor', null)
+        && perfilConfereComPendente(uid)
         && request.resource.data.role == 'colaborador'
         && request.resource.data.keys().hasAll(['nome', 'email', 'cargaHoraria', 'status'])
         && request.resource.data.keys().hasOnly([
@@ -139,7 +159,10 @@ service cloud.firestore {
     // Nada no painel/fundo/diretório/contratos lê esta coleção — é por isso que um cadastro com
     // e-mail inexistente nunca aparece como colaborador. Dois jeitos de nascer:
     //  (a) autocadastro (Worker/cadastro.html): o dono, ainda com e-mail NÃO confirmado, grava o
-    //      próprio doc logo após criar a conta;
+    //      próprio doc logo após criar a conta. Só enquanto NÃO confirmado: uma conta já
+    //      verificada (ex.: colaborador excluído pelo Admin, cuja conta de Auth continua existindo)
+    //      não pode recriar o próprio cadastro para se re-promover — só um Admin/Presidente
+    //      (caso b) readmite alguém;
     //  (b) "Novo colaborador" do painel: Admin/Presidente (verificados) gravam em nome da pessoa
     //      convidada, registrando criadoPor.
     // Depois do link do e-mail, o dono lê este doc e cria o usuarios/{uid} (ver regras acima).
@@ -148,7 +171,7 @@ service cloud.firestore {
       allow create: if cadastroPendenteValido()
         && request.resource.data.email.matches('.*@shinerio[.]com$')
         && (
-          (request.auth.uid == uid && emailInstitucional()
+          (request.auth.uid == uid && emailInstitucional() && !emailVerificado()
             && request.resource.data.email == request.auth.token.email
             && !('criadoPor' in request.resource.data))
           ||

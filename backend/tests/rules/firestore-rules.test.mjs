@@ -203,6 +203,25 @@ describe("usuarios/{uid}", () => {
     );
   });
 
+  // O perfil só pode ser cópia do cadastro pendente — sem isso, depois de confirmar o e-mail a
+  // pessoa gravaria qualquer valor em campos que alimentam elegibilidade/peso no Fundo.
+  for (const [campo, valor] of Object.entries({
+    cargaHoraria: 999,
+    dataAdmissao: "1990-01-01",
+    nome: "Outro Nome",
+    cargo: "Diretoria",
+    status: "desligado",
+    motivoPerdaIntegral: "qualquer",
+    dataDesligamento: "2026-02-02",
+    fotoBase64: "data:image/jpeg;base64,AAAA"
+  })) {
+    it(`promoção NÃO aceita ${campo} diferente do cadastro pendente`, async () => {
+      await seedPendente("colabV");
+      const db = ctx("colabV").firestore();
+      await assertFails(setDoc(doc(db, "usuarios", "colabV"), perfilPromovido("colabV", { [campo]: valor })));
+    });
+  }
+
   it("Admin NÃO cria usuarios/{uid} de terceiros direto (nem com pendente e e-mail 'confirmado' — ninguém garante isso por ele)", async () => {
     await seedUsuario("admin1", "admin");
     await seedPendente("colabD6", { criadoPor: "admin1" });
@@ -286,6 +305,11 @@ describe("cadastrosPendentes/{uid}", () => {
       const snap = await getDoc(doc(dbAdmin, "usuarios", "novo2"));
       assert.equal(snap.exists(), false);
     });
+  });
+
+  it("ex-colaborador (conta já verificada, perfil excluído pelo Admin) NÃO recria o próprio cadastro para se re-promover", async () => {
+    const db = ctx("exColab").firestore(); // verificado
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "exColab"), pendente("exColab")));
   });
 
   it("BOLA: não cria o cadastro pendente de OUTRO uid", async () => {
@@ -403,7 +427,7 @@ describe("cadastrosPendentes/{uid}", () => {
 });
 
 // ---------------------------------------------------------------------------
-// contratos/{id} — fila de aprovação (só Presidente escreve direto)
+// contratos/{id} — ativação/encerramento individual (dado interno de RH; RH/Admin/Presidente gravam direto)
 // ---------------------------------------------------------------------------
 describe("contratos/{id}", () => {
   it("BOLA: colaborador NÃO lê contrato de outro colaborador", async () => {
@@ -420,10 +444,23 @@ describe("contratos/{id}", () => {
     await assertSucceeds(getDoc(doc(db, "contratos", "c1")));
   });
 
-  it("admin NÃO escreve direto em contratos (deve passar pela fila de solicitações)", async () => {
+  it("admin grava direto em contratos (dado interno de RH — não passa pela fila de solicitações)", async () => {
     await seedUsuario("admin1", "admin");
     const db = ctx("admin1").firestore();
-    await assertFails(setDoc(doc(db, "contratos", "c2"), { uid: "colabA", status: "ativo" }));
+    await assertSucceeds(setDoc(doc(db, "contratos", "c2"), { uid: "colabA", status: "ativo" }));
+  });
+
+  it("RH grava direto em contratos", async () => {
+    await seedUsuario("rh1", "rh");
+    const db = ctx("rh1").firestore();
+    await assertSucceeds(setDoc(doc(db, "contratos", "c2b"), { uid: "colabA", status: "ativo" }));
+  });
+
+  it("DP e colaborador comum NÃO gravam em contratos", async () => {
+    await seedUsuario("dp1", "dp");
+    await seedUsuario("colabA", "colaborador");
+    await assertFails(setDoc(doc(ctx("dp1").firestore(), "contratos", "c2c"), { uid: "colabA", status: "ativo" }));
+    await assertFails(setDoc(doc(ctx("colabA").firestore(), "contratos", "c2d"), { uid: "colabA", status: "ativo" }));
   });
 
   it("presidente escreve direto em contratos", async () => {

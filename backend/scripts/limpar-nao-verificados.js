@@ -36,14 +36,32 @@ const serviceAccount = require("./service-account.json");
 
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
-const args = process.argv.slice(2);
-const APLICAR = args.includes("--apply");
-const idxDias = args.indexOf("--dias");
-const DIAS = idxDias >= 0 ? Number(args[idxDias + 1]) : 3;
-if (!Number.isFinite(DIAS) || DIAS < 0) {
-  console.error("Uso: node limpar-nao-verificados.js [--dias N] [--apply]   (N = número inteiro >= 0)");
-  process.exit(1);
+// Argumentos estritos: um flag digitado errado (ex.: '--dias=7' antes era ignorado, ou '--aplly')
+// não pode passar em silêncio — o script exclui contas e rodaria com o prazo padrão sem o
+// operador saber.
+function lerArgumentos(argv) {
+  const uso = "Uso: node limpar-nao-verificados.js [--dias N | --dias=N] [--apply]   (N = inteiro >= 0)";
+  let aplicar = false;
+  let dias = 3;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--apply") {
+      aplicar = true;
+    } else if (a === "--dias" || a.startsWith("--dias=")) {
+      const valor = a === "--dias" ? argv[++i] : a.slice("--dias=".length);
+      if (!/^\d+$/.test(valor ?? "")) {
+        console.error(uso);
+        process.exit(1);
+      }
+      dias = Number(valor);
+    } else {
+      console.error(`Argumento desconhecido: ${a}\n${uso}`);
+      process.exit(1);
+    }
+  }
+  return { aplicar, dias };
 }
+const { aplicar: APLICAR, dias: DIAS } = lerArgumentos(process.argv.slice(2));
 const LIMITE_MS = DIAS * 24 * 60 * 60 * 1000;
 
 const db = admin.firestore();
@@ -67,18 +85,18 @@ async function listarTodasContas() {
 }
 
 async function temLancamentos(uid) {
-  for (const colecao of COLECOES_COM_LANCAMENTOS) {
-    const snap = await db.collection(colecao).where("uid", "==", uid).limit(1).get();
-    if (!snap.empty) return colecao;
-  }
-  return null;
+  const resultados = await Promise.all(
+    COLECOES_COM_LANCAMENTOS.map((colecao) => db.collection(colecao).where("uid", "==", uid).limit(1).get())
+  );
+  const i = resultados.findIndex((snap) => !snap.empty);
+  return i >= 0 ? COLECOES_COM_LANCAMENTOS[i] : null;
 }
 
 function idadeMs(conta) {
   return Date.now() - new Date(conta.metadata.creationTime).getTime();
 }
 
-const resumo = { movidos: 0, excluidos: 0, bloqueados: 0, sobras: 0, ignorados: 0 };
+const resumo = { movidos: 0, excluidos: 0, bloqueados: 0, sobras: 0, orfaos: 0, ignorados: 0 };
 
 async function moverParaPendentes(conta, perfil) {
   const dados = {};
@@ -149,21 +167,38 @@ async function principal() {
     }
   }
 
-  // Sobras: cadastro pendente de quem já tem perfil (a promoção criou o perfil mas não conseguiu
-  // apagar o pendente) — nada lê esta coleção, mas não faz sentido manter.
-  const pendentes = await db.collection("cadastrosPendentes").get();
-  for (const p of pendentes.docs) {
-    const perfil = await db.collection("usuarios").doc(p.id).get();
-    if (perfil.exists) {
-      console.log(`Sobra: cadastrosPendentes/${p.id} (perfil já existe) -> EXCLUIR`);
-      if (APLICAR) await p.ref.delete();
-      resumo.sobras++;
-    }
+  // Varredura da própria coleção cadastrosPendentes — pega o que o laço acima (que parte das
+  // contas do Auth) não alcança:
+  //  - ÓRFÃOS: a conta de Auth não existe mais (ex.: excluída no console). O doc guarda nome,
+  //    e-mail e foto — dado pessoal que não pode ficar para sempre sem dono.
+  //  - SOBRAS: a pessoa já tem perfil (a promoção criou o perfil mas não conseguiu apagar o
+  //    pendente). Nada lê esta coleção, mas um pendente ao lado de um perfil é um risco: se o
+  //    perfil for excluído depois, a pessoa se re-promoveria no próximo login.
+  const pendentes = (await db.collection("cadastrosPendentes").get()).docs;
+  for (let i = 0; i < pendentes.length; i += 100) {
+    const lote = pendentes.slice(i, i + 100);
+    const { notFound } = await auth.getUsers(lote.map((p) => ({ uid: p.id })));
+    const semConta = new Set(notFound.map((n) => n.uid));
+    const perfis = await db.getAll(...lote.map((p) => db.collection("usuarios").doc(p.id)));
+    const apagar = [];
+    lote.forEach((p, idx) => {
+      if (semConta.has(p.id)) {
+        console.log(`Órfão: cadastrosPendentes/${p.id} (conta de Auth não existe mais) -> EXCLUIR`);
+        resumo.orfaos++;
+        apagar.push(p);
+      } else if (perfis[idx].exists) {
+        console.log(`Sobra: cadastrosPendentes/${p.id} (perfil já existe) -> EXCLUIR`);
+        resumo.sobras++;
+        apagar.push(p);
+      }
+    });
+    if (APLICAR) await Promise.all(apagar.map((p) => p.ref.delete()));
   }
 
   console.log(
     `\nResumo${APLICAR ? "" : " (simulação)"}: ${resumo.movidos} movido(s) para pendentes, ${resumo.excluidos} excluído(s), ` +
-    `${resumo.bloqueados} mantido(s) por terem lançamentos, ${resumo.sobras} sobra(s) de pendentes, ${resumo.ignorados} ignorado(s).`
+    `${resumo.bloqueados} mantido(s) por terem lançamentos, ${resumo.sobras} sobra(s) e ${resumo.orfaos} órfão(s) de pendentes, ` +
+    `${resumo.ignorados} ignorado(s).`
   );
   if (!APLICAR) console.log("Nada foi alterado. Rode com --apply para executar.");
   process.exit(0);

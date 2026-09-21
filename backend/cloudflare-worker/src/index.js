@@ -88,7 +88,9 @@ async function tratarVerificar(request, env, origin, allowedOrigins) {
 
 // Mesmos limites de cadastroPendenteValido() em firestore.rules — validar aqui devolve um erro
 // claro em vez de deixar o Firestore recusar a gravação depois da conta já criada.
-const REGEX_EMAIL_INSTITUCIONAL = /^[a-z0-9._%+-]+@shinerio\.com$/;
+// Só exige o domínio (mesmo critério do cliente e das rules, sem restringir a parte local: o
+// e-mail de verdade só é provado pelo link de confirmação, não por um formato de caractere).
+const REGEX_EMAIL_INSTITUCIONAL = /^[^\s@]+@shinerio\.com$/;
 const REGEX_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 const CARGAS_HORARIAS_VALIDAS = [4, 6, 8];
 const TAMANHO_MAX_FOTO = 150000;
@@ -118,7 +120,8 @@ async function tratarCadastro(request, env, origin, allowedOrigins) {
     return respostaJson({ ok: false, erro: "auth/invalid-email" }, 400, origin, allowedOrigins);
   }
   if (!cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha })) {
-    return respostaJson({ ok: false, erro: "auth/internal-error" }, 400, origin, allowedOrigins);
+    // Código próprio (traduzido em auth.js) — "internal-error" faria a pessoa tentar de novo em vão.
+    return respostaJson({ ok: false, erro: "shinatal/dados-invalidos" }, 400, origin, allowedOrigins);
   }
 
   // 1) Cria a conta no Firebase Auth — mesma API REST pública que o SDK cliente usa por baixo

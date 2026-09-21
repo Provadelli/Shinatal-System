@@ -5,7 +5,8 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  sendEmailVerification
+  sendEmailVerification,
+  deleteUser
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -35,25 +36,30 @@ export async function obterPerfil(uid) {
 async function promoverCadastroPendente(user) {
   const refPendente = doc(db, "cadastrosPendentes", user.uid);
   const snap = await getDoc(refPendente);
-  if (!snap.exists()) return null;
+  // Sem pendente: ou nunca houve cadastro, ou outra aba/login acabou de promovê-lo (e apagou o
+  // pendente) — reler o perfil cobre os dois casos (devolve null no primeiro).
+  if (!snap.exists()) return obterPerfil(user.uid);
 
   const p = snap.data();
+  // As firestore.rules exigem que o perfil seja IDÊNTICO ao pendente (perfilConfereComPendente) —
+  // por isso os valores vêm todos dele, nunca do formulário. Campos ausentes (pendentes migrados
+  // de perfis antigos incompletos) são omitidos: o Firestore recusa `undefined`.
+  const perfilNovo = Object.fromEntries(Object.entries({
+    nome: p.nome,
+    email: p.email,
+    cargo: p.cargo,
+    cargaHoraria: p.cargaHoraria,
+    fotoBase64: p.fotoBase64 ?? null,
+    role: "colaborador",
+    status: "ativo",
+    motivoPerdaIntegral: null,
+    dataAdmissao: p.dataAdmissao,
+    dataDesligamento: null,
+    // criadoPor só existe quando um Admin/Presidente cadastrou a pessoa pelo painel.
+    criadoPor: p.criadoPor || undefined
+  }).filter(([, valor]) => valor !== undefined));
   try {
-    await setDoc(doc(db, "usuarios", user.uid), {
-      nome: p.nome,
-      email: p.email,
-      cargo: p.cargo,
-      cargaHoraria: p.cargaHoraria,
-      fotoBase64: p.fotoBase64 ?? null,
-      role: "colaborador",
-      status: "ativo",
-      motivoPerdaIntegral: null,
-      dataAdmissao: p.dataAdmissao,
-      dataDesligamento: null,
-      // criadoPor só existe quando um Admin/Presidente cadastrou a pessoa pelo painel.
-      ...(p.criadoPor ? { criadoPor: p.criadoPor } : {}),
-      criadoEm: serverTimestamp()
-    });
+    await setDoc(doc(db, "usuarios", user.uid), { ...perfilNovo, criadoEm: serverTimestamp() });
   } catch (erro) {
     // Duas abas/logins simultâneos: a outra já promoveu — o perfil existe, basta usá-lo.
     const existente = await obterPerfil(user.uid).catch(() => null);
@@ -76,9 +82,34 @@ async function obterOuCriarPerfil(user) {
   try {
     return await promoverCadastroPendente(user);
   } catch (erro) {
-    // Sem perfil e sem conseguir promover: quem chama trata como "sem cadastro" (desloga).
+    // Falha real (rede, regra) — NÃO é "sem cadastro": quem chama desloga com uma mensagem que
+    // manda tentar de novo, em vez de mandar a pessoa "contatar o DP/RH" por um erro passageiro.
     console.error("[Shinatal] Falha ao ativar o cadastro pendente:", erro);
-    return null;
+    const falha = new Error("Não foi possível ativar seu cadastro agora. Tente novamente em instantes.");
+    falha.code = "shinatal/ativacao-falhou";
+    throw falha;
+  }
+}
+
+/**
+ * Grava o cadastro em espera (`cadastrosPendentes/{uid}`) de uma conta recém-criada — usado pelo
+ * fallback de cadastro.html (sem Worker) e pelo "Novo colaborador" de gestao.js, para os dois
+ * gravarem exatamente o mesmo schema (o das firestore.rules). Se a gravação falhar, apaga a conta
+ * de Auth para não deixar uma órfã que bloquearia o e-mail ("já existe uma conta").
+ * @param {import("firebase/auth").User} usuarioAuth conta recém-criada (ainda logada no seu app)
+ * @param {{nome:string,email:string,cargo:string,cargaHoraria:number,dataAdmissao:string,
+ *   fotoBase64?:string|null,criadoPor?:string}} dados `criadoPor` só quando Admin/Presidente cadastra
+ */
+export async function gravarCadastroPendente(usuarioAuth, { nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64 = null, criadoPor }) {
+  try {
+    await setDoc(doc(db, "cadastrosPendentes", usuarioAuth.uid), {
+      nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64,
+      ...(criadoPor ? { criadoPor } : {}),
+      criadoEm: serverTimestamp()
+    });
+  } catch (erro) {
+    await deleteUser(usuarioAuth).catch(() => {});
+    throw erro;
   }
 }
 
@@ -104,7 +135,13 @@ export async function fazerLogin(email, senha) {
     throw erro;
   }
 
-  const perfil = await obterOuCriarPerfil(cred.user);
+  let perfil;
+  try {
+    perfil = await obterOuCriarPerfil(cred.user);
+  } catch (erro) {
+    await signOut(auth);
+    throw erro;
+  }
   if (!perfil) {
     await signOut(auth);
     throw new Error("Este login não possui um cadastro de perfil associado. Contate o DP/RH.");
@@ -148,7 +185,15 @@ export function exigirAutenticacao(rolesPermitidos = null) {
         window.location.href = "/login?motivo=nao-verificado";
         return;
       }
-      const perfil = await obterOuCriarPerfil(user);
+      let perfil;
+      try {
+        perfil = await obterOuCriarPerfil(user);
+      } catch (erro) {
+        if (erro?.code !== "shinatal/ativacao-falhou") throw erro;
+        await signOut(auth);
+        window.location.href = "/login?motivo=ativacao-falhou";
+        return;
+      }
       if (!perfil) {
         await signOut(auth);
         window.location.href = "/login";
@@ -177,6 +222,8 @@ export function traduzirErroAuth(erro) {
   const codigo = erro?.code || "";
   const mapa = {
     "shinatal/email-nao-verificado": "Confirme seu e-mail antes de entrar. Reenviamos o link de verificação — confira sua caixa de entrada (e o spam).",
+    "shinatal/ativacao-falhou": "Não foi possível ativar seu cadastro agora. Tente novamente em instantes.",
+    "shinatal/dados-invalidos": "Confira os dados: nome (até 120 caracteres), cargo (até 80), tempo de trabalho, data de admissão válida (não futura) e senha com pelo menos 6 caracteres.",
     "auth/invalid-email": "E-mail inválido.",
     "auth/user-disabled": "Este usuário está desativado.",
     "auth/user-not-found": "E-mail ou senha incorretos.",

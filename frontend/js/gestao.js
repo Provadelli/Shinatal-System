@@ -1,12 +1,12 @@
 // Shinatal — painel de gestão (DP / RH / Admin).
 import { db, firebaseConfig } from "./firebase-init.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp,
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { exigirAutenticacao, fazerLogout, traduzirErroAuth } from "./auth.js";
+import { exigirAutenticacao, fazerLogout, traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, debounce } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
@@ -907,6 +907,9 @@ document.getElementById("corpo-diretorio").addEventListener("click", async (e) =
       ["faltas", "atrasos", "advertencias", "avaliacoes"].map((colecao) => excluirRegistrosPorUid(colecao, usuario.uid))
     );
     await deleteDoc(doc(db, "usuarios", usuario.uid));
+    // Sobra de um cadastro pendente (a promoção apaga, mas é best-effort): sem apagar aqui, a
+    // pessoa — cuja conta de Auth continua existindo — se re-promoveria no próximo login.
+    await deleteDoc(doc(db, "cadastrosPendentes", usuario.uid)).catch(() => {});
     await removerDoDiretorio(usuario.uid);
     await registrarLog("exclusao_colaborador", `Colaborador excluído do sistema (com histórico de faltas/atrasos/advertências/avaliações)`, usuario.uid, usuario.nome || usuario.email);
     mostrarToast("Colaborador excluído.", "sucesso");
@@ -1106,16 +1109,7 @@ document.getElementById("form-novo-colaborador").addEventListener("submit", asyn
     // no diretório e no rateio do fundo quando confirmar o e-mail e fizer o primeiro login (ver
     // promoverCadastroPendente() em auth.js). Um e-mail digitado errado, portanto, nunca vira
     // colaborador. As firestore.rules não deixam nem o Admin criar o usuarios/{uid} de terceiros.
-    try {
-      await setDoc(doc(db, "cadastrosPendentes", cred.user.uid), {
-        nome, cargo, cargaHoraria, email, dataAdmissao, fotoBase64: null,
-        criadoPor: perfil.uid, criadoEm: serverTimestamp()
-      });
-    } catch (erroGravacao) {
-      // Não deixa conta órfã no Auth (bloquearia o e-mail por "já existe uma conta").
-      await deleteUser(cred.user).catch(() => {});
-      throw erroGravacao;
-    }
+    await gravarCadastroPendente(cred.user, { nome, email, cargo, cargaHoraria, dataAdmissao, criadoPor: perfil.uid });
     await sendEmailVerification(cred.user);
     await signOut(authSecundario);
     await registrarLog("novo_colaborador", `Colaborador convidado (${email}) — aguardando confirmação do e-mail`, cred.user.uid, nome);

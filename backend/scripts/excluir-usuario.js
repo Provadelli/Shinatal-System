@@ -42,10 +42,14 @@ async function principal() {
   }
 
   if (uid) {
-    const doc = admin.firestore().collection("usuarios").doc(uid);
-    if ((await doc.get()).exists) {
-      await doc.delete();
-      console.log(`Perfil removido do Firestore: usuarios/${uid}`);
+    // Além do perfil: o cadastro em espera (nome, e-mail, foto — dado pessoal) e a entrada no
+    // diretório de conduta, que também ficariam para trás.
+    for (const colecao of ["usuarios", "cadastrosPendentes", "diretorioPublico"]) {
+      const doc = admin.firestore().collection(colecao).doc(uid);
+      if ((await doc.get()).exists) {
+        await doc.delete();
+        console.log(`Removido do Firestore: ${colecao}/${uid}`);
+      }
     }
   }
 

@@ -187,8 +187,12 @@
 
   // Redirecionado aqui por exigirAutenticacao() (auth.js) por causa de uma sessão com e-mail
   // ainda não confirmado — mesma mensagem já usada em fazerLogin().
-  if (new URLSearchParams(location.search).get("motivo") === "nao-verificado") {
+  const motivoRedirect = new URLSearchParams(location.search).get("motivo");
+  if (motivoRedirect === "nao-verificado") {
     mostrarToast(traduzirErroAuth({ code: "shinatal/email-nao-verificado" }), "erro");
+    history.replaceState(null, "", "/login");
+  } else if (motivoRedirect === "ativacao-falhou") {
+    mostrarToast(traduzirErroAuth({ code: "shinatal/ativacao-falhou" }), "erro");
     history.replaceState(null, "", "/login");
   }
 
