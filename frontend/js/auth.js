@@ -7,7 +7,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /** Painel de destino de cada papel após o login. */
 export const PAGINA_POR_ROLE = {
@@ -23,6 +23,63 @@ export async function obterPerfil(uid) {
   const snap = await getDoc(doc(db, "usuarios", uid));
   if (!snap.exists()) return null;
   return { uid, ...snap.data() };
+}
+
+/**
+ * Transforma o cadastro em espera (`cadastrosPendentes/{uid}`) no perfil real (`usuarios/{uid}`).
+ * Só roda com o e-mail JÁ confirmado (as firestore.rules recusam o create caso contrário) — é isso
+ * que impede um cadastro com e-mail inexistente de aparecer como colaborador no painel: sem clicar
+ * no link do e-mail, esta função nunca é alcançada com sucesso.
+ * Devolve o perfil criado, ou `null` se não há cadastro pendente para este usuário.
+ */
+async function promoverCadastroPendente(user) {
+  const refPendente = doc(db, "cadastrosPendentes", user.uid);
+  const snap = await getDoc(refPendente);
+  if (!snap.exists()) return null;
+
+  const p = snap.data();
+  try {
+    await setDoc(doc(db, "usuarios", user.uid), {
+      nome: p.nome,
+      email: p.email,
+      cargo: p.cargo,
+      cargaHoraria: p.cargaHoraria,
+      fotoBase64: p.fotoBase64 ?? null,
+      role: "colaborador",
+      status: "ativo",
+      motivoPerdaIntegral: null,
+      dataAdmissao: p.dataAdmissao,
+      dataDesligamento: null,
+      // criadoPor só existe quando um Admin/Presidente cadastrou a pessoa pelo painel.
+      ...(p.criadoPor ? { criadoPor: p.criadoPor } : {}),
+      criadoEm: serverTimestamp()
+    });
+  } catch (erro) {
+    // Duas abas/logins simultâneos: a outra já promoveu — o perfil existe, basta usá-lo.
+    const existente = await obterPerfil(user.uid).catch(() => null);
+    if (existente) return existente;
+    throw erro;
+  }
+
+  try {
+    await deleteDoc(refPendente);
+  } catch {
+    // Sobra inofensiva (nada lê cadastrosPendentes) — a limpeza periódica remove.
+  }
+  return obterPerfil(user.uid);
+}
+
+/** Perfil do usuário autenticado; se ainda não existir, tenta promover o cadastro pendente dele. */
+async function obterOuCriarPerfil(user) {
+  const existente = await obterPerfil(user.uid);
+  if (existente) return existente;
+  try {
+    return await promoverCadastroPendente(user);
+  } catch (erro) {
+    // Sem perfil e sem conseguir promover: quem chama trata como "sem cadastro" (desloga).
+    console.error("[Shinatal] Falha ao ativar o cadastro pendente:", erro);
+    return null;
+  }
 }
 
 /**
@@ -47,7 +104,7 @@ export async function fazerLogin(email, senha) {
     throw erro;
   }
 
-  const perfil = await obterPerfil(cred.user.uid);
+  const perfil = await obterOuCriarPerfil(cred.user);
   if (!perfil) {
     await signOut(auth);
     throw new Error("Este login não possui um cadastro de perfil associado. Contate o DP/RH.");
@@ -91,7 +148,7 @@ export function exigirAutenticacao(rolesPermitidos = null) {
         window.location.href = "/login?motivo=nao-verificado";
         return;
       }
-      const perfil = await obterPerfil(user.uid);
+      const perfil = await obterOuCriarPerfil(user);
       if (!perfil) {
         await signOut(auth);
         window.location.href = "/login";

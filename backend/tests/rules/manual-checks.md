@@ -46,6 +46,23 @@ importou `db`/`doc`/`getDoc` no escopo do módulo — use `import()` dinâmico s
    `mass assignment: create aceita campos extras` e conferir na Emulator UI que o campo extra foi
    persistido. Decidir com o time se vale adicionar `hasOnly([...])` na regra de `usuarios.create`.
 
+5. **Cadastro com e-mail inexistente não vira colaborador** — pelo `cadastro.html`, cadastrar
+   `naoexiste@shinerio.com` (sem "verificar" na Emulator UI). Esperado: na Emulator UI só existe
+   `cadastrosPendentes/{uid}` (nada em `usuarios/`); `gestao.html` (logada como Admin) **não** lista
+   a pessoa, e a soma de pesos do Fundo não muda; o login dela é recusado com "Confirme seu e-mail".
+
+6. **Confirmação promove o cadastro** — no mesmo cenário, marcar o e-mail como verificado na
+   Emulator UI e fazer login. Esperado: `usuarios/{uid}` é criado, o `cadastrosPendentes/{uid}` some
+   e a pessoa passa a aparecer no painel.
+
+7. **Tentativa direta pelo DevTools** — logada com e-mail NÃO verificado, tentar
+   `setDoc(doc(db, "usuarios", auth.currentUser.uid), {...})` (schema completo). Esperado:
+   `permission-denied`. (Coberto também pelo teste automatizado `BUG CORRIGIDO`.)
+
+8. **Convite pelo Admin** — em `/gestao`, "Novo colaborador" com `convidado@shinerio.com`. Esperado:
+   só `cadastrosPendentes/{uid}` (com `criadoPor` = uid do Admin); a pessoa aparece no painel depois
+   de confirmar o e-mail e entrar pela primeira vez.
+
 ## Item fora do escopo desta execução (fazer manualmente quando quiser)
 
 **Headers de segurança em produção** — confirmar que o que está em `firebase.json`/`vercel.json`

@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Scripts administrativos locais do Shinatal (não implantados).",
   "scripts": {
-    "seed": "node seed-usuarios.js"
+    "seed": "node seed-usuarios.js",
+    "limpar-nao-verificados": "node limpar-nao-verificados.js"
   },
   "dependencies": {
     "firebase-admin": "^12.5.0"

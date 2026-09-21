@@ -170,14 +170,57 @@ automaticamente (`TURNSTILE_CONFIGURADO` vira `true`). Sem editar este arquivo, 
 continua funcionando exatamente como antes (sem a proteção).
 
 > **Importante sobre o alcance real desta proteção:** no **cadastro**, o Worker é quem cria a
-> conta (Firebase Auth + perfil no Firestore) — só chama o Firebase depois de validar o
-> Turnstile, então essa é uma barreira de verdade. Já no **login** e na **recuperação de
+> conta (Firebase Auth + cadastro em espera no Firestore, ver seção 10) — só chama o Firebase
+> depois de validar o Turnstile, então essa é uma barreira de verdade. Já no **login** e na **recuperação de
 > senha**, o Worker só verifica o token *antes* do navegador chamar o Firebase Auth
 > diretamente — é uma barreira eficaz contra bots simples, mas não é uma garantia
 > criptográfica, porque esses dois são endpoints públicos do Firebase Auth que continuam
 > alcançáveis diretamente (o plano gratuito Spark não tem Cloud Functions/Blocking Functions
 > para fechar essa brecha no servidor). Ver comentários em `login.html` e
 > `recuperar-senha.html`.
+
+## 10. Cadastro só vira colaborador depois de confirmar o e-mail
+
+Quem se cadastra (`cadastro.html`) ou é convidado por um Admin/Presidente ("Novo colaborador"
+em `/gestao`) **não aparece** no painel, no diretório, no Fundo nem em Contratos até confirmar
+o e-mail. Isso barra cadastros com e-mails `@shinerio.com` inexistentes: quem não recebe o link
+nunca o confirma, então nunca vira colaborador.
+
+```
+cadastro ──> conta no Auth (não verificada) + cadastrosPendentes/{uid}      [nada lê esta coleção]
+clica no link do e-mail ──> 1º login ──> usuarios/{uid} criado a partir do pendente (auth.js)
+```
+
+- A garantia está nas **regras do Firestore** (`backend/firestore.rules`), não só na tela:
+  `usuarios/{uid}` só pode ser criado pelo próprio dono, com `email_verified` e a partir de um
+  `cadastrosPendentes/{uid}`. Nem o Admin cria o `usuarios/{uid}` de outra pessoa.
+- **Convite pelo Admin:** o colaborador convidado aparece no painel só depois de clicar no link,
+  definir a senha em "Esqueci minha senha" e entrar pela primeira vez.
+- **Limpeza de contas falsas:** contas que nunca confirmam continuam existindo no Firebase
+  Authentication (o plano Spark não tem Cloud Functions para apagá-las sozinho). Rode de tempos
+  em tempos, na pasta `backend/scripts` (mesma `service-account.json` do seed):
+
+  ```bash
+  npm run limpar-nao-verificados                       # simulação — nada é alterado
+  npm run limpar-nao-verificados -- --apply            # executa
+  npm run limpar-nao-verificados -- --dias 7 --apply   # prazo de exclusão de 7 dias (padrão: 3)
+  ```
+
+  Contas não verificadas com menos de N dias têm o perfil **movido** para `cadastrosPendentes`;
+  as mais antigas têm a conta e o perfil **excluídos** (se houver faltas/atrasos/advertências/
+  avaliações/contratos ligados ao `uid`, o script só avisa e não exclui). Nunca toca contas
+  verificadas nem perfis de Admin/DP/RH/Presidente.
+
+### Ordem de publicação ao atualizar um projeto que já está no ar
+
+1. `firebase deploy --only firestore:rules`
+2. `cd backend/cloudflare-worker && npx wrangler deploy`
+3. Publicar o front-end (merge/push → GitHub Actions → Firebase Hosting, ou `firebase deploy --only hosting`)
+4. `npm run limpar-nao-verificados` (revise a simulação) e depois com `-- --apply`, para tirar do
+   painel quem já estava cadastrado sem confirmar o e-mail.
+
+Entre os passos 1 e 3 novos cadastros podem falhar por alguns instantes (regras e front/Worker
+ainda em versões diferentes); quem já tem conta verificada não é afetado.
 
 ## Resumo do que é gratuito aqui
 

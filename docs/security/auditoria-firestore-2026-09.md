@@ -120,6 +120,7 @@ testes automatizada, não apenas revisão teórica.
 | Exigência de e-mail institucional (`@shinerio.com`) no autocadastro | Regex resiste a sufixos maliciosos | Suite automatizada | **Passou** |
 | Exigência de e-mail verificado nas coleções operacionais | Segunda barreira além do redirect da UI | Suite automatizada | **Passou** |
 | Mass assignment em `usuarios/{uid}.create` | Só os campos esperados devem ser graváveis | Suite automatizada | **✅ Remediado** — `hasOnly` adicionado em `backend/firestore.rules` |
+| Perfil criado antes da confirmação do e-mail (`usuarios/{uid}`) | Cadastro com e-mail inexistente não pode virar colaborador (painel, diretório, Fundo) | Suite automatizada (`BUG CORRIGIDO` + casos de `usuarios` e `cadastrosPendentes`) | **✅ Remediado** — ver ETAPA 4 |
 | Rate limiting / anti-abuso em cadastro e leituras públicas | Impedir automação/scraping de `cadastro.html` e `estatisticas/publico` | Revisão de configuração (sem Firebase App Check) | **Falhou (severidade baixa — recomendação, ainda em aberto)** |
 | Segredos no repositório (`service-account.json`) | Nenhuma credencial real versionada | `git ls-files` + `git log --all` | **Passou** |
 | Senha padrão para contas privilegiadas (Presidente/Admin/DP/RH) | Nenhuma credencial de conta real versionada em texto puro | `seed-usuarios.js` + `docs/SETUP.md` + `docs/prompt-original.txt` | **Falhou (severidade alta — ainda em aberto, requer ação manual em produção)** |
@@ -177,6 +178,31 @@ testes automatizada, não apenas revisão teórica.
 - **Verificação:** o teste foi invertido para `assertFails` e dois novos testes confirmam que os
   dois fluxos legítimos (schema completo de cada um) continuam funcionando. Suite completa
   reexecutada: **53/53 passaram** após a mudança.
+
+### ✅ [MÉDIA — REMEDIADO] Cadastro com e-mail inexistente virava colaborador antes de confirmar o e-mail
+
+- **Onde:** `backend/firestore.rules` (`usuarios/{uid}.create`), `backend/cloudflare-worker/src/index.js`
+  (`tratarCadastro`), `frontend/cadastro.html` (fallback sem Turnstile) e `frontend/js/gestao.js`
+  ("Novo colaborador").
+- **Evidência original:** os dois fluxos de cadastro gravavam `usuarios/{uid}` logo após criar a
+  conta no Auth, e a regra de `create` só exigia e-mail `@shinerio.com` — não `email_verified`.
+  Como o painel de gestão lê `usuarios` inteira, quem se cadastrava com um `@shinerio.com` que não
+  existe aparecia como colaborador (e entrava na soma de pesos do Fundo e no diretório de conduta)
+  sem nunca confirmar o e-mail. O bloqueio de login por e-mail não verificado existia só no cliente.
+- **Risco:** contas falsas poluindo o painel e distorcendo o rateio do Fundo Shinatal; nenhum acesso
+  a dados (as coleções operacionais já exigiam e-mail verificado).
+- **Remediação aplicada:** o cadastro (autocadastro e convite do Admin) grava em
+  `cadastrosPendentes/{uid}` — coleção que nada no sistema lê. O `usuarios/{uid}` só pode ser criado
+  pelo próprio dono, com `email_verified`, e-mail igual ao da conta e a partir de um cadastro
+  pendente (`promoverCadastroPendente()` em `frontend/js/auth.js`, no primeiro login). Ninguém, nem
+  Admin, cria o `usuarios/{uid}` de terceiros. `usuarios` também passou a exigir e-mail verificado
+  para leitura/edição. O Worker valida o payload no servidor e desfaz a conta se a gravação falhar.
+  Legado: `backend/scripts/limpar-nao-verificados.js` (simulação por padrão) move/exclui os
+  perfis já existentes de contas não verificadas.
+- **Verificação:** o teste `BUG CORRIGIDO` falha contra as regras antigas e passa contra as novas;
+  suite `backend/tests/rules` com 111/112 casos passando (a única falha, `admin NÃO escreve direto em
+  contratos`, é anterior a esta mudança — a regra de `contratos` permite o Admin e o teste ficou
+  desatualizado).
 
 ### [BAIXA] Ausência de Firebase App Check
 

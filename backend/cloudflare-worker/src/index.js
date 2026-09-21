@@ -86,6 +86,26 @@ async function tratarVerificar(request, env, origin, allowedOrigins) {
   return respostaJson({ ok }, ok ? 200 : 400, origin, allowedOrigins);
 }
 
+// Mesmos limites de cadastroPendenteValido() em firestore.rules — validar aqui devolve um erro
+// claro em vez de deixar o Firestore recusar a gravação depois da conta já criada.
+const REGEX_EMAIL_INSTITUCIONAL = /^[a-z0-9._%+-]+@shinerio\.com$/;
+const REGEX_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+const CARGAS_HORARIAS_VALIDAS = [4, 6, 8];
+const TAMANHO_MAX_FOTO = 150000;
+
+function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha }) {
+  if (typeof nome !== "string" || !nome.trim() || nome.length > 120) return false;
+  if (typeof cargo !== "string" || !cargo.trim() || cargo.length > 80) return false;
+  if (!CARGAS_HORARIAS_VALIDAS.includes(Number(cargaHoraria))) return false;
+  if (typeof dataAdmissao !== "string" || !REGEX_DATA_ISO.test(dataAdmissao)) return false;
+  if (dataAdmissao > new Date().toISOString().slice(0, 10)) return false;
+  if (typeof senha !== "string" || senha.length < 6) return false;
+  if (fotoBase64 != null) {
+    if (typeof fotoBase64 !== "string" || !fotoBase64.startsWith("data:image/") || fotoBase64.length > TAMANHO_MAX_FOTO) return false;
+  }
+  return true;
+}
+
 async function tratarCadastro(request, env, origin, allowedOrigins) {
   const corpo = await request.json();
   const { token, nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha } = corpo;
@@ -94,10 +114,10 @@ async function tratarCadastro(request, env, origin, allowedOrigins) {
   if (!turnstileOk) return respostaJson({ ok: false, erro: "turnstile" }, 400, origin, allowedOrigins);
 
   const emailNormalizado = String(email || "").trim().toLowerCase();
-  if (!emailNormalizado.endsWith("@shinerio.com")) {
+  if (!REGEX_EMAIL_INSTITUCIONAL.test(emailNormalizado)) {
     return respostaJson({ ok: false, erro: "auth/invalid-email" }, 400, origin, allowedOrigins);
   }
-  if (!nome || !cargo || !cargaHoraria || !dataAdmissao || !senha) {
+  if (!cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha })) {
     return respostaJson({ ok: false, erro: "auth/internal-error" }, 400, origin, allowedOrigins);
   }
 
@@ -117,17 +137,19 @@ async function tratarCadastro(request, env, origin, allowedOrigins) {
   }
   const { idToken, localId: uid } = dadosSignUp;
 
-  // 2) Grava o perfil em usuarios/{uid} via API REST do Firestore, autenticado com o idToken do
+  // 2) Grava o cadastro EM ESPERA em cadastrosPendentes/{uid} — NÃO em usuarios/{uid}. O perfil
+  //    real (o que aparece no painel, no fundo e no diretório) só é criado pelo próprio
+  //    colaborador no primeiro login, depois de confirmar o e-mail (ver auth.js). Assim, um
+  //    cadastro com e-mail inexistente nunca vira colaborador. Autenticado com o idToken do
   //    usuário recém-criado — passa pelas MESMAS firestore.rules de sempre (hasAll/hasOnly
   //    incluídos), sem nenhum atalho de admin. PATCH sem updateMask substitui o documento
   //    inteiro pelos campos abaixo, equivalente ao setDoc() sem merge que o cliente fazia antes.
   const corpoFirestore = documentoFirestore({
-    nome, email: emailNormalizado, cargo, cargaHoraria: Number(cargaHoraria),
-    fotoBase64: fotoBase64 || null, role: "colaborador", status: "ativo",
-    motivoPerdaIntegral: null, dataAdmissao, dataDesligamento: null, criadoEm: new Date()
+    nome: nome.trim(), email: emailNormalizado, cargo: cargo.trim(), cargaHoraria: Number(cargaHoraria),
+    fotoBase64: fotoBase64 || null, dataAdmissao, criadoEm: new Date()
   });
   const resFirestore = await fetch(
-    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/${uid}`,
+    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/cadastrosPendentes/${uid}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
@@ -135,8 +157,13 @@ async function tratarCadastro(request, env, origin, allowedOrigins) {
     }
   );
   if (!resFirestore.ok) {
-    // Conta já existe no Auth mas sem perfil — mesmo risco que já existia no fluxo antigo
-    // (setDoc podia falhar depois do createUserWithEmailAndPassword ter tido sucesso).
+    // Desfaz a conta recém-criada (best-effort, com o mesmo idToken) — senão ela ficaria no Auth
+    // sem cadastro pendente, e o e-mail bloqueado por EMAIL_EXISTS numa nova tentativa.
+    await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${env.FIREBASE_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken })
+    }).catch(() => {});
     const detalhe = await resFirestore.text();
     return respostaJson({ ok: false, erro: "auth/internal-error", detalhe }, 500, origin, allowedOrigins);
   }

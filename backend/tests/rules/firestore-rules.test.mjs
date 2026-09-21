@@ -76,6 +76,21 @@ async function seedUsuario(uid, role, extra = {}) {
   );
 }
 
+/** Cadastro em espera (cadastrosPendentes) escrito direto, ignorando as regras — o que o Worker/cadastro.html gravam. */
+async function seedPendente(uid, extra = {}) {
+  await semRegras((db) =>
+    setDoc(doc(db, "cadastrosPendentes", uid), {
+      nome: `Colab ${uid}`,
+      email: `${uid}${DOMINIO}`,
+      cargo: "Operações",
+      cargaHoraria: 8,
+      dataAdmissao: "2026-01-01",
+      fotoBase64: null,
+      ...extra
+    })
+  );
+}
+
 // ---------------------------------------------------------------------------
 // usuarios/{uid}
 // ---------------------------------------------------------------------------
@@ -100,97 +115,105 @@ describe("usuarios/{uid}", () => {
     await assertSucceeds(getDoc(doc(db, "usuarios", "colabB")));
   });
 
+  // --- Criação: o perfil só nasce com e-mail CONFIRMADO, a partir de um cadastro pendente --------
+  // (o bug corrigido: cadastro com e-mail inexistente aparecia no painel sem nunca confirmar).
+
+  /** Perfil completo que promoverCadastroPendente() (auth.js) grava — base para variar por teste. */
+  function perfilPromovido(uid, extra = {}) {
+    return {
+      nome: `Colab ${uid}`,
+      email: `${uid}${DOMINIO}`,
+      cargo: "Operações",
+      cargaHoraria: 8,
+      fotoBase64: null,
+      role: "colaborador",
+      status: "ativo",
+      motivoPerdaIntegral: null,
+      dataAdmissao: "2026-01-01",
+      dataDesligamento: null,
+      criadoEm: "placeholder",
+      ...extra
+    };
+  }
+
+  it("BUG CORRIGIDO: e-mail NÃO confirmado não cria usuarios/{uid}, mesmo com cadastro pendente", async () => {
+    await seedPendente("fantasma");
+    const db = ctx("fantasma", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "usuarios", "fantasma"), perfilPromovido("fantasma")));
+  });
+
+  it("e-mail confirmado, mas SEM cadastro pendente, não cria usuarios/{uid} (tem que passar pelo cadastro)", async () => {
+    const db = ctx("colabSemPendente").firestore();
+    await assertFails(setDoc(doc(db, "usuarios", "colabSemPendente"), perfilPromovido("colabSemPendente")));
+  });
+
   it("autocadastro com e-mail fora do domínio institucional falha", async () => {
+    await seedPendente("intruso", { email: "intruso@gmail.com" });
     const db = ctx("intruso", { email: "intruso@gmail.com" }).firestore();
     await assertFails(
-      setDoc(doc(db, "usuarios", "intruso"), {
-        nome: "Intruso",
-        email: "intruso@gmail.com",
-        cargaHoraria: 220,
-        status: "ativo",
-        role: "colaborador"
-      })
+      setDoc(doc(db, "usuarios", "intruso"), perfilPromovido("intruso", { email: "intruso@gmail.com" }))
     );
   });
 
   it("regex de domínio não é enganado por sufixo (attacker@shinerio.com.evil.io)", async () => {
+    await seedPendente("intruso2", { email: "intruso2@shinerio.com.evil.io" });
     const db = ctx("intruso2", { email: "intruso2@shinerio.com.evil.io" }).firestore();
     await assertFails(
-      setDoc(doc(db, "usuarios", "intruso2"), {
-        nome: "Intruso2",
-        email: "intruso2@shinerio.com.evil.io",
-        cargaHoraria: 220,
-        status: "ativo",
-        role: "colaborador"
-      })
+      setDoc(doc(db, "usuarios", "intruso2"), perfilPromovido("intruso2", { email: "intruso2@shinerio.com.evil.io" }))
     );
   });
 
   it("autocadastro tentando nascer como admin falha (só 'colaborador' é permitido)", async () => {
+    await seedPendente("colabC");
     const db = ctx("colabC").firestore();
-    await assertFails(
-      setDoc(doc(db, "usuarios", "colabC"), {
-        nome: "Colab C",
-        email: "colabC@shinerio.com",
-        cargaHoraria: 220,
-        status: "ativo",
-        role: "admin"
-      })
-    );
+    await assertFails(setDoc(doc(db, "usuarios", "colabC"), perfilPromovido("colabC", { role: "admin" })));
   });
 
   it("mass assignment: create NÃO aceita campos extras não previstos pelo app (remediado com hasOnly)", async () => {
+    await seedPendente("colabD");
     const db = ctx("colabD").firestore();
     await assertFails(
-      setDoc(doc(db, "usuarios", "colabD"), {
-        nome: "Colab D",
-        email: "colabD@shinerio.com",
-        cargaHoraria: 220,
-        status: "ativo",
-        role: "colaborador",
-        campoNaoPrevisto: "valor-injetado-pelo-cliente"
-      })
+      setDoc(doc(db, "usuarios", "colabD"), perfilPromovido("colabD", { campoNaoPrevisto: "valor-injetado-pelo-cliente" }))
     );
   });
 
-  it("create com o schema completo legítimo (autocadastro, cadastro.html) ainda funciona", async () => {
+  it("create com o schema completo legítimo (promoção do cadastro pendente, auth.js) funciona", async () => {
+    await seedPendente("colabD2");
     const db = ctx("colabD2").firestore();
-    await assertSucceeds(
-      setDoc(doc(db, "usuarios", "colabD2"), {
-        nome: "Colab D2",
-        email: "colabD2@shinerio.com",
-        cargo: "Operações",
-        cargaHoraria: 8,
-        fotoBase64: null,
-        role: "colaborador",
-        status: "ativo",
-        motivoPerdaIntegral: null,
-        dataAdmissao: "2026-01-01",
-        dataDesligamento: null,
-        criadoEm: "placeholder"
-      })
+    await assertSucceeds(setDoc(doc(db, "usuarios", "colabD2"), perfilPromovido("colabD2")));
+  });
+
+  it("create de perfil de colaborador convidado por Admin (criadoPor igual ao do pendente) funciona", async () => {
+    await seedPendente("colabD3", { criadoPor: "admin1" });
+    const db = ctx("colabD3").firestore();
+    await assertSucceeds(setDoc(doc(db, "usuarios", "colabD3"), perfilPromovido("colabD3", { criadoPor: "admin1" })));
+  });
+
+  it("criadoPor forjado no perfil (diferente do cadastro pendente) falha", async () => {
+    await seedPendente("colabD4");
+    const db = ctx("colabD4").firestore();
+    await assertFails(setDoc(doc(db, "usuarios", "colabD4"), perfilPromovido("colabD4", { criadoPor: "admin1" })));
+  });
+
+  it("e-mail do perfil diferente do e-mail da conta falha", async () => {
+    await seedPendente("colabD5");
+    const db = ctx("colabD5").firestore();
+    await assertFails(
+      setDoc(doc(db, "usuarios", "colabD5"), perfilPromovido("colabD5", { email: "outra.pessoa@shinerio.com" }))
     );
   });
 
-  it("create com o schema completo legítimo (Admin cria colaborador, gestao.js) ainda funciona", async () => {
+  it("Admin NÃO cria usuarios/{uid} de terceiros direto (nem com pendente e e-mail 'confirmado' — ninguém garante isso por ele)", async () => {
     await seedUsuario("admin1", "admin");
+    await seedPendente("colabD6", { criadoPor: "admin1" });
     const db = ctx("admin1").firestore();
-    await assertSucceeds(
-      setDoc(doc(db, "usuarios", "colabD3"), {
-        nome: "Colab D3",
-        cargo: "Operações",
-        cargaHoraria: 8,
-        email: "colabD3@shinerio.com",
-        role: "colaborador",
-        status: "ativo",
-        motivoPerdaIntegral: null,
-        dataAdmissao: "2026-01-01",
-        dataDesligamento: null,
-        fotoBase64: null,
-        criadoPor: "admin1",
-        criadoEm: "placeholder"
-      })
-    );
+    await assertFails(setDoc(doc(db, "usuarios", "colabD6"), perfilPromovido("colabD6", { criadoPor: "admin1" })));
+  });
+
+  it("e-mail não confirmado NÃO lê nem o próprio perfil", async () => {
+    await seedUsuario("colabK", "colaborador");
+    const db = ctx("colabK", { emailVerificado: false }).firestore();
+    await assertFails(getDoc(doc(db, "usuarios", "colabK")));
   });
 
   it("colaborador edita o próprio nome e foto", async () => {
@@ -230,6 +253,152 @@ describe("usuarios/{uid}", () => {
     await seedUsuario("colabJ", "colaborador");
     const db = ctx("admin2", { emailVerificado: false }).firestore();
     await assertFails(deleteDoc(doc(db, "usuarios", "colabJ")));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cadastrosPendentes/{uid} — cadastro em espera, ANTES da confirmação do e-mail
+// ---------------------------------------------------------------------------
+describe("cadastrosPendentes/{uid}", () => {
+  /** Documento que o Worker/cadastro.html gravam (sem role/status — esses só existem no perfil). */
+  function pendente(uid, extra = {}) {
+    return {
+      nome: `Colab ${uid}`,
+      email: `${uid}${DOMINIO}`,
+      cargo: "Operações",
+      cargaHoraria: 8,
+      dataAdmissao: "2026-01-01",
+      fotoBase64: null,
+      criadoEm: "placeholder",
+      ...extra
+    };
+  }
+
+  it("dono com e-mail NÃO confirmado cria o próprio cadastro pendente (é o momento do cadastro)", async () => {
+    const db = ctx("novo1", { emailVerificado: false }).firestore();
+    await assertSucceeds(setDoc(doc(db, "cadastrosPendentes", "novo1"), pendente("novo1")));
+  });
+
+  it("um cadastro pendente NÃO cria colaborador: nada aparece em usuarios/", async () => {
+    const db = ctx("novo2", { emailVerificado: false }).firestore();
+    await assertSucceeds(setDoc(doc(db, "cadastrosPendentes", "novo2"), pendente("novo2")));
+    await semRegras(async (dbAdmin) => {
+      const snap = await getDoc(doc(dbAdmin, "usuarios", "novo2"));
+      assert.equal(snap.exists(), false);
+    });
+  });
+
+  it("BOLA: não cria o cadastro pendente de OUTRO uid", async () => {
+    const db = ctx("novo3", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "outroUid"), pendente("novo3")));
+  });
+
+  it("mass assignment: role/status não são aceitos no cadastro pendente (hasOnly)", async () => {
+    const db = ctx("novo4", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novo4"), pendente("novo4", { role: "admin" })));
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novo4"), pendente("novo4", { status: "ativo" })));
+  });
+
+  it("dono não forja criadoPor (só Admin/Presidente convidando registram criadoPor)", async () => {
+    const db = ctx("novo5", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novo5"), pendente("novo5", { criadoPor: "admin1" })));
+  });
+
+  it("e-mail fora do domínio institucional falha", async () => {
+    const db = ctx("novo6", { email: "novo6@gmail.com", emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novo6"), pendente("novo6", { email: "novo6@gmail.com" })));
+  });
+
+  it("e-mail gravado diferente do e-mail da conta falha", async () => {
+    const db = ctx("novo7", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novo7"), pendente("novo7", { email: "outra.pessoa@shinerio.com" })));
+  });
+
+  it("carga horária fora de 4/6/8 falha", async () => {
+    const db = ctx("novo8", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novo8"), pendente("novo8", { cargaHoraria: 220 })));
+  });
+
+  it("foto acima do limite de tamanho falha", async () => {
+    const db = ctx("novo9", { emailVerificado: false }).firestore();
+    await assertFails(
+      setDoc(doc(db, "cadastrosPendentes", "novo9"), pendente("novo9", { fotoBase64: "x".repeat(150001) }))
+    );
+  });
+
+  it("colaborador comum NÃO cria cadastro pendente para terceiros", async () => {
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "terceiro"), pendente("terceiro", { criadoPor: "colabA" })));
+  });
+
+  it("DP/RH NÃO convidam colaboradores (só Admin/Presidente)", async () => {
+    await seedUsuario("dp1", "dp");
+    const db = ctx("dp1").firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "terceiro"), pendente("terceiro", { criadoPor: "dp1" })));
+  });
+
+  it("Admin verificado cria o cadastro pendente de um convidado, registrando criadoPor", async () => {
+    await seedUsuario("admin1", "admin");
+    const db = ctx("admin1").firestore();
+    await assertSucceeds(setDoc(doc(db, "cadastrosPendentes", "convidado1"), pendente("convidado1", { criadoPor: "admin1" })));
+  });
+
+  it("Admin NÃO registra criadoPor de outra pessoa (spoofing de autoria)", async () => {
+    await seedUsuario("admin1", "admin");
+    const db = ctx("admin1").firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "convidado2"), pendente("convidado2", { criadoPor: "pres1" })));
+  });
+
+  it("Admin com e-mail NÃO confirmado não convida ninguém", async () => {
+    await seedUsuario("admin1", "admin");
+    const db = ctx("admin1", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "convidado3"), pendente("convidado3", { criadoPor: "admin1" })));
+  });
+
+  it("dono verificado lê o próprio cadastro pendente (é assim que o 1º login o promove)", async () => {
+    await seedPendente("colabL");
+    const db = ctx("colabL").firestore();
+    await assertSucceeds(getDoc(doc(db, "cadastrosPendentes", "colabL")));
+  });
+
+  it("dono com e-mail NÃO confirmado não lê o cadastro pendente", async () => {
+    await seedPendente("colabM");
+    const db = ctx("colabM", { emailVerificado: false }).firestore();
+    await assertFails(getDoc(doc(db, "cadastrosPendentes", "colabM")));
+  });
+
+  it("BOLA: outro colaborador NÃO lê o cadastro pendente alheio", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedPendente("colabN");
+    const db = ctx("colabA").firestore();
+    await assertFails(getDoc(doc(db, "cadastrosPendentes", "colabN")));
+  });
+
+  it("Admin lê o cadastro pendente de qualquer pessoa", async () => {
+    await seedUsuario("admin1", "admin");
+    await seedPendente("colabO");
+    const db = ctx("admin1").firestore();
+    await assertSucceeds(getDoc(doc(db, "cadastrosPendentes", "colabO")));
+  });
+
+  it("cadastro pendente é imutável (allow update: if false)", async () => {
+    await seedPendente("colabP");
+    const db = ctx("colabP").firestore();
+    await assertFails(updateDoc(doc(db, "cadastrosPendentes", "colabP"), { nome: "Outro Nome" }));
+  });
+
+  it("dono verificado apaga o próprio cadastro pendente (limpeza após a promoção)", async () => {
+    await seedPendente("colabQ");
+    const db = ctx("colabQ").firestore();
+    await assertSucceeds(deleteDoc(doc(db, "cadastrosPendentes", "colabQ")));
+  });
+
+  it("BOLA: colaborador NÃO apaga o cadastro pendente de outro", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedPendente("colabR");
+    const db = ctx("colabA").firestore();
+    await assertFails(deleteDoc(doc(db, "cadastrosPendentes", "colabR")));
   });
 });
 

@@ -1,7 +1,7 @@
 // Shinatal — painel de gestão (DP / RH / Admin).
 import { db, firebaseConfig } from "./firebase-init.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp,
   onSnapshot, query, orderBy, limit, where, writeBatch
@@ -1102,21 +1102,26 @@ document.getElementById("form-novo-colaborador").addEventListener("submit", asyn
     // confirma o e-mail (link enviado abaixo) e depois define a própria senha em "Esqueci minha
     // senha", exatamente como no autocadastro — sem senha padrão compartilhada.
     const cred = await createUserWithEmailAndPassword(authSecundario, email, gerarSenhaTemporaria());
-    await setDoc(doc(db, "usuarios", cred.user.uid), {
-      nome, cargo, cargaHoraria, email, role: "colaborador", status: "ativo",
-      motivoPerdaIntegral: null, dataAdmissao, dataDesligamento: null, fotoBase64: null,
-      criadoPor: perfil.uid, criadoEm: serverTimestamp()
-    });
+    // Cadastro EM ESPERA (cadastrosPendentes), não usuarios/{uid}: a pessoa só entra no painel,
+    // no diretório e no rateio do fundo quando confirmar o e-mail e fizer o primeiro login (ver
+    // promoverCadastroPendente() em auth.js). Um e-mail digitado errado, portanto, nunca vira
+    // colaborador. As firestore.rules não deixam nem o Admin criar o usuarios/{uid} de terceiros.
+    try {
+      await setDoc(doc(db, "cadastrosPendentes", cred.user.uid), {
+        nome, cargo, cargaHoraria, email, dataAdmissao, fotoBase64: null,
+        criadoPor: perfil.uid, criadoEm: serverTimestamp()
+      });
+    } catch (erroGravacao) {
+      // Não deixa conta órfã no Auth (bloquearia o e-mail por "já existe uma conta").
+      await deleteUser(cred.user).catch(() => {});
+      throw erroGravacao;
+    }
     await sendEmailVerification(cred.user);
     await signOut(authSecundario);
-    await sincronizarDiretorio({ uid: cred.user.uid, nome, cargo, role: "colaborador" });
-    await registrarLog("novo_colaborador", `Colaborador criado (${email})`, cred.user.uid, nome);
-    mostrarToast(`Colaborador ${nome} criado. Enviamos um e-mail de confirmação — ele(a) deve clicar no link e depois usar "Esqueci minha senha" para definir o acesso.`, "sucesso");
+    await registrarLog("novo_colaborador", `Colaborador convidado (${email}) — aguardando confirmação do e-mail`, cred.user.uid, nome);
+    mostrarToast(`Cadastro de ${nome} criado. Enviamos um e-mail de confirmação — ele(a) aparece no painel depois de clicar no link, usar "Esqueci minha senha" para definir a senha e entrar pela primeira vez.`, "sucesso");
     fecharModal("modal-novo-colaborador");
     e.target.reset();
-    await carregarTudo();
-    await recalcularEPublicarFundo(); // novo colaborador entra no rateio do fundo
-    renderTudo();
   } catch (erro) {
     mostrarToast(traduzirErroAuth(erro), "erro");
   } finally {

@@ -221,7 +221,7 @@
 <script type="module">
   import { db } from "./js/firebase-init.js";
   import { auth } from "./js/firebase-init.js";
-  import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { createUserWithEmailAndPassword, sendEmailVerification, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { traduzirErroAuth } from "./js/auth.js";
   import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./js/ui-utils.js";
@@ -334,22 +334,26 @@
         const dados = await resposta.json();
         if (!dados.ok) throw { code: dados.erro === "turnstile" ? "shinatal/turnstile-invalido" : dados.erro };
       } else {
-        // Sem Turnstile configurado ainda (setup local) — mesmo fluxo direto de antes.
+        // Sem Turnstile configurado ainda (setup local) — mesmo fluxo direto de antes, mas o
+        // cadastro fica "em espera" (cadastrosPendentes): só vira colaborador de verdade
+        // (usuarios/{uid}) no primeiro login, depois de confirmar o e-mail — ver auth.js.
         const cred = await createUserWithEmailAndPassword(auth, email, senha);
-        await setDoc(doc(db, "usuarios", cred.user.uid), {
-          nome, email, cargo, cargaHoraria,
-          fotoBase64: fotoBase64 || null,
-          role: "colaborador",
-          status: "ativo",
-          motivoPerdaIntegral: null,
-          dataAdmissao,
-          dataDesligamento: null,
-          criadoEm: serverTimestamp()
-        });
+        try {
+          await setDoc(doc(db, "cadastrosPendentes", cred.user.uid), {
+            nome, email, cargo, cargaHoraria,
+            fotoBase64: fotoBase64 || null,
+            dataAdmissao,
+            criadoEm: serverTimestamp()
+          });
+        } catch (erroGravacao) {
+          // Não deixa conta órfã no Auth (bloquearia o e-mail por "já existe uma conta").
+          await deleteUser(cred.user).catch(() => {});
+          throw erroGravacao;
+        }
         await sendEmailVerification(cred.user);
         await signOut(auth);
       }
-      mostrarToast("Cadastro criado! Verifique seu e-mail para confirmar a conta antes de entrar.", "sucesso");
+      mostrarToast("Cadastro criado! Confirme seu e-mail pelo link que enviamos e depois entre para ativar seu acesso.", "sucesso");
       setTimeout(() => (window.location.href = "/login"), 1500);
     } catch (erro) {
       mostrarErro(

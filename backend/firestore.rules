@@ -56,35 +56,65 @@ service cloud.firestore {
       return estaLogado() && request.auth.token.email.matches('.*@shinerio[.]com$');
     }
 
-    // E-mail confirmado (link de verificação clicado). Não é exigido para criar/ler o próprio
-    // perfil (usuarios/{uid}) porque o perfil nasce ANTES da confirmação — é exigido nas
-    // coleções operacionais, como segunda barreira caso alguém contorne a tela de login.
+    // E-mail confirmado (link de verificação clicado). É o que separa "conta que existe no Auth"
+    // de "colaborador que existe no sistema": usuarios/{uid} só pode ser criado, lido ou editado
+    // com o e-mail confirmado (ver seção abaixo) — quem se cadastra com um e-mail inexistente
+    // nunca clica no link, então nunca vira um perfil (não aparece em painel, diretório, fundo).
     function emailVerificado() {
       return estaLogado() && request.auth.token.email_verified == true;
     }
 
+    // Dados do cadastro em espera (cadastrosPendentes/{uid}) — a fonte do perfil que será criado
+    // quando o e-mail for confirmado.
+    function cadastroPendente(uid) {
+      return get(/databases/$(database)/documents/cadastrosPendentes/$(uid)).data;
+    }
+
+    // Schema de cadastrosPendentes/{uid}: mesmos campos que o perfil terá, sem role/status (esses
+    // só são atribuídos na promoção para usuarios/{uid}, e sempre como 'colaborador'/'ativo').
+    function cadastroPendenteValido() {
+      return request.resource.data.keys().hasAll(['nome', 'email', 'cargo', 'cargaHoraria', 'dataAdmissao'])
+        && request.resource.data.keys().hasOnly([
+             'nome', 'email', 'cargo', 'cargaHoraria', 'dataAdmissao', 'fotoBase64', 'criadoEm', 'criadoPor'
+           ])
+        && request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 120
+        && request.resource.data.cargo is string && request.resource.data.cargo.size() > 0 && request.resource.data.cargo.size() <= 80
+        && request.resource.data.cargaHoraria in [4, 6, 8]
+        && request.resource.data.dataAdmissao is string && request.resource.data.dataAdmissao.size() == 10
+        && (request.resource.data.get('fotoBase64', null) == null
+            || (request.resource.data.fotoBase64 is string && request.resource.data.fotoBase64.size() <= 150000));
+    }
+
     // -------------------------------------------------------------
     // usuarios/{uid} — perfil de cada colaborador (nunca contém senha)
+    //
+    // Invariante: este documento só existe para e-mails JÁ CONFIRMADOS. O cadastro (autocadastro
+    // ou "Novo colaborador" do Admin) grava primeiro em cadastrosPendentes/{uid}; o próprio
+    // colaborador cria o usuarios/{uid} no primeiro login, depois de clicar no link do e-mail
+    // (ver promoverCadastroPendente() em auth.js). Como as regras não enxergam o estado de
+    // verificação de OUTRA conta, ninguém (nem Admin) cria o usuarios/{uid} de terceiros.
     // -------------------------------------------------------------
     match /usuarios/{uid} {
-      allow read: if estaLogado() && (request.auth.uid == uid || ehDpRhAdmin());
+      allow read: if emailVerificado() && (request.auth.uid == uid || ehDpRhAdmin());
 
-      // Autocadastro (cadastro.html) OU criação por Admin/Presidente (via app Firebase
-      // secundário): em ambos os casos o novo registro só pode nascer como 'colaborador', e
-      // quem está autenticado no momento da escrita precisa ter e-mail @shinerio.com —
-      // restrição de domínio aplicada no token do servidor, não só no formulário.
-      // hasOnly() fecha o schema aos campos que os dois fluxos realmente gravam (cadastro.html
-      // e o bloco "novo colaborador" de gestao.js) — sem isso, o SDK client aceitava qualquer
-      // campo extra no create (mass assignment), mesmo que a UI nunca ofereça essa opção.
-      allow create: if emailInstitucional()
+      // O novo registro só pode nascer como 'colaborador', com e-mail @shinerio.com CONFIRMADO
+      // (restrição aplicada no token do servidor, não só no formulário), igual ao e-mail da
+      // conta e vindo de um cadastro pendente (o mesmo criadoPor, quando houver).
+      // hasOnly() fecha o schema aos campos que o fluxo realmente grava (promoverCadastroPendente
+      // em auth.js) — sem isso, o SDK client aceitava qualquer campo extra no create (mass
+      // assignment), mesmo que a UI nunca ofereça essa opção.
+      allow create: if emailVerificado() && emailInstitucional()
+        && request.auth.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && exists(/databases/$(database)/documents/cadastrosPendentes/$(uid))
+        && request.resource.data.get('criadoPor', null) == cadastroPendente(uid).get('criadoPor', null)
         && request.resource.data.role == 'colaborador'
         && request.resource.data.keys().hasAll(['nome', 'email', 'cargaHoraria', 'status'])
         && request.resource.data.keys().hasOnly([
              'nome', 'email', 'cargo', 'cargaHoraria', 'status', 'role',
              'fotoBase64', 'motivoPerdaIntegral', 'dataAdmissao', 'dataDesligamento',
              'criadoEm', 'criadoPor'
-           ])
-        && (request.auth.uid == uid || ehAdminOuPresidente());
+           ]);
 
       // O próprio usuário só edita nome/foto. Só Admin/Presidente editam o perfil completo de
       // outros colaboradores — e ninguém, nem Admin, consegue se autopromover a 'presidente'
@@ -92,7 +122,7 @@ service cloud.firestore {
       // via scripts/seed-usuarios.js). RH tem uma exceção estreita: pode gravar direto (sem
       // aprovação do Presidente) só os 3 campos de "Alterar status do colaborador"
       // (desligamento/afastamento) — nada além disso, dado interno de RH.
-      allow update: if estaLogado() && (
+      allow update: if emailVerificado() && (
         (request.auth.uid == uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64'])) ||
         (ehAdminOuPresidente() &&
@@ -102,6 +132,31 @@ service cloud.firestore {
       );
 
       allow delete: if emailVerificado() && ehAdminOuPresidente();
+    }
+
+    // -------------------------------------------------------------
+    // cadastrosPendentes/{uid} — área de espera do cadastro, ANTES da confirmação do e-mail.
+    // Nada no painel/fundo/diretório/contratos lê esta coleção — é por isso que um cadastro com
+    // e-mail inexistente nunca aparece como colaborador. Dois jeitos de nascer:
+    //  (a) autocadastro (Worker/cadastro.html): o dono, ainda com e-mail NÃO confirmado, grava o
+    //      próprio doc logo após criar a conta;
+    //  (b) "Novo colaborador" do painel: Admin/Presidente (verificados) gravam em nome da pessoa
+    //      convidada, registrando criadoPor.
+    // Depois do link do e-mail, o dono lê este doc e cria o usuarios/{uid} (ver regras acima).
+    // -------------------------------------------------------------
+    match /cadastrosPendentes/{uid} {
+      allow create: if cadastroPendenteValido()
+        && request.resource.data.email.matches('.*@shinerio[.]com$')
+        && (
+          (request.auth.uid == uid && emailInstitucional()
+            && request.resource.data.email == request.auth.token.email
+            && !('criadoPor' in request.resource.data))
+          ||
+          (emailVerificado() && ehAdminOuPresidente()
+            && request.resource.data.criadoPor == request.auth.uid)
+        );
+      allow read, delete: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente());
+      allow update: if false;
     }
 
     // -------------------------------------------------------------
