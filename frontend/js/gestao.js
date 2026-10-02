@@ -276,7 +276,9 @@ function renderContratosResumo() {
 function popularSelects() {
   const opcoes = state.usuarios
     .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""))
-    .map((u) => `<option value="${u.uid}">${u.nome} — ${u.cargo || ""}</option>`).join("");
+    // escaparHTML: `nome` é editável pelo próprio colaborador (perfil) — sem escape aqui, um nome
+    // com HTML virava XSS armazenado executando na sessão de todo gestor que abrisse o painel.
+    .map((u) => `<option value="${escaparHTML(u.uid)}">${escaparHTML(u.nome)} — ${escaparHTML(u.cargo || "")}</option>`).join("");
   document.getElementById("acao-uid").innerHTML = `<option value="">Selecione...</option>${opcoes}`;
   document.getElementById("sim-colaborador").innerHTML = `<option value="">Selecione um colaborador...</option>${opcoes}`;
 }
@@ -350,7 +352,7 @@ document.getElementById("acao-justificada").addEventListener("change", (e) => {
 function popularContratosAtivos(uid) {
   const ativos = state.contratos.filter((c) => c.uid === uid && c.status === "ativo");
   document.getElementById("acao-contrato").innerHTML = ativos.length
-    ? ativos.map((c) => `<option value="${c.id}">Ativado em ${c.dataAtivacao}</option>`).join("")
+    ? ativos.map((c) => `<option value="${escaparHTML(c.id)}">Ativado em ${escaparHTML(c.dataAtivacao)}</option>`).join("")
     : `<option value="">Nenhum contrato ativo</option>`;
 }
 
@@ -497,7 +499,7 @@ function renderLancamentosExistentesAcao() {
   }
   lista.innerHTML = registros.map((r) => `
     <div class="flex items-center justify-between gap-2 bg-surface-container rounded-lg px-3 py-2">
-      <span class="font-body text-label-sm text-on-surface">${descreverLancamentoAcao(tipo, r)}</span>
+      <span class="font-body text-label-sm text-on-surface">${escaparHTML(descreverLancamentoAcao(tipo, r))}</span>
       ${podeExcluir ? `<button type="button" data-excluir-lancamento-acao data-tipo="${tipo}" data-id="${r.id}" data-uid="${uid}" title="Excluir (lançado por engano)" aria-label="Excluir lançamento" class="text-christmas-red hover:opacity-70 transition-opacity p-1 shrink-0">
         <span class="material-symbols-outlined text-lg">delete</span>
       </button>` : ""}
@@ -943,7 +945,8 @@ document.getElementById("form-editar-colaborador").addEventListener("submit", as
   const dataAdmissao = document.getElementById("ec-admissao").value;
 
   try {
-    await updateDoc(doc(db, "usuarios", uid), { nome, cargo, cargaHoraria, dataAdmissao });
+    // `|| null`: campo de data vazio chega como "", que as firestore.rules recusam (data inválida).
+    await updateDoc(doc(db, "usuarios", uid), { nome, cargo, cargaHoraria, dataAdmissao: dataAdmissao || null });
     await registrarLog("edicao_colaborador", `Dados de cadastro atualizados`, uid, nome);
     // Este form não muda o papel — reaproveita o que já está carregado, sem esperar carregarTudo().
     const role = state.usuarios.find((u) => u.uid === uid)?.role || "colaborador";

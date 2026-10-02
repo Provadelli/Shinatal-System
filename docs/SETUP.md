@@ -227,6 +227,14 @@ cadastro falharia deixando uma conta órfã no Auth (bloqueando o e-mail). Já c
 antigas, o cadastro falha *limpo* (o Worker desfaz a conta) por alguns instantes, e o front novo
 funciona com as regras antigas. Quem já tem conta verificada não é afetado em nenhum passo.
 
+**Revisão de blindagem (schema fechado, vínculo ativo, voto + contagem):** vale a mesma ordem, e os
+passos 2 e 3 devem ser feitos em seguida um do outro — o front e as regras desta revisão só
+funcionam por completo juntos. Com front novo + regras antigas, a única coisa que falha (em
+silêncio, só no console) é a sincronização do diretório da aba Conduta; com front antigo + regras
+novas, falhariam essa sincronização **e** todo voto de conduta. Depois de publicar as regras, abra
+`/gestao` uma vez com o Admin ou o Presidente: isso regrava o `diretorioPublico` de todos no
+formato novo (só o primeiro nome), removendo os nomes completos que estavam lá.
+
 ## Resumo do que é gratuito aqui
 
 | Recurso                              | Uso no Shinatal                                | Custo   |

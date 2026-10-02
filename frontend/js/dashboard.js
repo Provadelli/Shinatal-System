@@ -183,7 +183,7 @@ function renderModalConduta() {
     ${colegas.map((u) => `
       <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
         <div>
-          <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
+          <p class="text-on-surface font-medium">${escaparHTML(u.primeiroNome || (u.nome || "").split(" ")[0]) || "—"}</p>
           <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
         </div>
         <select data-votar-conduta="${u.uid}" class="input-shinatal !pl-3 !py-1.5 w-40">

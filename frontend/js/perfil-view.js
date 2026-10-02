@@ -94,7 +94,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         <ul class="space-y-1">
           ${atrasosOrdenados.map((a) => `
             <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-              <span>${formatarMesAno(a.mesAno)} — ${a.quantidadeAtrasos ?? "?"} atraso(s)</span>
+              <span>${escaparHTML(formatarMesAno(a.mesAno))} — ${escaparHTML(a.quantidadeAtrasos ?? "?")} atraso(s)</span>
               ${botaoExcluir("atraso", a.id, tiposExcluiveis)}
             </li>`).join("")}
         </ul>
@@ -116,7 +116,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         <p class="font-body font-semibold text-on-surface mb-1">Avaliação de desempenho (${anoExercicio})</p>
         ${avaliacaoDoAno ? `
         <div class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-          <span>${ROTULOS_CONCEITO[avaliacaoDoAno.conceito] || avaliacaoDoAno.conceito}${avaliacaoDoAno.data ? " em " + formatarData(avaliacaoDoAno.data) : ""}</span>
+          <span>${escaparHTML(ROTULOS_CONCEITO[avaliacaoDoAno.conceito] || avaliacaoDoAno.conceito)}${avaliacaoDoAno.data ? " em " + formatarData(avaliacaoDoAno.data) : ""}</span>
           ${botaoExcluir("avaliacao", avaliacaoDoAno.id, tiposExcluiveis)}
         </div>` : `<p class="font-body text-label-sm text-on-surface-variant">Ainda não avaliado(a) este ano.</p>`}
       </div>

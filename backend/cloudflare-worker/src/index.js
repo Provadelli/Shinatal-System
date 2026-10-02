@@ -94,6 +94,8 @@ const REGEX_EMAIL_INSTITUCIONAL = /^[^\s@]+@shinerio\.com$/;
 const REGEX_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 const CARGAS_HORARIAS_VALIDAS = [4, 6, 8];
 const TAMANHO_MAX_FOTO = 150000;
+// Mesmo formato de fotoValida() nas rules: imagem rasterizada em base64, nunca SVG nem URL externa.
+const REGEX_FOTO = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 
 function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha }) {
   if (typeof nome !== "string" || !nome.trim() || nome.length > 120) return false;
@@ -103,7 +105,7 @@ function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, s
   if (dataAdmissao > new Date().toISOString().slice(0, 10)) return false;
   if (typeof senha !== "string" || senha.length < 6) return false;
   if (fotoBase64 != null) {
-    if (typeof fotoBase64 !== "string" || !fotoBase64.startsWith("data:image/") || fotoBase64.length > TAMANHO_MAX_FOTO) return false;
+    if (typeof fotoBase64 !== "string" || !REGEX_FOTO.test(fotoBase64) || fotoBase64.length > TAMANHO_MAX_FOTO) return false;
   }
   return true;
 }

@@ -11,7 +11,8 @@ import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/fir
  */
 async function criarSolicitacao(db, { tipo, descricao, alvoUid = null, alvoNome = null, dadosAcao, operador }) {
   await addDoc(collection(db, "solicitacoes"), {
-    tipo, descricao, alvoUid, alvoNome, dadosAcao,
+    // 500 = limite de `descricao` nas firestore.rules (a descrição embute texto livre do motivo).
+    tipo, descricao: descricao.slice(0, 500), alvoUid, alvoNome, dadosAcao,
     status: "pendente",
     solicitadoPorUid: operador.uid,
     solicitadoPorNome: operador.nome || operador.email,

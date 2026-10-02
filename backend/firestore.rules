@@ -4,6 +4,12 @@ rules_version = '2';
 // Estas regras são a verdadeira camada de segurança do sistema: o cliente (navegador)
 // nunca decide sozinho o que pode ler/escrever, o Firestore recusa qualquer operação que
 // fuja destas regras, mesmo que alguém manipule o JavaScript da página ou a aba Network.
+//
+// Princípio desta revisão: não basta checar QUEM escreve — é preciso checar O QUE é escrito.
+// Antes, a maioria das coleções operacionais só validava o papel, aceitando qualquer campo com
+// qualquer valor (mass assignment, campo forjado, valor absurdo). Agora cada escrita tem schema
+// fechado (hasAll/hasOnly), tipo, faixa e enum, no mesmo estilo que cadastroPendenteValido() já
+// usava.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,13 +41,41 @@ service cloud.firestore {
     // não é mais a Seção 2 do regulamento, não passa pela fila do Presidente).
     function podeGerenciarContratoColaborador() { return papel() in ['rh', 'admin', 'presidente']; }
 
+    // -------------------------------------------------------------
+    // Vínculo ativo — offboarding como controle de ACESSO, não só como dado.
+    //
+    // Antes, `status`/`motivoPerdaIntegral` só eram lidos por calculo-shinatal.js para decidir
+    // elegibilidade ao prêmio; NENHUMA regra os consultava. Resultado: quem era demitido,
+    // abandonava o emprego ou cometia fraude continuava logando e operando o sistema
+    // normalmente — inclusive um gestor. Agora toda escrita operacional exige vínculo ativo.
+    //
+    // Os dois campos têm de ser checados juntos porque MAPA_STATUS_COLABORADOR (gestao.js) grava
+    // 'abandono' e 'fraude' APENAS em motivoPerdaIntegral, deixando status como 'ativo'.
+    //
+    // `get('status', 'ativo')` em vez de `.status`: perfis legados/semeados anteriores a esta
+    // revisão podem não ter o campo, e um acesso a campo ausente é erro de avaliação, que
+    // negaria TUDO para aquela conta — inclusive a do Presidente, sem caminho de recuperação
+    // pela interface. Perfis criados pelo fluxo normal sempre têm `status` (ver hasAll no create).
+    // -------------------------------------------------------------
+    function estaAtivo() {
+      return estaLogado()
+        && perfil().get('status', 'ativo') == 'ativo'
+        && perfil().get('motivoPerdaIntegral', null) == null;
+    }
+
     // Avaliação de Conduta (entre colegas) — feature social/anônima, ver seção dedicada mais
     // abaixo. Todo mundo participa (vota e é votado), MENOS o Presidente.
-    function podeParticiparConduta() { return estaLogado() && papel() != 'presidente'; }
+    function podeParticiparConduta() {
+      return estaLogado() && papel() != 'presidente' && estaAtivo();
+    }
     // Checa o papel de um uid arbitrário (não o do requisitante) — usado para garantir que o
     // ALVO de um voto/presença de conduta também não seja o Presidente.
     function ehPresidenteUid(uid) {
       return get(/databases/$(database)/documents/usuarios/$(uid)).data.role == 'presidente';
+    }
+    // Perfil de um uid arbitrário — usado para validar o diretório contra a fonte real.
+    function perfilDe(uid) {
+      return get(/databases/$(database)/documents/usuarios/$(uid)).data;
     }
     // Estado do interruptor global da Avaliação de Conduta (Admin/Presidente). Se o doc nunca
     // foi criado, get() falha e a regra nega por padrão — a função nasce desligada até alguém
@@ -62,6 +96,108 @@ service cloud.firestore {
     // nunca clica no link, então nunca vira um perfil (não aparece em painel, diretório, fundo).
     function emailVerificado() {
       return estaLogado() && request.auth.token.email_verified == true;
+    }
+
+    // Atalho: a combinação exigida em praticamente toda escrita operacional.
+    function operadorValido() {
+      return emailVerificado() && estaAtivo();
+    }
+
+    // Gestor com vínculo ativo — o que toda LEITURA de dado de terceiros exige. Sem o
+    // estaAtivo(), o offboarding só cortava a escrita: um gestor desligado continuava lendo
+    // faltas, advertências, avaliações e contratos de toda a empresa. Ler o PRÓPRIO dado nunca
+    // passa por aqui (cada match mantém o `resource.data.uid == request.auth.uid`).
+    function gestorAtivo() {
+      return ehDpRhAdmin() && estaAtivo();
+    }
+
+    // Lançamento não muda de dono: num update, o `uid` do alvo tem de ser o que já estava
+    // gravado. Sem isso, editar um lançamento servia para transferi-lo a outra pessoa (inclusive
+    // tirar de si mesmo uma falta ou advertência, contornando lancamentoDeTerceiro() no delete).
+    function alvoInalterado() {
+      return resource == null || request.resource.data.uid == resource.data.uid;
+    }
+
+    // -------------------------------------------------------------
+    // Vocabulários fechados. Antes nenhum destes campos tinha enum no servidor, o que permitia
+    // (a) gravar `role: 'superadmin'` e trancar a vítima fora do sistema, já que todo
+    // `papel() in [...]` passaria a falhar; (b) gravar `role`/`tipo`/`conceito` com um payload
+    // de XSS, que o painel ecoava cru no `|| registro.tipo` de descreverLancamentoAcao(); e
+    // (c) inventar status de contrato que o motor de cálculo não sabe interpretar.
+    // -------------------------------------------------------------
+    function papeisValidos() { return ['colaborador', 'dp', 'rh', 'admin', 'presidente']; }
+    function statusColaboradorValidos() { return ['ativo', 'demitido', 'aviso_previo', 'afastado']; }
+    function motivosPerdaValidos() { return ['demitido', 'aviso_previo', 'abandono', 'fraude']; }
+    function tiposAdvertenciaValidos() { return ['verbal', 'escrita', 'suspensao1', 'suspensao2', 'suspensao3']; }
+    function conceitosValidos() { return ['excelente', 'bom', 'regular', 'insatisfatorio']; }
+    function statusContratoValidos() { return ['ativo', 'encerrado']; }
+    function statusContratoEmpresarialValidos() { return ['ativo', 'pausado', 'encerrado']; }
+
+    // Data no formato YYYY-MM-DD. Antes só o tamanho (10 caracteres) era checado, então
+    // "banana1234" passava.
+    function dataIso(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    function dataIsoOuNula(v) {
+      return v == null || dataIso(v);
+    }
+    // Data de admissão: alimenta o peso no Fundo (avos/12 em calculo-shinatal.js) e, no
+    // autocadastro, é a própria pessoa que a declara. Não dá para validar se é VERDADEIRA aqui
+    // — isso é controle de processo, o Admin confere — mas dá para recusar o absurdo: ano fora
+    // de uma janela plausível, mês/dia impossíveis, ou data no futuro.
+    function dataAdmissaoPlausivel(v) {
+      return dataIso(v)
+        && int(v.split('-')[0]) >= request.time.year() - 60
+        && int(v.split('-')[0]) <= request.time.year()
+        && int(v.split('-')[1]) >= 1 && int(v.split('-')[1]) <= 12
+        && int(v.split('-')[2]) >= 1 && int(v.split('-')[2]) <= 31
+        && (int(v.split('-')[0]) < request.time.year()
+            || int(v.split('-')[1]) <= request.time.month());
+    }
+    // Foto de perfil: data URL de imagem rasterizada, nunca SVG.
+    //
+    // Antes só o prefixo `data:image/` era exigido (no Worker) e só o tamanho (nas rules), então
+    // o campo aceitava `data:image/svg+xml` — um documento que carrega script — e também
+    // qualquer `http://...`, virando pixel de rastreamento carregado no painel de todo gestor.
+    // SVG dentro de <img src> não executa script hoje, mas passaria a executar em qualquer
+    // render futuro via CSS background, <object> ou download direto.
+    function fotoValida(v) {
+      return v == null
+        || (v is string
+            && v.matches('^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$')
+            && v.size() <= 150000);
+    }
+
+    // Campos permitidos num perfil (usados tanto no create quanto no update).
+    function camposPerfil() {
+      return ['nome', 'email', 'cargo', 'cargaHoraria', 'status', 'role',
+              'fotoBase64', 'motivoPerdaIntegral', 'dataAdmissao', 'dataDesligamento',
+              'criadoEm', 'criadoPor'];
+    }
+
+    // Valores de perfil coerentes — aplicado a QUALQUER escrita em usuarios/{uid}, inclusive a
+    // de Admin/Presidente, que antes não passava por validação nenhuma.
+    //
+    // Tudo é lido com `get(campo, padrão)`, nunca com acesso direto: num documento que não tem o
+    // campo, o acesso direto é ERRO DE AVALIAÇÃO, e um erro aqui negaria a escrita inteira em vez
+    // de reprovar só aquele valor. Isso importa para perfis legados ou semeados antes desta
+    // revisão: sem os `get()`, um perfil sem `dataAdmissao` ficaria impossível de editar, até
+    // para trocar o próprio nome. A obrigatoriedade dos campos essenciais é garantida pelo
+    // hasAll() do create, não aqui.
+    function valoresPerfilValidos() {
+      let d = request.resource.data;
+      return d.get('nome', '') is string && d.get('nome', '').size() > 0 && d.get('nome', '').size() <= 120
+        && d.get('email', '') is string && d.get('email', '').matches('.*@shinerio[.]com$')
+        && d.get('cargo', '') is string && d.get('cargo', '').size() <= 80
+        && d.get('cargaHoraria', 8) in [4, 6, 8]
+        && d.get('status', 'ativo') in statusColaboradorValidos()
+        && d.get('role', 'colaborador') in papeisValidos()
+        && fotoValida(d.get('fotoBase64', null))
+        && (d.get('motivoPerdaIntegral', null) == null
+            || d.get('motivoPerdaIntegral', '') in motivosPerdaValidos())
+        && (d.get('dataAdmissao', null) == null
+            || dataAdmissaoPlausivel(d.get('dataAdmissao', '')))
+        && dataIsoOuNula(d.get('dataDesligamento', null));
     }
 
     // Dados do cadastro em espera (cadastrosPendentes/{uid}) — a fonte do perfil que será criado
@@ -100,9 +236,8 @@ service cloud.firestore {
         && request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 120
         && request.resource.data.cargo is string && request.resource.data.cargo.size() > 0 && request.resource.data.cargo.size() <= 80
         && request.resource.data.cargaHoraria in [4, 6, 8]
-        && request.resource.data.dataAdmissao is string && request.resource.data.dataAdmissao.size() == 10
-        && (request.resource.data.get('fotoBase64', null) == null
-            || (request.resource.data.fotoBase64 is string && request.resource.data.fotoBase64.size() <= 150000));
+        && dataAdmissaoPlausivel(request.resource.data.dataAdmissao)
+        && fotoValida(request.resource.data.get('fotoBase64', null));
     }
 
     // -------------------------------------------------------------
@@ -115,7 +250,10 @@ service cloud.firestore {
     // verificação de OUTRA conta, ninguém (nem Admin) cria o usuarios/{uid} de terceiros.
     // -------------------------------------------------------------
     match /usuarios/{uid} {
-      allow read: if emailVerificado() && (request.auth.uid == uid || ehDpRhAdmin());
+      // Ler o PRÓPRIO perfil não exige vínculo ativo — é como a pessoa vê que foi desligada, e é
+      // o que auth.js precisa para redirecioná-la com uma mensagem clara em vez de um erro de
+      // permissão cru.
+      allow read: if emailVerificado() && (request.auth.uid == uid || gestorAtivo());
 
       // O novo registro só pode nascer como 'colaborador', com e-mail @shinerio.com CONFIRMADO
       // (restrição aplicada no token do servidor, não só no formulário), igual ao e-mail da
@@ -130,11 +268,8 @@ service cloud.firestore {
         && perfilConfereComPendente(uid)
         && request.resource.data.role == 'colaborador'
         && request.resource.data.keys().hasAll(['nome', 'email', 'cargaHoraria', 'status'])
-        && request.resource.data.keys().hasOnly([
-             'nome', 'email', 'cargo', 'cargaHoraria', 'status', 'role',
-             'fotoBase64', 'motivoPerdaIntegral', 'dataAdmissao', 'dataDesligamento',
-             'criadoEm', 'criadoPor'
-           ]);
+        && request.resource.data.keys().hasOnly(camposPerfil())
+        && valoresPerfilValidos();
 
       // O próprio usuário só edita nome/foto. Só Admin/Presidente editam o perfil completo de
       // outros colaboradores — e ninguém, nem Admin, consegue se autopromover a 'presidente'
@@ -142,16 +277,28 @@ service cloud.firestore {
       // via scripts/seed-usuarios.js). RH tem uma exceção estreita: pode gravar direto (sem
       // aprovação do Presidente) só os 3 campos de "Alterar status do colaborador"
       // (desligamento/afastamento) — nada além disso, dado interno de RH.
-      allow update: if emailVerificado() && (
-        (request.auth.uid == uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64'])) ||
-        (ehAdminOuPresidente() &&
-          (request.resource.data.role != 'presidente' || ehPresidente())) ||
-        (papel() == 'rh' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'motivoPerdaIntegral', 'dataDesligamento']))
-      );
+      //
+      // O que mudou nesta revisão, e por quê:
+      //  - hasOnly(camposPerfil()) + valoresPerfilValidos() agora valem para TODAS as branches.
+      //    A branch de Admin/Presidente não tinha restrição de campo nenhuma — gravava qualquer
+      //    chave com qualquer valor em qualquer perfil (o hasOnly contra mass assignment só
+      //    havia sido aplicado ao create).
+      //  - a branch do RH ganhou `request.auth.uid != uid`: sem isso, um RH gravava o PRÓPRIO
+      //    status/motivoPerdaIntegral — podia limpar o próprio impedimento — e, tornando colegas
+      //    inelegíveis, reduzia somaPesos e AUMENTAVA a própria fatia do fundo.
+      allow update: if emailVerificado() && estaAtivo()
+        && request.resource.data.keys().hasOnly(camposPerfil())
+        && valoresPerfilValidos()
+        && (
+          (request.auth.uid == uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64'])) ||
+          (ehAdminOuPresidente() &&
+            (request.resource.data.role != 'presidente' || ehPresidente())) ||
+          (papel() == 'rh' && request.auth.uid != uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'motivoPerdaIntegral', 'dataDesligamento']))
+        );
 
-      allow delete: if emailVerificado() && ehAdminOuPresidente();
+      allow delete: if operadorValido() && ehAdminOuPresidente();
     }
 
     // -------------------------------------------------------------
@@ -175,10 +322,11 @@ service cloud.firestore {
             && request.resource.data.email == request.auth.token.email
             && !('criadoPor' in request.resource.data))
           ||
-          (emailVerificado() && ehAdminOuPresidente()
+          (operadorValido() && ehAdminOuPresidente()
             && request.resource.data.criadoPor == request.auth.uid)
         );
-      allow read, delete: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente());
+      allow read, delete: if emailVerificado()
+        && (request.auth.uid == uid || (ehAdminOuPresidente() && estaAtivo()));
       allow update: if false;
     }
 
@@ -187,10 +335,25 @@ service cloud.firestore {
     // (não é a Seção 2 do regulamento, não alimenta o Fundo Shinatal — só a aba "Contratos"
     // empresariais faz isso) — por isso grava direto, sem passar pela fila de solicitações.
     // -------------------------------------------------------------
+    function contratoColaboradorValido() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['uid', 'dataAtivacao', 'status'])
+        && d.keys().hasOnly(['uid', 'dataAtivacao', 'dataEncerramento', 'valorCredito', 'status', 'registradoPor', 'criadoEm'])
+        && d.uid is string
+        && exists(/databases/$(database)/documents/usuarios/$(d.uid))
+        && dataIso(d.dataAtivacao)
+        && dataIsoOuNula(d.get('dataEncerramento', null))
+        && d.get('valorCredito', 0) is number && d.get('valorCredito', 0) >= 0
+        && d.status in statusContratoValidos();
+    }
+
     match /contratos/{id} {
-      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
-      allow create, update: if emailVerificado() && podeGerenciarContratoColaborador();
-      allow delete: if emailVerificado() && ehAdminOuPresidente();
+      allow read: if emailVerificado() && (gestorAtivo() || resource.data.uid == request.auth.uid);
+      // `registradoPor` NÃO é fixado em request.auth.uid aqui: um `ativar_contrato` aprovado pela
+      // fila é gravado pelo Presidente, mas carrega o uid de quem pediu. Fixá-lo quebraria a fila.
+      allow create, update: if operadorValido() && podeGerenciarContratoColaborador()
+        && contratoColaboradorValido() && alvoInalterado();
+      allow delete: if operadorValido() && ehAdminOuPresidente();
     }
 
     // -------------------------------------------------------------
@@ -198,23 +361,110 @@ service cloud.firestore {
     // a DP/RH/Admin/Presidente (o card "Status de contratos" de todo Painel depende disso);
     // toda ESCRITA (criar, editar prazo/status, entradas/saídas, excluir) só pelo Presidente —
     // é a mesma fila de solicitações da seção acima, mesmo para o Admin.
+    //
+    // Validação nova: os campos de identidade do contrato (nome, CNPJ, valor, início, quadro
+    // inicial) são travados depois da criação. A interface já dizia isso em comentário
+    // (contratos.js), mas nada no servidor impedia sobrescrevê-los — agora o update recusa.
     // -------------------------------------------------------------
+    function camposContratoEmpresarialMutaveis() {
+      return ['dataFimPrevista', 'duracaoMesesPrevista', 'status', 'dataEncerramentoReal',
+              'pausas', 'saidasIniciais', 'entradasContrato', 'pausasQuadroInicial',
+              'pausasEntradas', 'historicoMovimentacoes'];
+    }
+
+    // Schema fechado da criação — exatamente o que contratos.js grava (payloadCriacao).
+    function camposContratoEmpresarial() {
+      return ['nomeEmpresa', 'cnpj', 'valorContrato', 'dataInicio', 'dataFimPrevista',
+              'dataFimPrevistaOriginal', 'duracaoMesesPrevista', 'quantidadeFuncionariosIniciais',
+              'status', 'dataEncerramentoReal', 'pausas', 'saidasIniciais', 'entradasContrato',
+              'pausasQuadroInicial', 'pausasEntradas', 'historicoMovimentacoes',
+              'registradoPor', 'criadoEm'];
+    }
+
     match /contratosEmpresariais/{id} {
-      allow read: if emailVerificado() && ehDpRhAdmin();
-      allow create, update, delete: if emailVerificado() && ehPresidente();
+      allow read: if emailVerificado() && gestorAtivo();
+      allow create: if operadorValido() && ehPresidente()
+        && request.resource.data.keys().hasAll(['nomeEmpresa', 'cnpj', 'dataInicio', 'status', 'quantidadeFuncionariosIniciais'])
+        && request.resource.data.keys().hasOnly(camposContratoEmpresarial())
+        && request.resource.data.nomeEmpresa is string
+        && request.resource.data.nomeEmpresa.size() > 0 && request.resource.data.nomeEmpresa.size() <= 200
+        // 14 caracteres já normalizados (normalizarCNPJ em calculo-shinatal.js): dígitos, ou
+        // letras maiúsculas no CNPJ alfanumérico. Antes só o tamanho era checado.
+        && request.resource.data.cnpj is string && request.resource.data.cnpj.matches('^[0-9A-Z]{14}$')
+        // `valorContrato` é opcional na interface e chega como null quando fica em branco —
+        // `null is number` é falso, então o null precisa ser aceito explicitamente.
+        && (request.resource.data.get('valorContrato', null) == null
+            || (request.resource.data.valorContrato is number && request.resource.data.valorContrato >= 0))
+        && dataIso(request.resource.data.dataInicio)
+        && request.resource.data.quantidadeFuncionariosIniciais is int
+        && request.resource.data.quantidadeFuncionariosIniciais >= 0
+        && request.resource.data.status in statusContratoEmpresarialValidos();
+      allow update: if operadorValido() && ehPresidente()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(camposContratoEmpresarialMutaveis())
+        && request.resource.data.get('status', 'ativo') in statusContratoEmpresarialValidos()
+        && dataIsoOuNula(request.resource.data.get('dataEncerramentoReal', null));
+      allow delete: if operadorValido() && ehPresidente();
     }
 
     // -------------------------------------------------------------
     // faltas/{id} e atrasos/{id} — Seções 7 e 8. DP/Admin/Presidente lançam e também podem
     // apagar um lançamento feito por engano.
+    //
+    // O delete foi SEPARADO do create/update nesta revisão: estando no mesmo grant, sem checar o
+    // alvo, um DP apagava as PRÓPRIAS faltas, atrasos e advertências — que são desconto em
+    // dinheiro (calculo-shinatal.js). Corrigir lançamento de terceiro continua liberado; apagar
+    // o próprio, não. A mesma regra vale para advertências e avaliações.
     // -------------------------------------------------------------
+    function lancamentoDeTerceiro() {
+      return resource.data.uid != request.auth.uid;
+    }
+
+    function faltaValida() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['uid', 'data'])
+        && d.keys().hasOnly(['uid', 'data', 'justificada', 'tipoJustificativa', 'motivo', 'registradoPor', 'criadoEm'])
+        && d.uid is string
+        && exists(/databases/$(database)/documents/usuarios/$(d.uid))
+        && dataIso(d.data)
+        && d.get('justificada', false) is bool
+        && (d.get('tipoJustificativa', null) == null
+            || d.tipoJustificativa in ['ferias', 'licencaPaternidade', 'atestado', 'clt'])
+        && d.get('motivo', '') is string && d.get('motivo', '').size() <= 500
+        && d.get('registradoPor', null) == request.auth.uid;
+    }
+
+    function atrasoValido() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['uid', 'mesAno', 'quantidadeAtrasos'])
+        && d.keys().hasOnly(['uid', 'mesAno', 'quantidadeAtrasos', 'registradoPor', 'criadoEm'])
+        && d.uid is string
+        && exists(/databases/$(database)/documents/usuarios/$(d.uid))
+        && d.mesAno is string && d.mesAno.matches('^[0-9]{4}-[0-9]{2}$')
+        && d.quantidadeAtrasos is int && d.quantidadeAtrasos > 0 && d.quantidadeAtrasos <= 31
+        && d.get('registradoPor', null) == request.auth.uid;
+    }
+
+    function advertenciaValida() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['uid', 'data', 'tipo'])
+        && d.keys().hasOnly(['uid', 'data', 'tipo', 'motivo', 'registradoPor', 'criadoEm'])
+        && d.uid is string
+        && exists(/databases/$(database)/documents/usuarios/$(d.uid))
+        && dataIso(d.data)
+        && d.tipo in tiposAdvertenciaValidos()
+        && d.get('motivo', '') is string && d.get('motivo', '').size() <= 500
+        && d.get('registradoPor', null) == request.auth.uid;
+    }
+
     match /faltas/{id} {
-      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
-      allow create, update, delete: if emailVerificado() && ehDp();
+      allow read: if emailVerificado() && (gestorAtivo() || resource.data.uid == request.auth.uid);
+      allow create, update: if operadorValido() && ehDp() && faltaValida() && alvoInalterado();
+      allow delete: if operadorValido() && ehDp() && lancamentoDeTerceiro();
     }
     match /atrasos/{id} {
-      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
-      allow create, update, delete: if emailVerificado() && ehDp();
+      allow read: if emailVerificado() && (gestorAtivo() || resource.data.uid == request.auth.uid);
+      allow create, update: if operadorValido() && ehDp() && atrasoValido() && alvoInalterado();
+      allow delete: if operadorValido() && ehDp() && lancamentoDeTerceiro();
     }
 
     // -------------------------------------------------------------
@@ -222,20 +472,36 @@ service cloud.firestore {
     // engano. RH não participa mais deste tópico.
     // -------------------------------------------------------------
     match /advertencias/{id} {
-      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
-      allow create, update, delete: if emailVerificado() && ehDp();
+      allow read: if emailVerificado() && (gestorAtivo() || resource.data.uid == request.auth.uid);
+      allow create, update: if operadorValido() && ehDp() && advertenciaValida() && alvoInalterado();
+      allow delete: if operadorValido() && ehDp() && lancamentoDeTerceiro();
     }
 
     // -------------------------------------------------------------
     // avaliacoes/{id} — Seção 11. Criar/editar passa pela fila de solicitações — só o
     // Presidente grava de verdade. Apagar um lançamento já existente (por engano) continua
-    // liberado a quem participa do tópico (DP e RH), sem precisar de aprovação — é uma
-    // correção, não uma decisão de negócio nova.
+    // liberado a quem participa do tópico (DP e RH), mas nunca a própria avaliação — ver
+    // lancamentoDeTerceiro() acima.
     // -------------------------------------------------------------
+    function avaliacaoValida() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['uid', 'ano', 'conceito'])
+        && d.keys().hasOnly(['uid', 'data', 'ano', 'conceito', 'justificativa', 'validadoRH', 'avaliadoPor', 'criadoEm'])
+        && d.uid is string
+        && exists(/databases/$(database)/documents/usuarios/$(d.uid))
+        && dataIsoOuNula(d.get('data', null))
+        && d.ano is int && d.ano >= 2024 && d.ano <= request.time.year() + 1
+        && d.conceito in conceitosValidos()
+        && d.get('justificativa', '') is string && d.get('justificativa', '').size() <= 500
+        && d.get('validadoRH', false) is bool;
+    }
+
     match /avaliacoes/{id} {
-      allow read: if emailVerificado() && (ehDpRhAdmin() || resource.data.uid == request.auth.uid);
-      allow create, update: if emailVerificado() && ehPresidente();
-      allow delete: if emailVerificado() && podeAvaliar();
+      allow read: if emailVerificado() && (gestorAtivo() || resource.data.uid == request.auth.uid);
+      // `avaliadoPor` não é fixado em request.auth.uid: uma avaliação aprovada pela fila é
+      // gravada pelo Presidente, carregando o uid de quem pediu.
+      allow create, update: if operadorValido() && ehPresidente() && avaliacaoValida() && alvoInalterado();
+      allow delete: if operadorValido() && podeAvaliar() && lancamentoDeTerceiro();
     }
 
     // -------------------------------------------------------------
@@ -244,15 +510,87 @@ service cloud.firestore {
     // completa e só ele pode aceitar/rejeitar (mudar de "pendente" para outro status) — o
     // solicitante também pode ler o próprio pedido, para acompanhar o status. Imutável depois
     // de resolvido (nada além do próprio Presidente muda "pendente" -> "aceita"/"rejeitada").
+    //
+    // ESTA ERA A VULNERABILIDADE MAIS GRAVE DO SISTEMA, e é por isso que o payload agora é
+    // validado campo a campo. `dadosAcao` era um objeto livre escrito pelo solicitante e
+    // executado no navegador do PRESIDENTE por aplicarSolicitacao() (gestao.js). Um DP podia
+    // pedir `{tipo:'alterar_status_colaborador', descricao:'Afastamento de João',
+    // dadosAcao:{uid:'<próprio uid>', campos:{role:'presidente'}}}` — a tela de aprovação só
+    // mostrava a `descricao` escolhida pelo atacante, e o clique em "Aceitar" fazia o Presidente
+    // conceder o papel de Presidente ao DP, porque quem gravava era ele. Confiança transitiva:
+    // o servidor confiava no Presidente, o Presidente confiava na tela, e a tela não mostrava
+    // o que seria executado.
+    //
+    // Agora: `tipo` é enum fechado, o alvo do payload tem de ser o alvo exibido, e o conjunto de
+    // campos de cada tipo é restrito ao que aquele tipo legitimamente altera. Em particular,
+    // `alterar_status_colaborador` não consegue mais carregar `role`.
     // -------------------------------------------------------------
+    function tiposSolicitacaoValidos() {
+      return ['avaliacao', 'ativar_contrato', 'encerrar_contrato', 'alterar_status_colaborador',
+              'contrato_empresarial_criar', 'contrato_empresarial_editar', 'contrato_empresarial_excluir'];
+    }
+
+    // `('campos' in a)` antes de `a.campos.keys()`, e `get()` para os escalares: um payload sem a
+    // chave faria o acesso direto virar erro de avaliação, que nega a escrita por acidente em vez
+    // de por decisão. A diferença importa porque é este predicado que separa pedido legítimo de
+    // tentativa de escalada — ele precisa reprovar de forma previsível.
+    function payloadSolicitacaoValido() {
+      let d = request.resource.data;
+      let a = d.dadosAcao;
+      return d.tipo == 'alterar_status_colaborador'
+          ? (a.keys().hasOnly(['uid', 'campos'])
+             && a.get('uid', null) == d.get('alvoUid', null)
+             && ('campos' in a)
+             && a.campos.keys().hasOnly(['status', 'motivoPerdaIntegral', 'dataDesligamento']))
+        : d.tipo == 'encerrar_contrato'
+          ? (a.keys().hasOnly(['contratoId', 'campos'])
+             && a.get('contratoId', null) is string
+             && ('campos' in a)
+             && a.campos.keys().hasOnly(['status', 'dataEncerramento']))
+        : d.tipo == 'avaliacao'
+          ? (a.keys().hasOnly(['uid', 'data', 'ano', 'conceito', 'justificativa', 'validadoRH', 'avaliadoPor', 'criadoEm'])
+             && a.get('uid', null) == d.get('alvoUid', null)
+             && a.get('conceito', '') in conceitosValidos())
+        : d.tipo == 'ativar_contrato'
+          ? (a.keys().hasOnly(['uid', 'dataAtivacao', 'dataEncerramento', 'valorCredito', 'status', 'registradoPor', 'criadoEm'])
+             && a.get('uid', null) == d.get('alvoUid', null))
+        : d.tipo == 'contrato_empresarial_editar'
+          ? (a.keys().hasOnly(['docId', 'campos'])
+             && a.get('docId', null) is string
+             && ('campos' in a)
+             && a.campos.keys().hasOnly(camposContratoEmpresarialMutaveis()))
+        : d.tipo == 'contrato_empresarial_excluir'
+          ? (a.keys().hasOnly(['docId']) && a.get('docId', null) is string)
+        // contrato_empresarial_criar: o payload é o documento inteiro do contrato novo, e a
+        // criação em si ainda passa pelas regras de contratosEmpresariais quando for aplicada —
+        // aqui só barramos as duas chaves que serviriam para desviar a aplicação para outra
+        // coleção ou outro conjunto de campos.
+        : d.tipo == 'contrato_empresarial_criar'
+          ? (!('role' in a) && !('campos' in a) && !('uid' in a) && !('docId' in a))
+        : false;
+    }
+
     match /solicitacoes/{id} {
-      allow read: if emailVerificado() && (ehPresidente() || resource.data.solicitadoPorUid == request.auth.uid);
-      allow create: if emailVerificado() && papel() in ['dp', 'rh', 'admin']
+      allow read: if emailVerificado()
+        && ((ehPresidente() && estaAtivo()) || resource.data.solicitadoPorUid == request.auth.uid);
+      allow create: if operadorValido() && papel() in ['dp', 'rh', 'admin']
+        && request.resource.data.keys().hasAll(['tipo', 'descricao', 'dadosAcao', 'status', 'solicitadoPorUid'])
+        && request.resource.data.keys().hasOnly([
+             'tipo', 'descricao', 'alvoUid', 'alvoNome', 'dadosAcao',
+             'status', 'solicitadoPorUid', 'solicitadoPorNome', 'criadoEm'
+           ])
+        && request.resource.data.tipo in tiposSolicitacaoValidos()
         && request.resource.data.status == 'pendente'
-        && request.resource.data.solicitadoPorUid == request.auth.uid;
-      allow update: if emailVerificado() && ehPresidente()
+        && request.resource.data.solicitadoPorUid == request.auth.uid
+        && request.resource.data.descricao is string && request.resource.data.descricao.size() <= 500
+        && payloadSolicitacaoValido();
+      // hasOnly no update: antes o Presidente podia reescrever `dadosAcao` na mesma operação em
+      // que resolvia o pedido, tornando o registro da fila não auditável.
+      allow update: if operadorValido() && ehPresidente()
         && resource.data.status == 'pendente'
-        && request.resource.data.status in ['aceita', 'rejeitada'];
+        && request.resource.data.status in ['aceita', 'rejeitada']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvidoPorUid', 'resolvidoEm'])
+        && request.resource.data.get('resolvidoPorUid', null) == request.auth.uid;
       allow delete: if false;
     }
 
@@ -260,20 +598,57 @@ service cloud.firestore {
     // fundo/{ano} — agregado público (saldo do fundo, soma de pesos).
     // Lido por todos os colaboradores autenticados; DP/RH/Admin/Presidente recalculam (é um
     // republicar de dados já protegidos acima, não uma decisão de negócio nova).
+    //
+    // `saldoDisponivel` e `somaPesos` são o numerador e o denominador da cota de TODO MUNDO
+    // (cotaBase = peso/somaPesos × saldo, Seção 6). Antes a regra era só `ehDpRhAdmin()`, sem
+    // validação nenhuma: qualquer gestor gravava `{saldoDisponivel: 99999999, somaPesos: 0.0001}`
+    // e o painel de todos exibia o número fabricado.
+    //
+    // LIMITE HONESTO: as rules não recalculam o fundo — não conseguem somar os contratos. O que
+    // elas fazem agora é recusar valor negativo, campo extra e autoria falsa. A integridade do
+    // VALOR continua dependendo de o cálculo rodar no cliente. Ver docs/security.
     // -------------------------------------------------------------
+    function fundoValido() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['arrecadado', 'estornos', 'saldoDisponivel', 'somaPesos',
+                               'totalContratosAtivos', 'totalContratosEncerrados',
+                               'atualizadoEm', 'atualizadoPor'])
+        && d.keys().hasAll(['arrecadado', 'estornos', 'saldoDisponivel', 'somaPesos'])
+        && d.arrecadado is number && d.arrecadado >= 0
+        && d.estornos is number && d.estornos >= 0
+        && d.saldoDisponivel is number && d.saldoDisponivel >= 0
+        && d.somaPesos is number && d.somaPesos >= 0
+        && d.get('totalContratosAtivos', 0) is int && d.get('totalContratosAtivos', 0) >= 0
+        && d.get('totalContratosEncerrados', 0) is int && d.get('totalContratosEncerrados', 0) >= 0
+        && d.get('atualizadoPor', null) == request.auth.uid
+        && d.get('atualizadoEm', null) == request.time;
+    }
+
     match /fundo/{ano} {
       allow read: if emailVerificado();
-      allow write: if emailVerificado() && ehDpRhAdmin();
+      allow create, update: if operadorValido() && ehDpRhAdmin() && fundoValido();
+      allow delete: if false;
     }
 
     // -------------------------------------------------------------
-    // estatisticas/publico — agregado público (só os 2 números da landing page,
-    // sem login: valor arrecadado e quantidade de colaboradores). Nunca contém
-    // PII — para isso, use sempre a coleção `usuarios`, que já é protegida acima.
+    // estatisticas/publico — agregado público (só os números da landing page, lidos sem login:
+    // valor arrecadado e quantidade de colaboradores). Nunca contém PII — e agora é a REGRA que
+    // garante isso, não só a convenção: hasOnly() recusa qualquer campo fora destes quatro.
+    // Para dado de pessoa, use sempre a coleção `usuarios`, protegida acima.
     // -------------------------------------------------------------
+    function estatisticaPublicaValida() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['arrecadado', 'colaboradores', 'colaboradoresAnosAnteriores', 'atualizadoEm'])
+        && d.get('arrecadado', 0) is number && d.get('arrecadado', 0) >= 0
+        && d.get('colaboradores', 0) is int && d.get('colaboradores', 0) >= 0
+        && d.get('colaboradoresAnosAnteriores', 0) is int && d.get('colaboradoresAnosAnteriores', 0) >= 0
+        && d.get('atualizadoEm', null) == request.time;
+    }
+
     match /estatisticas/publico {
       allow read: if true;
-      allow write: if emailVerificado() && ehDpRhAdmin();
+      allow create, update: if operadorValido() && ehDpRhAdmin() && estatisticaPublicaValida();
+      allow delete: if false;
     }
 
     // -------------------------------------------------------------
@@ -283,12 +658,34 @@ service cloud.firestore {
     // nem a fila de solicitações, que já é seu próprio registro auditável). Só Admin/Presidente
     // leem. Nunca é editável (falsificaria a trilha) — só Admin/Presidente podem excluir, para
     // limpar o log quando quiserem (com confirmação na interface).
+    //
+    // O que a regra garante: schema fechado, `operadorUid` igual a quem está logado (ninguém
+    // grava uma entrada atribuída a OUTRO gestor) e vínculo ativo para ler, gravar e apagar (um
+    // Admin desligado não limpa a trilha).
+    //
+    // NOTA DE AUDITORIA (limitação conhecida): Admin/Presidente ativos podem apagar a trilha
+    // inteira (decisão de produto — botão "Excluir todo o log"), e o log é escrito pelo próprio
+    // cliente que executa a ação, logo quem age de má-fé simplesmente não grava. Trilha de
+    // auditoria à prova de adulteração, nesta arquitetura sem servidor, não é alcançável —
+    // exigiria uma camada de computação confiável.
     // -------------------------------------------------------------
+    function logValido() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['tipo', 'descricao', 'operadorUid'])
+        && d.keys().hasOnly(['tipo', 'descricao', 'alvoUid', 'alvoNome', 'operadorUid', 'operadorNome', 'criadoEm'])
+        && d.tipo is string && d.tipo.size() <= 60
+        && d.descricao is string && d.descricao.size() <= 1000
+        && (d.get('alvoUid', null) == null || d.alvoUid is string)
+        && (d.get('alvoNome', null) == null || (d.alvoNome is string && d.alvoNome.size() <= 200))
+        && d.operadorUid == request.auth.uid
+        && d.get('operadorNome', '') is string && d.get('operadorNome', '').size() <= 200;
+    }
+
     match /logs/{id} {
-      allow read: if emailVerificado() && ehAdminOuPresidente();
-      allow create: if emailVerificado() && ehDpRhAdmin();
+      allow read: if operadorValido() && ehAdminOuPresidente();
+      allow create: if operadorValido() && ehDpRhAdmin() && logValido();
       allow update: if false;
-      allow delete: if emailVerificado() && ehAdminOuPresidente();
+      allow delete: if operadorValido() && ehAdminOuPresidente();
     }
 
     // -------------------------------------------------------------
@@ -302,26 +699,78 @@ service cloud.firestore {
     // Interruptor global — só Admin/Presidente ligam/desligam a função para todo mundo.
     match /configuracoes/avaliacaoConduta {
       allow read: if emailVerificado();
-      allow write: if emailVerificado() && ehAdminOuPresidente()
-        && request.resource.data.keys().hasOnly(['ativo', 'atualizadoEm', 'atualizadoPor']);
+      allow write: if operadorValido() && ehAdminOuPresidente()
+        && request.resource.data.keys().hasOnly(['ativo', 'atualizadoEm', 'atualizadoPor'])
+        && request.resource.data.get('ativo', null) is bool
+        // Antes `atualizadoPor` vinha do cliente sem checagem — atribuição falsificável.
+        && request.resource.data.get('atualizadoPor', null) == request.auth.uid;
     }
 
-    // Diretório mínimo (nome/cargo/role) usado só para montar a lista de colaboradores avaliáveis
-    // no lado do colaborador comum — existe para NÃO precisar expandir a leitura de usuarios/{uid}
-    // (que tem e-mail, carga horária, motivo de desligamento etc.) para todo mundo. Cada um
-    // sincroniza o próprio doc ao logar; Admin/Presidente também sincronizam em nome de qualquer
-    // colaborador (ao criar/editar/trocar o papel de alguém, pelo painel de gestão), pra o
-    // diretório já nascer completo, sem depender daquele colaborador logar primeiro. Sempre
-    // validado contra o usuarios/{uid} real — nunca aceita um valor inventado pelo cliente.
+    // Diretório mínimo usado só para montar a lista de colaboradores avaliáveis no lado do
+    // colaborador comum — existe para NÃO precisar expandir a leitura de usuarios/{uid} (que tem
+    // e-mail, carga horária, motivo de desligamento etc.) para todo mundo. Cada um sincroniza o
+    // próprio doc ao logar; Admin/Presidente também sincronizam em nome de qualquer colaborador
+    // (ao criar/editar/trocar o papel de alguém, pelo painel de gestão), pra o diretório já nascer
+    // completo, sem depender daquele colaborador logar primeiro. Sempre validado contra o
+    // usuarios/{uid} real — nunca aceita um valor inventado pelo cliente.
+    //
+    // MINIMIZAÇÃO: guarda `primeiroNome`, não o nome completo. Esta coleção é legível por
+    // QUALQUER usuário verificado (é o que a aba Conduta precisa), então antes o nome completo de
+    // toda a empresa estava exposto a todo colaborador. Para escolher um colega na lista de
+    // votação, primeiro nome + cargo bastam. A regra confere que o valor é derivado do nome real
+    // (split no primeiro espaço), então o cliente não pode inventar um apelido.
+    //
+    // `get('cargo', null)`: antes o acesso era direto a `.cargo`, e `cargo` não está no hasAll de
+    // usuarios/{uid} — um perfil legado sem esse campo fazia a regra ERRAR, negando a sincronia,
+    // e aquela pessoa nunca aparecia na lista de conduta.
     match /diretorioPublico/{uid} {
       allow read: if emailVerificado();
-      allow write: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente())
-        && request.resource.data.keys().hasOnly(['nome', 'cargo', 'role'])
+      allow write: if emailVerificado()
+        && (request.auth.uid == uid || (ehAdminOuPresidente() && estaAtivo()))
+        && request.resource.data.keys().hasOnly(['primeiroNome', 'cargo', 'role'])
         && request.resource.data.role != 'presidente'
-        && request.resource.data.role == get(/databases/$(database)/documents/usuarios/$(uid)).data.role
-        && request.resource.data.nome == get(/databases/$(database)/documents/usuarios/$(uid)).data.nome
-        && request.resource.data.cargo == get(/databases/$(database)/documents/usuarios/$(uid)).data.cargo;
-      allow delete: if emailVerificado() && (request.auth.uid == uid || ehAdminOuPresidente());
+        && request.resource.data.role == perfilDe(uid).role
+        && request.resource.data.primeiroNome == perfilDe(uid).nome.split(' ')[0]
+        && request.resource.data.get('cargo', null) == perfilDe(uid).get('cargo', null);
+      allow delete: if emailVerificado()
+        && (request.auth.uid == uid || (ehAdminOuPresidente() && estaAtivo()));
+    }
+
+    // -------------------------------------------------------------
+    // Voto e contagem andam JUNTOS — é isso que amarra o agregado anônimo aos votos reais.
+    //
+    // votarConduta() (conduta-service.js) grava as duas coisas numa única transação. As regras
+    // enxergam os dois lados dela: get()/exists() devolvem o estado ANTES da transação e
+    // getAfter() o estado DEPOIS. Então dá para exigir, conceito a conceito, que a contagem mude
+    // exatamente o que o voto deste avaliador mudou:
+    //
+    //   contagem_depois[c] - contagem_antes[c] == (voto_depois == c ? 1 : 0) - (voto_antes == c ? 1 : 0)
+    //
+    // A mesma condição é cobrada nos DOIS documentos, então nenhum deles pode ser gravado sozinho.
+    //
+    // O que isso fecha (a versão anterior limitava ±1 por escrita e checava se o voto do par JÁ
+    // existia, mas não se ele passava a existir):
+    //  - inflar a contagem sem votar: bastava gravar só a contagem, nunca o voto — como o voto
+    //    seguia inexistente, o "+1" era aceito indefinidamente;
+    //  - reescrever a distribuição com pares -1/+1 (tirar 'excelente', pôr 'insatisfatorio') sem
+    //    mexer no próprio voto;
+    //  - gravar o voto sem a contagem e depois "trocar de conceito", debitando o voto de outro.
+    // -------------------------------------------------------------
+    function deltaVoto(avaliadoUid, conceito) {
+      let caminho = /databases/$(database)/documents/votosConduta/$(request.auth.uid + '_' + avaliadoUid);
+      return (getAfter(caminho).data.conceito == conceito ? 1 : 0)
+        - ((exists(caminho) && get(caminho).data.conceito == conceito) ? 1 : 0);
+    }
+    function contagemAntes(avaliadoUid, conceito) {
+      let caminho = /databases/$(database)/documents/condutaContagem/$(avaliadoUid);
+      return exists(caminho) ? get(caminho).data[conceito] : 0;
+    }
+    function contagemAcompanhaVoto(avaliadoUid) {
+      let depois = getAfter(/databases/$(database)/documents/condutaContagem/$(avaliadoUid)).data;
+      return depois.excelente - contagemAntes(avaliadoUid, 'excelente') == deltaVoto(avaliadoUid, 'excelente')
+        && depois.bom - contagemAntes(avaliadoUid, 'bom') == deltaVoto(avaliadoUid, 'bom')
+        && depois.regular - contagemAntes(avaliadoUid, 'regular') == deltaVoto(avaliadoUid, 'regular')
+        && depois.insatisfatorio - contagemAntes(avaliadoUid, 'insatisfatorio') == deltaVoto(avaliadoUid, 'insatisfatorio');
     }
 
     // Voto individual (1 por par avaliador→avaliado, id determinístico). Só o autor lê o
@@ -335,45 +784,42 @@ service cloud.firestore {
       allow read: if emailVerificado() && (resource == null || resource.data.avaliadorUid == request.auth.uid);
       allow create, update: if emailVerificado()
         && avaliacaoCondutaAtiva() && podeParticiparConduta()
+        && request.resource.data.keys().hasAll(['avaliadorUid', 'avaliadoUid', 'conceito'])
+        && request.resource.data.keys().hasOnly(['avaliadorUid', 'avaliadoUid', 'conceito', 'criadoEm', 'atualizadoEm'])
         && request.resource.data.avaliadorUid == request.auth.uid
+        && request.resource.data.avaliadoUid is string
         && request.resource.data.avaliadoUid != request.auth.uid
         && !ehPresidenteUid(request.resource.data.avaliadoUid)
         && votoId == request.resource.data.avaliadorUid + '_' + request.resource.data.avaliadoUid
-        && request.resource.data.conceito in ['excelente', 'bom', 'regular', 'insatisfatorio']
-        && request.resource.data.keys().hasOnly(['avaliadorUid', 'avaliadoUid', 'conceito', 'criadoEm', 'atualizadoEm']);
+        && request.resource.data.conceito in conceitosValidos()
+        && contagemAcompanhaVoto(request.resource.data.avaliadoUid);
       allow delete: if false;
     }
 
     // Contagem agregada e anônima por pessoa avaliada — o que aparece no perfil. Leitura no
     // mesmo escopo de quem já pode ver o perfil detalhado de alguém (PODE_VER_PERFIL() no
-    // front-end = ehDpRhAdmin() aqui). Escrita feita numa transação client-side junto com o
-    // voto individual (ver conduta-service.js) — as regras não conseguem correlacionar as duas
-    // escritas da mesma transação, então cada campo é limitado a mudar no máximo 1 voto por
-    // escrita (mesmo nível de rigor pragmático já usado no resto deste arquivo, ex.: avaliacoes
-    // não tem hasOnly()).
+    // front-end = gestorAtivo() aqui). Escrita só como metade da transação do voto (ver
+    // contagemAcompanhaVoto acima).
+    function contagemBemFormada() {
+      let d = request.resource.data;
+      // hasAll antes de qualquer leitura: num documento sem um dos quatro campos, o acesso
+      // direto seria erro de avaliação em vez de reprovação limpa. `is int` e `>= 0`: sem eles,
+      // `{excelente: 1000000, bom: -999999, regular: 0, insatisfatorio: 0}` (soma 1) passava.
+      return d.keys().hasAll(['excelente', 'bom', 'regular', 'insatisfatorio'])
+        && d.keys().hasOnly(['excelente', 'bom', 'regular', 'insatisfatorio', 'atualizadoEm'])
+        && d.excelente is int && d.excelente >= 0
+        && d.bom is int && d.bom >= 0
+        && d.regular is int && d.regular >= 0
+        && d.insatisfatorio is int && d.insatisfatorio >= 0;
+    }
+
     match /condutaContagem/{avaliadoUid} {
-      allow read: if emailVerificado() && (avaliadoUid == request.auth.uid || ehDpRhAdmin());
+      allow read: if emailVerificado() && (avaliadoUid == request.auth.uid || gestorAtivo());
 
-      allow create: if emailVerificado() && avaliacaoCondutaAtiva() && podeParticiparConduta()
+      allow create, update: if emailVerificado() && avaliacaoCondutaAtiva() && podeParticiparConduta()
         && avaliadoUid != request.auth.uid && !ehPresidenteUid(avaliadoUid)
-        && request.resource.data.keys().hasOnly(['excelente', 'bom', 'regular', 'insatisfatorio', 'atualizadoEm'])
-        && request.resource.data.excelente + request.resource.data.bom
-           + request.resource.data.regular + request.resource.data.insatisfatorio == 1;
-
-      allow update: if emailVerificado() && avaliacaoCondutaAtiva() && podeParticiparConduta()
-        && avaliadoUid != request.auth.uid && !ehPresidenteUid(avaliadoUid)
-        && request.resource.data.keys().hasOnly(['excelente', 'bom', 'regular', 'insatisfatorio', 'atualizadoEm'])
-        // Cada campo só pode mudar em no máximo 1 voto por escrita, e a soma total nunca cai —
-        // só sobe 0 ou 1 — cobre tanto "voto novo" (+1 num campo) quanto "trocar de conceito"
-        // (-1 num campo, +1 em outro, soma igual).
-        && request.resource.data.excelente - resource.data.excelente >= -1 && request.resource.data.excelente - resource.data.excelente <= 1
-        && request.resource.data.bom - resource.data.bom >= -1 && request.resource.data.bom - resource.data.bom <= 1
-        && request.resource.data.regular - resource.data.regular >= -1 && request.resource.data.regular - resource.data.regular <= 1
-        && request.resource.data.insatisfatorio - resource.data.insatisfatorio >= -1 && request.resource.data.insatisfatorio - resource.data.insatisfatorio <= 1
-        && (request.resource.data.excelente + request.resource.data.bom + request.resource.data.regular + request.resource.data.insatisfatorio)
-           >= (resource.data.excelente + resource.data.bom + resource.data.regular + resource.data.insatisfatorio)
-        && (request.resource.data.excelente + request.resource.data.bom + request.resource.data.regular + request.resource.data.insatisfatorio)
-           <= (resource.data.excelente + resource.data.bom + resource.data.regular + resource.data.insatisfatorio) + 1;
+        && contagemBemFormada()
+        && contagemAcompanhaVoto(avaliadoUid);
 
       allow delete: if false;
     }

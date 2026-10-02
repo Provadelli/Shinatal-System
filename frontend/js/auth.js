@@ -19,6 +19,12 @@ export const PAGINA_POR_ROLE = {
   colaborador: "/dashboard"
 };
 
+/** Espelha estaAtivo() das firestore.rules: `status` 'ativo' (ou ausente, em perfis antigos) e
+ * nenhum motivo de perda integral — abandono/fraude ficam só em `motivoPerdaIntegral`. */
+function vinculoAtivo(perfil) {
+  return (perfil.status ?? "ativo") === "ativo" && (perfil.motivoPerdaIntegral ?? null) === null;
+}
+
 /** Busca o perfil (doc `usuarios/{uid}`) do usuário autenticado. */
 export async function obterPerfil(uid) {
   const snap = await getDoc(doc(db, "usuarios", uid));
@@ -199,8 +205,13 @@ export function exigirAutenticacao(rolesPermitidos = null) {
         window.location.href = "/login";
         return;
       }
-      if (rolesPermitidos && !rolesPermitidos.includes(perfil.role)) {
-        window.location.href = PAGINA_POR_ROLE[perfil.role] || "/login";
+      // Gestor sem vínculo ativo (desligado/afastado): as firestore.rules já negam a ele toda
+      // leitura de dado de terceiros e toda escrita, então o painel de gestão só mostraria erros
+      // de permissão. Ele é tratado como colaborador — vai para o painel pessoal, que só lê os
+      // próprios dados (e mostra o motivo da inelegibilidade).
+      const roleEfetivo = vinculoAtivo(perfil) ? perfil.role : "colaborador";
+      if (rolesPermitidos && !rolesPermitidos.includes(roleEfetivo)) {
+        window.location.href = PAGINA_POR_ROLE[roleEfetivo] || "/login";
         return;
       }
       resolve(perfil);

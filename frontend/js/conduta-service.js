@@ -4,18 +4,23 @@
 // autorização; este módulo só monta as chamadas ao Firestore no formato que as regras exigem.
 import { db } from "./firebase-init.js";
 import {
-  doc, setDoc, deleteDoc, getDoc, onSnapshot, collection, query, where, runTransaction, serverTimestamp
+  doc, setDoc, deleteDoc, getDoc, onSnapshot, collection, query, where, runTransaction, serverTimestamp, increment
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-/** Grava/atualiza a entrada de alguém no diretório público (nome/cargo/role, sem PII sensível).
+/** Grava/atualiza a entrada de alguém no diretório público (primeiro nome/cargo/role — o
+ * diretório é legível por todo colaborador, por isso não guarda o nome completo).
  * Chamada tanto pelo próprio usuário (ao carregar a página) quanto por Admin/Presidente em nome
  * de qualquer colaborador (criar/editar/trocar papel) — a regra do Firestore valida os 3 campos
  * contra o usuarios/{uid} real, então não há como gravar um valor inventado. Nunca deve ser
  * chamada para o Presidente (não participa da função — a regra também bloqueia). */
 async function sincronizarDiretorio({ uid, nome, cargo, role }) {
   if (role === "presidente") return;
+  // Mesma derivação da regra (`nome.split(' ')[0]`). `cargo` só entra se existir no perfil: a
+  // regra compara com o campo real, e perfil sem cargo tem de virar entrada sem cargo.
+  const entrada = { primeiroNome: (nome || "").split(" ")[0], role };
+  if (cargo !== undefined && cargo !== null) entrada.cargo = cargo;
   try {
-    await setDoc(doc(db, "diretorioPublico", uid), { nome: nome || "", cargo: cargo || "", role });
+    await setDoc(doc(db, "diretorioPublico", uid), entrada);
   } catch (erro) {
     console.error("[Shinatal] Falha ao sincronizar o diretório de colaboradores:", erro);
   }
@@ -49,7 +54,7 @@ async function definirFlagConduta(ativo, uid) {
   });
 }
 
-/** Assina o diretório público inteiro (nome/cargo/role de todo mundo, exceto Presidente) — usado
+/** Assina o diretório público inteiro (primeiroNome/cargo/role de todo mundo, exceto Presidente) — usado
  * pelo lado do colaborador comum, que não pode ler usuarios/{uid} de outra pessoa. O painel de
  * gestão (dp/rh/admin/presidente) não precisa disto: já tem a lista completa via state.usuarios. */
 function assinarDiretorio(cb) {
@@ -86,25 +91,29 @@ async function votarConduta({ avaliadorUid, avaliadoUid, conceito }) {
   const contagemRef = doc(db, "condutaContagem", avaliadoUid);
   await runTransaction(db, async (tx) => {
     const votoSnap = await tx.get(votoRef);
-    const contagemSnap = await tx.get(contagemRef);
     const anterior = votoSnap.exists() ? votoSnap.data().conceito : null;
     if (anterior === conceito) return;
 
-    const c = contagemSnap.exists()
-      ? contagemSnap.data()
-      : { excelente: 0, bom: 0, regular: 0, insatisfatorio: 0 };
-    if (anterior) c[anterior] = Math.max(0, (c[anterior] || 0) - 1);
-    c[conceito] = (c[conceito] || 0) + 1;
+    // A contagem é ajustada com increment(), sem ser lida: o colaborador comum não tem (nem deve
+    // ter) permissão de leitura sobre a contagem de um colega, e um tx.get() nela derrubava a
+    // transação inteira com permission-denied. As firestore.rules conferem que o ajuste é
+    // exatamente o que este voto mudou (contagemAcompanhaVoto) — +1 no conceito novo e, numa
+    // troca, -1 no anterior.
+    const delta = { excelente: 0, bom: 0, regular: 0, insatisfatorio: 0 };
+    delta[conceito] += 1;
+    if (anterior in delta) delta[anterior] -= 1;
 
     tx.set(votoRef, {
       avaliadorUid, avaliadoUid, conceito,
-      criadoEm: votoSnap.exists() ? votoSnap.data().criadoEm : serverTimestamp(),
+      // `??`: voto antigo sem criadoEm viraria `undefined`, que o Firestore recusa.
+      criadoEm: (votoSnap.exists() ? votoSnap.data().criadoEm : null) ?? serverTimestamp(),
       atualizadoEm: serverTimestamp()
     });
     tx.set(contagemRef, {
-      excelente: c.excelente || 0, bom: c.bom || 0, regular: c.regular || 0, insatisfatorio: c.insatisfatorio || 0,
+      excelente: increment(delta.excelente), bom: increment(delta.bom),
+      regular: increment(delta.regular), insatisfatorio: increment(delta.insatisfatorio),
       atualizadoEm: serverTimestamp()
-    });
+    }, { merge: true });
   });
 }
 

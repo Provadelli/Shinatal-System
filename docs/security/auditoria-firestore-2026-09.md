@@ -16,6 +16,8 @@ testes automatizada, não apenas revisão teórica.
 - Foi criada e executada uma suite automatizada (`backend/tests/rules/firestore-rules.test.mjs`)
   contra o Firebase Emulator, com **53 casos de teste cobrindo BOLA/IDOR, escalonamento de papel,
   mass assignment e a fila de aprovação do Presidente — 53/53 passaram** (após a remediação abaixo).
+- **Atualização 2026-10:** a afirmação abaixo foi revista — ver "Revisão de blindagem" na ETAPA 4
+  (escalada pela fila de solicitações, offboarding sem efeito, escritas sem validação de conteúdo).
 - **Nenhum achado crítico ou alto nas Firestore Rules.** As regras já implementam defesa em
   profundidade real (checagem de domínio de e-mail no token do servidor, exigência de e-mail
   verificado, fila de aprovação imutável, log de auditoria append-only).
@@ -217,6 +219,46 @@ testes automatizada, não apenas revisão teórica.
   carregamento); só DP/RH/Admin/Presidente podem gravar em `fundo`, e conceder isso ao colaborador
   seria pior. Até lá, a cota exibida no dashboard dele fica ligeiramente acima do real.
 
+### ✅ [ALTA — REMEDIADO] Revisão de blindagem (2026-10): as regras checavam QUEM escreve, não O QUE é escrito
+
+A conclusão "nenhum achado crítico ou alto nas Firestore Rules" do resumo executivo acima **não se
+sustentou** numa segunda leitura: as regras validavam o papel de quem escrevia, mas quase nunca o
+conteúdo. Achados e correções desta revisão (todos em `backend/firestore.rules`, cobertos pela
+suíte — **256/256** casos):
+
+| Achado | Severidade | Correção |
+|---|---|---|
+| **Escalada de privilégio pela fila de solicitações.** `dadosAcao` era um objeto livre escrito pelo solicitante e executado na sessão do Presidente (`aplicarSolicitacao`). Um DP pedia `alterar_status_colaborador` com `campos: {role: 'presidente'}` e uma `descricao` inocente; o "Aceitar" concedia o papel. | Crítica | `tipo` em enum fechado; payload validado por tipo (campos permitidos, alvo do payload = alvo exibido); o Presidente não reescreve o payload ao resolver e `resolvidoPorUid` é fixado em quem decidiu. |
+| **Offboarding não cortava acesso.** `status`/`motivoPerdaIntegral` só entravam no cálculo do prêmio; gestor demitido (ou com fraude registrada) seguia lendo e gravando tudo. | Alta | `estaAtivo()` exigido em toda escrita e, via `gestorAtivo()`, em toda leitura de dado de terceiros (inclusive `logs`). O desligado só lê os próprios dados; `auth.js` o leva ao painel pessoal em vez do de gestão. |
+| **Perfil sem validação de valor.** Admin/Presidente gravavam qualquer chave/valor em `usuarios/{uid}` (ex.: `role: 'superadmin'`, que trancava a vítima fora); RH alterava o PRÓPRIO status. | Alta | `hasOnly` + `valoresPerfilValidos()` em toda escrita; enums de papel/status/motivo; RH só altera o status de terceiros. |
+| **Lançamentos sem schema** (`faltas`, `atrasos`, `advertencias`, `avaliacoes`, `contratos`): campo livre, autoria forjável, e o DP apagava as próprias faltas/advertências (desconto em dinheiro). | Alta | Schema fechado, tipo/faixa/enum, `registradoPor` = quem está logado, alvo tem de existir, `uid` imutável no update, e ninguém apaga lançamento do próprio `uid`. |
+| **Agregados falsificáveis.** Qualquer gestor gravava `fundo/{ano}` com saldo/pesos arbitrários; `estatisticas/publico` (lido sem login) aceitava qualquer campo. | Média | Schema fechado, números ≥ 0, autoria e carimbo de data do servidor; `delete` negado. |
+| **Contagem de conduta desvinculada do voto.** Bastava gravar só `condutaContagem` (sem nunca criar o voto) para inflar o `insatisfatorio` de um colega indefinidamente, ou redistribuir votos alheios com pares −1/+1. | Média | Voto e contagem só são aceitos juntos, e a contagem tem de mudar exatamente o que o voto mudou (`contagemAcompanhaVoto`, com `get()`/`getAfter()`). |
+| **XSS armazenado no painel de gestão.** O `nome` (editável pelo próprio colaborador) entrava sem escape num `<select>` de `gestao.js`; a CSP permite `'unsafe-inline'`. | Alta | `escaparHTML` nos pontos que faltavam (`gestao.js`, `perfil-view.js`); foto restrita a `data:image/(png\|jpeg\|webp);base64` (sem SVG nem URL externa). |
+| **Nome completo de toda a empresa no `diretorioPublico`** (legível por qualquer colaborador). | Baixa | Guarda só `primeiroNome`, conferido contra o perfil real. |
+| **Trilha de `logs` com autoria forjável.** | Baixa | Schema fechado e `operadorUid` = quem está logado. |
+
+Correções de funcionamento que a revisão revelou (não eram falhas de segurança):
+
+- O voto de conduta de um colaborador comum falhava sempre: a transação lia a contagem do colega,
+  que ele não pode ler. `votarConduta()` agora usa `increment()`, sem ler a contagem.
+- `contratosEmpresariais` passa a aceitar `valorContrato: null` (campo opcional no formulário).
+
+**Limites que continuam valendo (não há servidor confiável nesta arquitetura):**
+
+- As regras não recalculam o fundo: recusam valor negativo, campo extra e autoria falsa, mas um
+  gestor **ativo** ainda consegue publicar um `saldoDisponivel`/`somaPesos` plausível e errado. A
+  cota exibida ao colaborador depende de o cálculo ter rodado num cliente honesto.
+- `logs` é escrito pelo próprio cliente que executa a ação (quem age de má-fé não grava) e
+  Admin/Presidente ativos podem apagá-lo.
+- A data de admissão do autocadastro é declarada pela própria pessoa; as regras só recusam o
+  absurdo (formato, futuro, mais de 60 anos). Conferir é controle de processo do Admin.
+- `aviso_previo` e `afastado` também contam como "sem vínculo ativo": a pessoa perde a escrita (e,
+  se gestora, a leitura de terceiros) já a partir do registro. Se quem está em aviso prévio deve
+  continuar operando o sistema até o último dia, isso precisa ser ajustado em `estaAtivo()`.
+- Perfis ou cadastros pendentes antigos com valor fora do novo schema (ex.: foto em outro formato)
+  ficam sem poder ser editados/promovidos até um Admin corrigir o campo.
+
 ### [BAIXA] Ausência de Firebase App Check
 
 - **Onde:** `firebase.json` / `frontend/js/firebase-init.js` (nenhuma inicialização de App Check).
@@ -258,7 +300,7 @@ testes automatizada, não apenas revisão teórica.
 ```bash
 cd backend/tests/rules
 npm install         # já feito nesta execução
-npm test             # sobe o Firebase Emulator (demo-shinatal) e roda os 53 casos
+npm test             # sobe o Firebase Emulator (demo-shinatal) e roda a suíte (256 casos)
 ```
 
 Nenhum comando desta auditoria tocou o projeto Firebase real (`shinetal-cda20`) ou dados de
