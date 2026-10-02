@@ -83,27 +83,27 @@
       </span>
     </a>
 
-    <div class="flex-1 min-w-0 flex items-center justify-center gap-3 lg:gap-6 overflow-x-auto">
+    <div class="flex-1 min-w-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:gap-x-7">
       <a href="#sobre-nos" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">history_edu</span> Quem somos
+        Quem somos
       </a>
       <a href="#sobre-shinatal" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">menu_book</span> Sobre
+        Sobre
       </a>
       <a href="#como-funciona" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">checklist</span> Como funciona
+        Como funciona
       </a>
       <a href="#nossos-valores" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">workspace_premium</span> Valores
+        Valores
       </a>
     </div>
 
     <div class="flex items-center gap-2.5 shrink-0">
       <a href="/login" class="btn-fantasma !py-2 !px-4 flex items-center gap-1.5 text-sm whitespace-nowrap">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span> Login
+        Login
       </a>
       <a href="/cadastro" class="btn-primario !py-2 !px-4 flex items-center gap-1.5 text-sm whitespace-nowrap">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span> Cadastro
+        Cadastro
       </a>
     </div>
   </div>
@@ -119,27 +119,18 @@
       </span>
     </a>
 
-    <nav aria-label="Principal" class="flex items-center gap-1 sm:gap-2 min-w-0 overflow-x-auto">
-      <a href="#sobre-nos" title="Quem somos" aria-label="Quem somos" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">history_edu</span>
-      </a>
-      <a href="#sobre-shinatal" title="Sobre" aria-label="Sobre" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">menu_book</span>
-      </a>
-      <a href="#como-funciona" title="Como funciona" aria-label="Como funciona" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">checklist</span>
-      </a>
-      <a href="#nossos-valores" title="Valores" aria-label="Valores" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">workspace_premium</span>
-      </a>
-      <a href="/login" title="Login" aria-label="Login" class="btn-fantasma !py-2 !px-3 flex items-center">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
-      </a>
-      <a href="/cadastro" title="Criar cadastro" aria-label="Criar cadastro" class="btn-primario !py-2 !px-3 flex items-center">
-        <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
-      </a>
-    </nav>
+    <div class="flex items-center gap-1.5 shrink-0">
+      <a href="/login" class="btn-fantasma !py-1.5 !px-3 text-sm">Entrar</a>
+      <a href="/cadastro" class="btn-primario !py-1.5 !px-3 text-sm">Cadastro</a>
+      <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-celular" class="btn-fantasma !border-0 !py-1.5 !px-2.5 text-sm">Menu</button>
+    </div>
   </div>
+  <nav id="menu-celular" aria-label="Principal" class="menu-celular" hidden>
+    <a href="#sobre-nos">Quem somos</a>
+    <a href="#sobre-shinatal">Sobre</a>
+    <a href="#como-funciona">Como funciona</a>
+    <a href="#nossos-valores">Valores</a>
+  </nav>
 </header>
 
 <!-- ===================== HERO ===================== -->
@@ -494,7 +485,7 @@
       </div>
 
       <div class="text-center sm:text-left">
-        <p class="font-display text-label-md text-white uppercase tracking-widest mb-4">Navegação</p>
+        <p class="font-display text-label-md text-primary uppercase tracking-widest mb-4">Navegação</p>
         <nav aria-label="Rodapé" class="flex flex-col items-center sm:items-start gap-2.5">
           <a href="/" class="footer-nav-link">Início</a>
           <a href="#sobre-nos" class="footer-nav-link">Quem somos</a>
@@ -508,26 +499,29 @@
       </div>
 
       <div class="text-center sm:text-left">
-        <p class="font-display text-label-md text-white uppercase tracking-widest mb-4">Fale com a gente</p>
+        <p class="font-display text-label-md text-primary uppercase tracking-widest mb-4">Fale com a gente</p>
         <div class="flex flex-col items-center sm:items-start gap-3">
           <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-link">
             <span class="footer-icone"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
-            @shinerioservicos
+            <span class="fio-dourado">@shinerioservicos</span>
           </a>
           <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-link">
             <span class="footer-icone"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></span>
-            WhatsApp
+            <span class="fio-dourado">WhatsApp</span>
           </a>
         </div>
       </div>
     </div>
 
-    <div class="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+    <div class="mt-12 pt-6 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
       <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Todos os direitos reservados.</p>
       <p class="font-body text-label-sm text-on-surface-variant flex items-center gap-1.5">
         Feliz Natal e um próspero Ano Novo <span class="material-symbols-outlined text-sm text-festive-gold" aria-hidden="true">celebration</span>
       </p>
     </div>
+
+    <!-- Logo gigante, reativa ao mouse (ver .footer-logo-gigante em styles.css e o script abaixo) -->
+    <div id="footer-logo-gigante" class="footer-logo-gigante" aria-hidden="true"></div>
   </div>
 </footer>
 
@@ -625,6 +619,46 @@
         spotlightAgendado = true;
         requestAnimationFrame(aplicarSpotlight);
       }
+    });
+  }
+
+  // Logo gigante do footer: um foco de luz acompanha o cursor por dentro da logo e o bloco
+  // inclina de leve na direção dele. Mesmo padrão do spotlight acima (uma escrita de estilo por
+  // quadro, via requestAnimationFrame). Só com mouse e sem prefers-reduced-motion — fora disso a
+  // logo fica no degradê estático definido no CSS.
+  const logoGigante = document.getElementById("footer-logo-gigante");
+  const rodape = logoGigante?.closest("footer");
+  if (rodape && window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)").matches) {
+    let logoX = 0, logoY = 0, logoAgendado = false, logoRepouso;
+    function aplicarLuzLogo() {
+      logoAgendado = false;
+      clearTimeout(logoRepouso);
+      logoGigante.classList.add("reagindo");
+      const r = logoGigante.getBoundingClientRect();
+      const x = logoX - r.left, y = logoY - r.top;
+      logoGigante.style.setProperty("--mx", `${x}px`);
+      logoGigante.style.setProperty("--my", `${y}px`);
+      // Inclinação limitada (±6° / ±5°): o canto mais perto do cursor "afunda".
+      const fx = Math.max(-0.5, Math.min(0.5, x / r.width - 0.5));
+      const fy = Math.max(-0.5, Math.min(0.5, y / r.height - 0.5));
+      logoGigante.style.setProperty("--ry", `${(fx * 12).toFixed(2)}deg`);
+      logoGigante.style.setProperty("--rx", `${(-fy * 10).toFixed(2)}deg`);
+      logoGigante.style.setProperty("--luz", "1");
+    }
+    rodape.addEventListener("pointermove", (e) => {
+      logoX = e.clientX;
+      logoY = e.clientY;
+      if (!logoAgendado) {
+        logoAgendado = true;
+        requestAnimationFrame(aplicarLuzLogo);
+      }
+    });
+    rodape.addEventListener("pointerleave", () => {
+      logoGigante.style.setProperty("--luz", "0");
+      logoGigante.style.setProperty("--rx", "0deg");
+      logoGigante.style.setProperty("--ry", "0deg");
+      // Tira a camada 3D depois que a logo termina de voltar ao plano (ver .reagindo no CSS).
+      logoRepouso = setTimeout(() => logoGigante.classList.remove("reagindo"), 700);
     });
   }
 

@@ -16,13 +16,13 @@ CAPTURAS=1 npm test         # também salva uma captura de cada estado em relato
 
 O roteiro (`auditar.mjs`) copia o site para uma pasta temporária, aponta-o para os emuladores do
 Firebase (nunca para produção), cria contas e dados de exemplo, faz login e audita com o
-**axe-core** — o mesmo motor do axe DevTools — e com o **Lighthouse**, no Chrome instalado. São 32
+**axe-core** — o mesmo motor do axe DevTools — e com o **Lighthouse**, no Chrome instalado. São 34
 estados: as páginas públicas, os três painéis logados (desktop e celular) e cada modal, aba e
 diálogo de confirmação aberto. Além das regras automáticas, ele confere pelo teclado o que as
 ferramentas não medem: foco entra no diálogo, Tab não escapa, Esc fecha, foco volta para quem
 abriu, setas trocam de aba, o botão de pausa realmente para o vídeo.
 
-Resultado em 2026-10-02: **axe-core 0 violações** nos 32 estados, **54/54** verificações de
+Resultado em 2026-10-02: **axe-core 0 violações** nos 34 estados, **57/57** verificações de
 teclado e **Lighthouse Acessibilidade 100** nas 9 páginas.
 
 ## O que foi feito
@@ -42,6 +42,8 @@ teclado e **Lighthouse Acessibilidade 100** nas 9 páginas.
 | 2.5.8 Tamanho do alvo | Pontos do carrossel e botão de fechar com área mínima de 24 px. |
 | 3.3.1 Identificação de erro | Campo inválido recebe `aria-invalid` e o foco; a mensagem sai em região `role="alert"`. |
 | 4.1.2 Nome, função, valor | `role="dialog"`/`aria-modal`/`aria-labelledby` nos modais, `aria-expanded` na sanfona, `aria-current` na navegação, `aria-pressed` na pausa. |
+| 4.1.2 (menu da home) | No celular, as seções ficam num botão "Menu" em texto com `aria-expanded`/`aria-controls`; fecha com Esc e devolve o foco. |
+| 1.4.13 / 2.2.2 (hovers e logo do footer) | Os hovers ("fio dourado") só existem em aparelhos com mouse e nunca são o único sinal de estado; a logo gigante do footer é decorativa (`aria-hidden`), só se move em resposta ao cursor e fica estática com `prefers-reduced-motion`. |
 | 4.1.3 Mensagens de status | Toasts em regiões vivas criadas no carregamento da página (`status` e `alert`). |
 
 ## Regras para quem for mexer no front

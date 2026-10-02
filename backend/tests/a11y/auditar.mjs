@@ -199,6 +199,15 @@ async function assentar(pagina) {
 
 const relatorio = { axe: [], teclado: [], lighthouse: [] };
 
+/** Com CAPTURAS=1, salva a tela atual em relatorio/capturas/<rotulo>.png (conferência visual). */
+async function capturar(pagina, rotulo) {
+  if (!process.env.CAPTURAS) return;
+  const pasta = path.join(__dirname, "relatorio/capturas");
+  mkdirSync(pasta, { recursive: true });
+  const nome = rotulo.normalize("NFD").replace(/\p{M}/gu, "").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+  await pagina.screenshot({ path: path.join(pasta, `${nome}.png`) });
+}
+
 async function axe(pagina, rotulo) {
   await pagina.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
   const r = await pagina.evaluate(async (tags) => {
@@ -210,12 +219,7 @@ async function axe(pagina, rotulo) {
     return { violacoes: resumir(res.violations), incompletos: resumir(res.incomplete), aprovados: res.passes.length };
   }, TAGS_AXE);
   relatorio.axe.push({ estado: rotulo, ...r });
-  if (process.env.CAPTURAS) {
-    const pasta = path.join(__dirname, "relatorio/capturas");
-    mkdirSync(pasta, { recursive: true });
-    const nome = rotulo.normalize("NFD").replace(/\p{M}/gu, "").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
-    await pagina.screenshot({ path: path.join(pasta, `${nome}.png`) });
-  }
+  await capturar(pagina, rotulo);
   const n = r.violacoes.reduce((s, v) => s + v.nos, 0);
   console.log(`  axe  ${n === 0 ? "ok " : "FALHA"}  ${rotulo}${n ? `  — ${r.violacoes.map((v) => `${v.id}(${v.nos})`).join(", ")}` : ""}`);
 }
@@ -348,6 +352,64 @@ async function principal() {
     const noMain = await pagina.evaluate(() => document.activeElement?.tagName === "MAIN");
     conferir("login: primeiro Tab é 'Pular para o conteúdo' e Enter leva o foco ao <main>", primeiro.includes("pular-conteudo") && noMain, `primeiro=${primeiro} main=${noMain}`);
 
+    // Footer compacto (mesmas cores e hovers do completo) — só captura.
+    await pagina.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await pausa(400);
+    await capturar(pagina, "login · footer compacto");
+
+    // Footer da home: logo gigante reage ao mouse (luz + inclinação).
+    await pagina.setViewport(DESKTOP);
+    await pagina.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    await assentar(pagina);
+    // behavior "instant": a página usa rolagem suave, e medir a caixa no meio dela daria a posição errada.
+    await pagina.evaluate(() => document.getElementById("footer-logo-gigante").scrollIntoView({ block: "end", behavior: "instant" }));
+    await pausa(900);
+    const caixa = await pagina.evaluate(() => { const r = document.getElementById("footer-logo-gigante").getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+    await capturar(pagina, "home · footer em repouso");
+    await pagina.mouse.move(caixa.x + caixa.w * 0.3, caixa.y + caixa.h * 0.45, { steps: 12 });
+    await pausa(700);
+    const luz = await pagina.evaluate(() => {
+      const s = document.getElementById("footer-logo-gigante").style;
+      return { mx: s.getPropertyValue("--mx"), luz: s.getPropertyValue("--luz"), ry: s.getPropertyValue("--ry") };
+    });
+    conferir("home: logo do footer reage ao mouse (luz e inclinação)", luz.luz === "1" && luz.mx.endsWith("px") && luz.ry !== "" && luz.ry !== "0deg", JSON.stringify(luz));
+    await axe(pagina, "home · footer com a logo iluminada");
+    // Hover do "fio dourado" num link do rodapé e num botão — só captura.
+    await pagina.hover(".footer-nav-link");
+    await pausa(500);
+    await capturar(pagina, "home · footer, hover em link");
+
+    // Header: no desktop as opções são só texto; no celular, botão "Menu".
+    await pagina.evaluate(() => window.scrollTo(0, 0));
+    await pagina.mouse.move(5, 300);
+    await pausa(400);
+    await pagina.hover(".nav-link");
+    await pausa(450);
+    await capturar(pagina, "home · header desktop, hover");
+    await pagina.setViewport(CELULAR);
+    await pagina.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+    await assentar(pagina);
+    await clicarVisivel(pagina, "[data-menu-alternar]");
+    const menu = await pagina.evaluate(() => ({
+      expandido: document.querySelector("[data-menu-alternar]").getAttribute("aria-expanded"),
+      visivel: !document.getElementById("menu-celular").hidden,
+      semIcone: !document.querySelector(".header-flutuante .material-symbols-outlined")
+    }));
+    conferir("home (celular): Menu abre o painel, informa aria-expanded, e o header não tem ícones", menu.expandido === "true" && menu.visivel && menu.semIcone, JSON.stringify(menu));
+    await axe(pagina, "home (celular) · menu aberto");
+    await pagina.keyboard.press("Escape");
+    await pausa(200);
+    const menu2 = await pagina.evaluate(() => ({
+      fechado: document.getElementById("menu-celular").hidden,
+      foco: document.activeElement?.hasAttribute("data-menu-alternar"),
+      expandido: document.querySelector("[data-menu-alternar]").getAttribute("aria-expanded")
+    }));
+    conferir("home (celular): Esc fecha o menu e devolve o foco ao botão", menu2.fechado && menu2.foco && menu2.expandido === "false", JSON.stringify(menu2));
+    await pagina.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await pausa(500);
+    await capturar(pagina, "home (celular) · footer");
+    await pagina.setViewport(DESKTOP);
+
     for (const [caminho, rotulo] of [["/", "home"], ["/login", "login"], ["/cadastro", "cadastro"], ["/recuperar-senha", "recuperar senha"], ["/privacidade", "privacidade"]]) {
       await rodarLighthouse(navegador, caminho, rotulo);
     }
@@ -372,6 +434,13 @@ async function principal() {
     await pagina.setViewport(DESKTOP);
     await entrar(pagina, "presidente@shinerio.com");
     await visitar(pagina, "/gestao", "painel de gestão (desktop)");
+    // Hovers do painel (fio dourado no cartão de ação e na linha da tabela) — só captura.
+    await pagina.hover('[data-nova-acao="advertencia"]');
+    await pausa(500);
+    await capturar(pagina, "gestão · hover em ação rápida");
+    await pagina.hover("#corpo-diretorio tr");
+    await pausa(400);
+    await capturar(pagina, "gestão · hover em linha da tabela");
     await auditarModal(pagina, "gestão · modal nova ação", `[data-nova-acao="falta"]`, "modal-nova-acao");
     await auditarModal(pagina, "gestão · modal novo colaborador", `[data-abrir-modal="modal-novo-colaborador"]`, "modal-novo-colaborador");
     await auditarModal(pagina, "gestão · modal log", `[data-abrir-modal="modal-log"]`, "modal-log");
