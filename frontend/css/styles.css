@@ -23,10 +23,23 @@
      pra ler bem passando sobre fundo preto), mirando ~4.5:1 de contraste. */
   --shinatal-preto: #121212;
   --shinatal-red-festivo: #E1495A;
+  /* Tons calculados para contraste (WCAG 2.2 AA) — ver docs/ACESSIBILIDADE.md:
+     - ouro-texto: o dourado da marca (#B08D2F) só chega a 3:1 no claro; para TEXTO pequeno sobre
+       fundo claro usa-se esta versão mais funda (5,8:1 no marfim). O dourado vivo continua em
+       números grandes, ícones decorativos e sobre fundos escuros.
+     - borda-campo: contorno de campos de formulário com 3:1 sobre branco (1.4.11).
+     - placeholder: 4,9:1 sobre branco. */
+  --shinatal-ouro-texto: #7A5C22;
+  --shinatal-borda-campo: #948A72;
+  --shinatal-placeholder: #7A7060;
 }
 
 html {
-  scroll-behavior: smooth;
+  /* Âncoras e foco nunca ficam escondidos atrás do header fixo (WCAG 2.4.11). */
+  scroll-padding-top: calc(var(--altura-header, 3.5rem) + 1rem);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }
 
 /* Evita que o texto literal da ligature (ex.: "login", "person_add") force largura extra nos
@@ -36,6 +49,10 @@ html {
   overflow: hidden;
   white-space: nowrap;
 }
+/* O display acima vem DEPOIS do tailwind.css e tem a mesma especificidade de `.hidden`, então
+   anulava o `hidden` de qualquer ícone — o spinner dos botões "Entrar"/"Criar cadastro" ficava
+   sempre visível, girando sem ninguém ter clicado. */
+.material-symbols-outlined.hidden { display: none; }
 
 body {
   font-family: "Inter", sans-serif;
@@ -199,7 +216,10 @@ h1, h2, h3, .font-display {
    o scroll avança pela altura reservada dele, e a seção seguinte (#sobre-nos, z-index
    maior e fundo opaco) sobe por cima — o efeito de "página subindo sobre o hero" só
    na home. Ver #sobre-nos logo abaixo de "Quem somos" no HTML. */
+/* O poster (primeiro quadro do vídeo atual) também é o fundo da seção: se o aparelho não
+   conseguir abrir o vídeo, ou enquanto ele não começa, é essa imagem que aparece. */
 .secao-hero-video {
+  background: var(--shinatal-verde-900) url("../assets/hero-poster-v2.webp") center / cover no-repeat;
   position: sticky;
   top: 0;
   isolation: isolate;
@@ -316,8 +336,24 @@ h1, h2, h3, .font-display {
    visual (marca d'água do Pão de Açúcar) intacta, só sem o Ken Burns. */
 html.modo-leve #bg-pao-acucar { animation: none; }
 
+/* iteration-count: 1 — só encurtar a duração deixava as animações `infinite` (skeleton, splash)
+   reiniciando a cada quadro, um tremor pior que a animação original. */
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Pausa pedida pelo usuário (botão "Pausar animações" da home — WCAG 2.2.2: todo movimento
+   automático com mais de 5 s precisa de um jeito de parar). O vídeo é pausado por JS. */
+html.movimento-pausado .faixa-fotos-pista,
+html.movimento-pausado .faixa-valores-pista,
+html.movimento-pausado .barra-shinatal-pista,
+html.movimento-pausado #bg-pao-acucar {
+  animation-play-state: paused !important;
 }
 
 /* ---------- Header fixo, quadrado e translúcido ---------- */
@@ -370,6 +406,9 @@ html.modo-leve .header-flutuante { backdrop-filter: none; -webkit-backdrop-filte
   border-color: rgba(255, 255, 255, 0.75);
   color: #fff;
 }
+/* Os atalhos do celular forçam a cor vinho com !important (classe utilitária); sobre o vídeo
+   escuro isso dava ~1,5:1. Enquanto o cabeçalho está transparente, ficam brancos. */
+.header-flutuante.header-transparente .btn-fantasma[class*="text-christmas-red"] { color: #fff !important; }
 .header-flutuante.header-transparente .btn-fantasma:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: #fff;
@@ -422,7 +461,7 @@ html.modo-leve .header-flutuante.header-transparente {
 
 /* ---------- Abas dentro do modal de Contrato Empresarial ---------- */
 .tab-contrato {
-  color: #8A7F68;
+  color: var(--shinatal-ink-muted);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.2s ease, border-color 0.2s ease;
@@ -441,7 +480,7 @@ html.modo-leve .header-flutuante.header-transparente {
 }
 
 .dock-item {
-  color: #8A7F68;
+  color: var(--shinatal-ink-muted);
   transition: all 0.15s ease;
 }
 .dock-item.nav-ativo {
@@ -456,9 +495,15 @@ html.modo-leve .header-flutuante.header-transparente {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  color: var(--shinatal-ouro-texto);
+}
+/* O dourado vivo + sombra só valem sobre o vídeo escuro do hero; no marfim das outras páginas
+   (login) o mesmo dourado ficava em 2,9:1. */
+.secao-hero-video .selo-premiacao {
   color: var(--shinatal-gold);
   text-shadow: 0 1px 3px rgba(3, 23, 13, 0.55), 0 0 18px rgba(176, 141, 47, 0.35);
 }
+.text-ouro-legivel { color: var(--shinatal-ouro-texto); }
 
 /* ---------- Entrada de texto ao carregar a página ---------- */
 @keyframes entrada-texto {
@@ -699,19 +744,32 @@ html.modo-leve .header-flutuante.header-transparente {
   gap: 0.5rem;
   margin-top: 1.25rem;
 }
+/* O botão tem 24×24 px de área de toque (WCAG 2.5.8); o ponto visível é o ::before, que mantém
+   o desenho delicado de antes. Cores com 3:1 sobre o bege (antes 1,1:1 — invisível). */
 .carrossel-ponto {
-  width: 0.5rem;
-  height: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 9999px;
-  background: var(--shinatal-borda);
+  background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
+  transition: width 0.25s ease;
+}
+.carrossel-ponto::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #8A7F68;
   transition: width 0.25s ease, background-color 0.25s ease;
 }
-.carrossel-ponto.is-ativo {
+.carrossel-ponto.is-ativo { width: 2.25rem; }
+.carrossel-ponto.is-ativo::before {
   width: 1.5rem;
-  background: var(--shinatal-gold);
+  background: var(--shinatal-ouro-texto);
 }
 
 /* ---------- Carrossel vertical "Nossos valores" (loop infinito, fade perto do título) ---------- */
@@ -845,19 +903,36 @@ a.footer-icone:hover {
 .input-shinatal {
   width: 100%;
   background: var(--shinatal-surface);
-  border: 1px solid var(--shinatal-borda);
+  border: 1px solid var(--shinatal-borda-campo);
   border-radius: 0.75rem;
   padding: 0.65rem 1rem 0.65rem 2.5rem;
   font-size: 16px;
   color: var(--shinatal-ink);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.input-shinatal:hover:not(:disabled):not(:focus) { border-color: var(--shinatal-ink-muted); }
+/* Foco: borda verde + anel dourado opaco. O anel anterior (verde a 12%) quase não aparecia. */
 .input-shinatal:focus {
-  outline: none;
+  outline: 2px solid transparent; /* visível no modo de alto contraste do sistema */
   border-color: var(--shinatal-primary);
-  box-shadow: 0 0 0 3px rgba(14, 59, 46, 0.12);
+  box-shadow: 0 0 0 1px var(--shinatal-primary), 0 0 0 4px var(--shinatal-gold-soft);
 }
-.input-shinatal::placeholder { color: #A69A82; }
+.input-shinatal::placeholder { color: var(--shinatal-placeholder); opacity: 1; }
+/* Campo recusado na validação (aria-invalid posto por js/acessibilidade.js). */
+.input-shinatal[aria-invalid="true"] {
+  border-color: var(--shinatal-red);
+  box-shadow: 0 0 0 1px var(--shinatal-red);
+}
+/* <select>: seta própria no lugar da nativa (que varia de sistema para sistema). */
+select.input-shinatal {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235C5344' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-primary); }
 .input-shinatal:disabled {
   background: rgba(0, 0, 0, 0.04);
   color: #7A7060;
@@ -912,9 +987,13 @@ a.footer-icone:hover {
 .btn-fantasma:active { transform: translateY(0) scale(0.98); }
 
 /* ---------- Scrollbar discreta ---------- */
+html { scrollbar-color: #C9BEA2 transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--shinatal-borda); border-radius: 9999px; }
+::-webkit-scrollbar-thumb { background: #C9BEA2; border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--shinatal-borda-campo); }
 ::-webkit-scrollbar-track { background: transparent; }
+
+::selection { background: var(--shinatal-gold-soft); color: var(--shinatal-ink); }
 
 /* ---------- Toast ---------- */
 @keyframes toast-in {
@@ -922,10 +1001,134 @@ a.footer-icone:hover {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Foco visível para acessibilidade ---------- */
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+/* ---------- Foco visível (WCAG 2.4.7 / 2.4.13) ----------
+   Filete duplo: verde por dentro, dourado claro por fora. Um dos dois sempre contrasta — o verde
+   no marfim/branco (12:1), o dourado claro no rodapé e no hero escuros (13:1) — então o mesmo
+   desenho serve à página inteira, sem variante por fundo. Só aparece na navegação por teclado
+   (:focus-visible); clique de mouse não o dispara. */
+:where(a, button, select, summary, [tabindex], [role="button"], [role="tab"]):focus-visible {
   outline: 2px solid var(--shinatal-primary);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--shinatal-gold-soft), 0 0 0 5px var(--shinatal-gold-soft);
+  border-radius: 0.5rem;
+}
+/* (:where tem especificidade zero: quem já define o próprio border-radius — botões, ícones
+   redondos — mantém a forma; o raio acima só vale para links e botões "crus".) */
+/* Destino do "Pular para o conteúdo": recebe foco por script, não precisa de moldura. */
+main:focus { outline: none; box-shadow: none; }
+
+/* Modo de alto contraste do sistema (Windows): cores do autor são descartadas, então o foco
+   precisa ser um outline de verdade e os ícones-botão ganham contorno. */
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid Highlight; box-shadow: none; }
+  .btn-primario, .btn-fantasma, .input-shinatal { border: 1px solid ButtonText; }
+}
+
+/* Enfeites em texto (o "404" gigante): conteúdo gerado, fora da árvore de leitura. */
+.enfeite-texto::before { content: attr(data-texto); }
+
+/* Foco do <input type="file"> invisível, espelhado no rótulo redondo (ver js/acessibilidade.js). */
+label.foco-espelhado {
+  outline: 2px solid var(--shinatal-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--shinatal-gold-soft), 0 0 0 5px var(--shinatal-gold-soft);
+}
+
+/* ---------- "Pular para o conteúdo" (WCAG 2.4.1) ----------
+   Primeiro elemento focável de toda página; fica fora da tela até receber foco pelo teclado. */
+.pular-conteudo {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10000;
+  padding: 0.7rem 1.15rem;
+  background: var(--shinatal-verde-escuro);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 28px rgba(3, 23, 13, 0.3);
+  transform: translateY(-220%);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pular-conteudo:focus { transform: translateY(0); }
+
+/* ---------- Refinamento tipográfico ----------
+   Títulos equilibram as linhas (sem palavra órfã na última), parágrafos evitam viúvas; valores
+   em dinheiro e colunas numéricas usam algarismos alinhados e de largura fixa, para que os
+   números não "dancem" enquanto animam e as colunas fechem em linha. */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3 { text-wrap: balance; letter-spacing: -0.012em; }
+p, li { text-wrap: pretty; }
+.text-gradiente-valor, .valor-colaboradores-destaque, table, input[type="number"],
+#sim-atual, #sim-simulada, #valor-fundo-total, [id^="qtd-"], [id^="ce-preview-"] {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* ---------- Modais ----------
+   Entrada curta (o painel assenta, o fundo esmaece) — movimento que responde a uma ação do
+   usuário; some com prefers-reduced-motion pela regra global. */
+@keyframes modal-fundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-painel {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+[role="dialog"].flex, [role="alertdialog"] { animation: modal-fundo 0.18s ease-out both; }
+[role="dialog"].flex > div, .painel-confirmacao {
+  animation: modal-painel 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 24px 60px rgba(3, 23, 13, 0.22), 0 4px 12px rgba(3, 23, 13, 0.08);
+}
+/* Botão de fechar: área de toque de 36 px e estado de hover próprio (antes era só o ícone). */
+[data-fechar-modal] {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+[data-fechar-modal]:hover { background: rgba(110, 36, 48, 0.08); }
+
+/* ---------- Tabela do diretório ---------- */
+tbody tr { transition: background-color 0.15s ease; }
+caption.sr-only { caption-side: top; }
+
+/* ---------- Controle de movimento do hero (home) ---------- */
+.botao-movimento {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding: 0 1rem 0 0.75rem;
+  border-radius: 9999px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(3, 23, 13, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.botao-movimento:hover { background: rgba(3, 23, 13, 0.75); border-color: #fff; }
+@media (max-width: 639px) {
+  .botao-movimento { padding: 0; width: 2.75rem; justify-content: center; }
+  .botao-movimento .botao-movimento-texto { display: none; }
+}
+/* Quem pede menos movimento já recebe tudo parado — não há o que pausar. */
+@media (prefers-reduced-motion: reduce) { .botao-movimento { display: none; } }
+
+/* Splash: com movimento reduzido as letras aparecem fixas (a animação terminava em opacity 0). */
+@media (prefers-reduced-motion: reduce) {
+  .tela-carregamento-letra { opacity: 1; animation: none !important; }
+  .tela-carregamento-glow::before { animation: none !important; opacity: 0; }
 }
 
 /* Safe-area para dock inferior em iOS */

@@ -36,7 +36,7 @@ module.exports = {
         "surface-container-lowest": "#ffffff",
         "on-tertiary-container": "#5C4620",
         "surface": "#FAF6EE",
-        "outline": "#8A7F68",
+        "outline": "#72685A",
         "secondary-fixed-dim": "#c8b89d",
         "secondary-fixed": "#e9e3d8",
         "on-error-container": "#5A1620",

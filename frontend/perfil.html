@@ -10,8 +10,11 @@
 <link rel="stylesheet" href="css/tailwind.css" />
 <link rel="stylesheet" href="css/styles.css" />
 <script type="module" src="js/perf-adaptativo.js"></script>
+<script type="module" src="js/acessibilidade.js"></script>
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+
+<a class="pular-conteudo" href="#topo">Pular para o conteúdo</a>
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -62,10 +65,10 @@
     </div>
     <div class="flex items-center gap-4 shrink-0">
       <a data-link-voltar href="/login" class="font-body text-label-sm text-primary hover:underline inline-flex items-center gap-1 whitespace-nowrap">
-        <span class="material-symbols-outlined text-base">arrow_back</span> Voltar ao painel
+        <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span> Voltar ao painel
       </a>
-      <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
-        <span class="material-symbols-outlined">logout</span>
+      <button id="btn-sair-desktop" title="Sair" aria-label="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>
       </button>
     </div>
   </div>
@@ -74,17 +77,17 @@
 <!-- ===== Header mobile ===== -->
 <header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
   <a data-link-voltar href="/login" class="flex items-center gap-1 text-primary" aria-label="Voltar ao painel">
-    <span class="material-symbols-outlined text-lg">arrow_back</span>
+    <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
     <span class="font-body text-label-sm">Voltar</span>
   </a>
   <span class="font-display text-label-md text-on-surface">Meu perfil</span>
-  <button id="btn-sair-mobile" title="Sair" class="text-on-surface-variant">
-    <span class="material-symbols-outlined">logout</span>
+  <button id="btn-sair-mobile" title="Sair" aria-label="Sair" class="text-on-surface-variant">
+    <span class="material-symbols-outlined" aria-hidden="true">logout</span>
   </button>
 </header>
 
 <!-- ===== Conteúdo principal — coluna única, ordem fixa (foto/dados → segurança → histórico+conduta) ===== -->
-<main id="topo" class="w-full max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1">
+<main id="topo" class="w-full max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1" tabindex="-1">
 
   <header class="mb-2 conteudo-sobre-fundo anim-entrada anim-entrada-1">
     <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-on-surface">Meu perfil</h1>
@@ -95,10 +98,10 @@
   <div class="glass-card-active rounded-xl p-6 flex flex-col sm:flex-row items-center gap-6 anim-entrada anim-entrada-2">
     <div class="relative shrink-0">
       <div id="avatar-perfil" class="w-28 h-28 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-3xl overflow-hidden">?</div>
-      <label for="input-foto-perfil" title="Trocar foto" aria-label="Trocar foto de perfil" class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-9 h-9 flex items-center justify-center cursor-pointer shadow-md hover:bg-on-primary-container transition-colors">
-        <span class="material-symbols-outlined text-lg">edit</span>
+      <label for="input-foto-perfil" title="Trocar foto" class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-9 h-9 flex items-center justify-center cursor-pointer shadow-md hover:bg-on-primary-container transition-colors">
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">edit</span>
       </label>
-      <input type="file" id="input-foto-perfil" accept="image/*" class="hidden" />
+      <input type="file" id="input-foto-perfil" accept="image/*" class="sr-only" aria-label="Trocar foto de perfil" />
     </div>
     <div class="text-center sm:text-left">
       <h2 id="perfil-nome" class="font-display text-headline-md text-on-surface">—</h2>
@@ -111,13 +114,13 @@
   <!-- Segurança (trocar senha) -->
   <div class="glass-panel rounded-xl p-6 anim-entrada anim-entrada-3">
     <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary">lock</span> Segurança
+      <span class="material-symbols-outlined text-primary" aria-hidden="true">lock</span> Segurança
     </h3>
     <p class="font-body text-label-sm text-on-surface-variant mb-4">
       Vamos enviar um link seguro para o seu e-mail institucional para você criar uma nova senha.
     </p>
     <button id="btn-trocar-senha" class="btn-fantasma w-full flex items-center justify-center gap-2">
-      <span class="material-symbols-outlined text-lg">mail</span> Enviar link para trocar senha
+      <span class="material-symbols-outlined text-lg" aria-hidden="true">mail</span> Enviar link para trocar senha
     </button>
   </div>
 
@@ -130,16 +133,16 @@
 <footer class="footer-shinatal mt-4">
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-      <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="h-7 w-auto footer-logo-invertido" />
         <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
       </a>
       <div class="flex items-center gap-2.5">
         <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         </a>
         <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
         </a>
       </div>
       <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal</p>

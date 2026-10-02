@@ -7,7 +7,7 @@ import { exigirAutenticacao, fazerLogout } from "./auth.js";
 import {
   formatarMoeda, formatarData, mostrarToast,
   alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
-  construirAvatarHTML
+  construirAvatarHTML, preencherAvatarLink
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { ROTULOS_CONCEITO } from "./perfil-view.js";
@@ -67,7 +67,7 @@ function renderizarPerfil(p) {
   const avatarHtml = construirAvatarHTML(p);
 
   document.getElementById("avatar-desktop").innerHTML = avatarHtml;
-  document.getElementById("avatar-mobile").innerHTML = avatarHtml;
+  preencherAvatarLink(document.getElementById("avatar-mobile"), p);
   document.getElementById("nome-desktop").textContent = (p.nome || "Perfil").split(" ")[0];
 
   document.getElementById("saudacao-nome").textContent = `Bem-vindo(a), ${(p.nome || "").split(" ")[0] || "colaborador(a)"}!`;
@@ -86,7 +86,7 @@ function aplicarBadge(idValor, idBadge, qtd, limiteAtencao) {
   const b = badge(qtd, limiteAtencao);
   const el = document.getElementById(idBadge);
   el.className = `px-3 py-1 rounded-full flex items-center gap-1 ${b.classe}`;
-  el.innerHTML = `<span class="material-symbols-outlined text-sm">${b.icone}</span><span class="font-body text-label-sm">${b.texto}</span>`;
+  el.innerHTML = `<span class="material-symbols-outlined text-sm" aria-hidden="true">${b.icone}</span><span class="font-body text-label-sm">${b.texto}</span>`;
 }
 
 function renderizarCota(resultado) {
@@ -97,13 +97,13 @@ function renderizarCota(resultado) {
   const statusEl = document.getElementById("badge-status-cota");
   if (!resultado.elegivel) {
     statusEl.className = "mt-5 flex items-center gap-2 bg-error-container px-4 py-2 rounded-full border border-white/50";
-    statusEl.innerHTML = `<span class="material-symbols-outlined text-on-error-container text-base">block</span><span class="font-body text-label-sm text-on-error-container font-semibold">Inelegível: ${resultado.motivoInelegibilidade}</span>`;
+    statusEl.innerHTML = `<span class="material-symbols-outlined text-on-error-container text-base" aria-hidden="true">block</span><span class="font-body text-label-sm text-on-error-container font-semibold">Inelegível: ${resultado.motivoInelegibilidade}</span>`;
   } else if (resultado.percentualAdicionais > 0) {
     statusEl.className = "mt-5 flex items-center gap-2 bg-festive-gold/20 px-4 py-2 rounded-full border border-white/50";
-    statusEl.innerHTML = `<span class="material-symbols-outlined text-tertiary text-base">military_tech</span><span class="font-body text-label-sm text-tertiary font-semibold">Bônus/avaliação aplicados (+${(resultado.percentualAdicionais * 100).toFixed(0)}%)</span>`;
+    statusEl.innerHTML = `<span class="material-symbols-outlined text-tertiary text-base" aria-hidden="true">military_tech</span><span class="font-body text-label-sm text-tertiary font-semibold">Bônus/avaliação aplicados (+${(resultado.percentualAdicionais * 100).toFixed(0)}%)</span>`;
   } else {
     statusEl.className = "mt-5 flex items-center gap-2 bg-surface-glass px-4 py-2 rounded-full border border-white/50";
-    statusEl.innerHTML = `<span class="material-symbols-outlined text-secondary text-base">trending_up</span><span class="font-body text-label-sm text-secondary font-semibold">Projeção atual</span>`;
+    statusEl.innerHTML = `<span class="material-symbols-outlined text-secondary text-base" aria-hidden="true">trending_up</span><span class="font-body text-label-sm text-secondary font-semibold">Projeção atual</span>`;
   }
 
   aplicarBadge("qtd-faltas", "badge-faltas", resultado.numeroFaltas, 2);
@@ -186,7 +186,7 @@ function renderModalConduta() {
           <p class="text-on-surface font-medium">${escaparHTML(u.primeiroNome || (u.nome || "").split(" ")[0]) || "—"}</p>
           <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
         </div>
-        <select data-votar-conduta="${u.uid}" class="input-shinatal !pl-3 !py-1.5 w-40">
+        <select data-votar-conduta="${u.uid}" aria-label="Avaliar ${escaparHTML(u.primeiroNome || (u.nome || "").split(" ")[0]) || "colega"}" class="input-shinatal !pl-3 !py-1.5 w-40">
           <option value="">Avaliar...</option>
           ${["excelente", "bom", "regular", "insatisfatorio"].map((c) =>
             `<option value="${c}" ${condutaMeusVotos[u.uid] === c ? "selected" : ""}>${ROTULOS_CONCEITO[c]}</option>`).join("")}

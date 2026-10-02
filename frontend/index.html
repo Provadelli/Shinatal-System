@@ -29,8 +29,11 @@
     #card-fundo::after { display: none; }
   }
 </style>
+<script type="module" src="js/acessibilidade.js"></script>
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-clip">
+
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -71,36 +74,36 @@
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <!-- ===================== HEADER FIXO (desktop: opções centralizadas) ===================== -->
-<nav class="header-flutuante header-transparente hidden md:flex">
+<nav aria-label="Principal" class="header-flutuante header-transparente hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
+    <a href="/" class="flex items-center gap-2.5 shrink-0">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-8 w-auto" />
         <span class="font-body text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
 
     <div class="flex-1 min-w-0 flex items-center justify-center gap-3 lg:gap-6 overflow-x-auto">
       <a href="#sobre-nos" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg">history_edu</span> Quem somos
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">history_edu</span> Quem somos
       </a>
       <a href="#sobre-shinatal" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg">menu_book</span> Sobre
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">menu_book</span> Sobre
       </a>
       <a href="#como-funciona" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg">checklist</span> Como funciona
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">checklist</span> Como funciona
       </a>
       <a href="#nossos-valores" class="nav-link font-body text-label-md py-1 flex items-center gap-1.5 whitespace-nowrap shrink-0">
-        <span class="material-symbols-outlined text-lg">workspace_premium</span> Valores
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">workspace_premium</span> Valores
       </a>
     </div>
 
     <div class="flex items-center gap-2.5 shrink-0">
       <a href="/login" class="btn-fantasma !py-2 !px-4 flex items-center gap-1.5 text-sm whitespace-nowrap">
-        <span class="material-symbols-outlined text-lg">login</span> Login
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span> Login
       </a>
       <a href="/cadastro" class="btn-primario !py-2 !px-4 flex items-center gap-1.5 text-sm whitespace-nowrap">
-        <span class="material-symbols-outlined text-lg">person_add</span> Cadastro
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span> Cadastro
       </a>
     </div>
   </div>
@@ -109,49 +112,53 @@
 <!-- ===================== HEADER FIXO (mobile) ===================== -->
 <header class="header-flutuante header-transparente md:hidden">
   <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5 shrink-0" aria-label="Página inicial do Shinatal">
+    <a href="/" class="flex items-center gap-2.5 shrink-0">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-7 w-auto" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-7 w-auto" />
         <span class="font-body text-[9px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
 
-    <nav class="flex items-center gap-1 sm:gap-2 min-w-0 overflow-x-auto">
+    <nav aria-label="Principal" class="flex items-center gap-1 sm:gap-2 min-w-0 overflow-x-auto">
       <a href="#sobre-nos" title="Quem somos" aria-label="Quem somos" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg">history_edu</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">history_edu</span>
       </a>
       <a href="#sobre-shinatal" title="Sobre" aria-label="Sobre" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg">menu_book</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">menu_book</span>
       </a>
       <a href="#como-funciona" title="Como funciona" aria-label="Como funciona" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg">checklist</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">checklist</span>
       </a>
       <a href="#nossos-valores" title="Valores" aria-label="Valores" class="btn-fantasma !border-0 !py-2 !px-2.5 flex items-center !text-christmas-red">
-        <span class="material-symbols-outlined text-lg">workspace_premium</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">workspace_premium</span>
       </a>
       <a href="/login" title="Login" aria-label="Login" class="btn-fantasma !py-2 !px-3 flex items-center">
-        <span class="material-symbols-outlined text-lg">login</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
       </a>
       <a href="/cadastro" title="Criar cadastro" aria-label="Criar cadastro" class="btn-primario !py-2 !px-3 flex items-center">
-        <span class="material-symbols-outlined text-lg">person_add</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
       </a>
     </nav>
   </div>
 </header>
 
 <!-- ===================== HERO ===================== -->
-<main class="relative z-10">
+<main id="conteudo" class="relative z-10" tabindex="-1">
   <span id="sentinela-header-scroll" aria-hidden="true" class="block h-px w-full"></span>
   <section class="secao-hero-video flex items-center">
-    <video id="video-hero" poster="assets/hero-poster.webp" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
+    <video id="video-hero" data-video-fundo poster="assets/hero-poster-v2.webp" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
       <source src="assets/background-video.mp4" type="video/mp4" />
     </video>
+    <button type="button" data-pausar-movimento aria-pressed="false" aria-label="Pausar animações da página" class="botao-movimento">
+      <span class="material-symbols-outlined text-xl" aria-hidden="true">pause</span>
+      <span class="botao-movimento-texto">Pausar animações</span>
+    </button>
 
     <div class="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-10 items-center">
 
       <div class="flex flex-col items-start space-y-6">
         <p class="selo-premiacao font-display text-label-sm font-semibold uppercase tracking-widest anim-entrada anim-entrada-1">
-          <span class="material-symbols-outlined text-base text-festive-gold">celebration</span> Programa de Premiação voluntária 2026
+          <span class="material-symbols-outlined text-base text-festive-gold" aria-hidden="true">celebration</span> Programa de Premiação voluntária 2026
         </p>
         <h1 class="font-display text-headline-lg-mobile md:text-headline-xl leading-[1.05] text-white anim-entrada anim-entrada-2">
           Bem-vindo ao<br /><img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-10 sm:h-12 md:h-16 w-auto inline-block align-middle mt-1" />
@@ -167,14 +174,14 @@
 
         <div class="flex flex-wrap gap-3 pt-2 anim-entrada anim-entrada-4">
           <a href="/login" class="btn-primario flex items-center gap-2">
-            <span class="material-symbols-outlined text-xl">login</span> Fazer login
+            <span class="material-symbols-outlined text-xl" aria-hidden="true">login</span> Fazer login
           </a>
           <a href="/cadastro" class="btn-fantasma !border-white/70 !text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-xl">person_add</span> Criar cadastro
+            <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span> Criar cadastro
           </a>
           <a href="#como-funciona" class="font-body text-label-sm !text-festive-gold hover:underline inline-flex items-center gap-1 px-2">
             Como funciona o Shinatal
-            <span class="material-symbols-outlined text-base">arrow_forward</span>
+            <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
           </a>
         </div>
       </div>
@@ -184,7 +191,7 @@
         <div id="card-fundo" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">
           <div class="absolute top-0 left-0 right-0 h-1.5" style="background: linear-gradient(90deg, var(--shinatal-red) 0%, var(--shinatal-red) 65%, var(--shinatal-gold) 100%);"></div>
           <p id="fundo-rotulo" class="font-premium text-on-surface-variant mb-5 relative flex items-center justify-center gap-2 text-base sm:text-lg">
-            <span class="material-symbols-outlined not-italic text-festive-gold text-lg">savings</span>
+            <span class="material-symbols-outlined not-italic text-festive-gold text-lg" aria-hidden="true">savings</span>
             <span id="fundo-rotulo-texto">Fundo Shinatal</span>
           </p>
 
@@ -198,7 +205,7 @@
 
           <div id="qtd-colaboradores" class="mt-6 relative flex flex-col items-center gap-1">
             <p id="qtd-colaboradores-ano" class="font-body text-body-md text-on-surface-variant flex items-center justify-center gap-2">
-              <span class="material-symbols-outlined text-primary text-xl">groups</span>
+              <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">groups</span>
               <span class="skeleton inline-block w-56 h-5 align-middle rounded"></span>
             </p>
             <p id="qtd-colaboradores-total" class="font-body text-label-sm text-on-surface-variant">
@@ -252,8 +259,8 @@
         <p class="font-body text-label-sm text-outline mt-3 text-center">O espírito de celebração e gratidão que move o Shinatal.</p>
       </div>
       <div class="order-1 md:order-2">
-        <p class="font-display text-label-md text-festive-gold uppercase tracking-widest mb-2 flex items-center gap-2">
-          <span class="material-symbols-outlined text-base">history_edu</span> Nossa história
+        <p class="font-display text-label-md text-ouro-legivel uppercase tracking-widest mb-2 flex items-center gap-2">
+          <span class="material-symbols-outlined text-base" aria-hidden="true">history_edu</span> Nossa história
         </p>
         <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-4">Quem somos</h2>
         <p class="font-body text-body-lg text-on-surface-variant mb-4">
@@ -281,7 +288,7 @@
   <section id="sobre-shinatal" class="fundo-verde-dourado relative overflow-hidden py-14 md:py-20 scroll-mt-24">
     <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
       <p class="font-display text-label-md text-festive-gold uppercase tracking-widest mb-2 flex items-center gap-2">
-        <span class="material-symbols-outlined text-base">menu_book</span> Sobre o Shinatal
+        <span class="material-symbols-outlined text-base" aria-hidden="true">menu_book</span> Sobre o Shinatal
       </p>
       <h2 class="font-display text-headline-lg-mobile md:text-headline-lg text-white mb-4">O espírito da celebração</h2>
       <div class="max-w-2xl">
@@ -333,38 +340,38 @@
     <div data-reveal class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
       <h2 class="font-display text-headline-lg-mobile md:text-headline-lg mb-6">Como funciona o programa</h2>
 
-      <div class="carrossel-etapas" data-carrossel-etapas>
-        <div class="carrossel-etapas-pista">
+      <div class="carrossel-etapas" data-carrossel-etapas role="group" aria-roledescription="carrossel" aria-label="Como funciona o programa, em 4 etapas">
+        <div class="carrossel-etapas-pista" tabindex="0" role="group" aria-label="Etapas (use as setas do teclado para percorrer)">
           <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-secondary">
             <span class="carrossel-etapas-icone bg-secondary/10 text-secondary">
-              <span class="material-symbols-outlined">redeem</span>
+              <span class="material-symbols-outlined" aria-hidden="true">redeem</span>
             </span>
             <p class="carrossel-etapas-texto">Fundo formado a cada novo contrato fechado pela Shine Rio.</p>
           </article>
           <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-rio-deep-blue">
             <span class="carrossel-etapas-icone bg-rio-deep-blue/10 text-rio-deep-blue">
-              <span class="material-symbols-outlined">groups</span>
+              <span class="material-symbols-outlined" aria-hidden="true">groups</span>
             </span>
             <p class="carrossel-etapas-texto">Participam todos os funcionários orgânicos alocados no escritório administrativo da empresa.</p>
           </article>
           <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-festive-gold">
             <span class="carrossel-etapas-icone bg-festive-gold/15 text-tertiary">
-              <span class="material-symbols-outlined">check_circle</span>
+              <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
             </span>
             <p class="carrossel-etapas-texto">Assiduidade e bom desempenho contam pontos a seu favor.</p>
           </article>
           <article class="carrossel-etapas-slide cartao-info glass-card-active rounded-lg border-t-4 border-t-primary">
             <span class="carrossel-etapas-icone bg-primary/10 text-primary">
-              <span class="material-symbols-outlined">event_available</span>
+              <span class="material-symbols-outlined" aria-hidden="true">event_available</span>
             </span>
             <p class="carrossel-etapas-texto">Pagamento em parcela única, preferencialmente em dezembro.</p>
           </article>
         </div>
         <button type="button" class="carrossel-seta carrossel-seta-prev" aria-label="Etapa anterior">
-          <span class="material-symbols-outlined">chevron_left</span>
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
         </button>
         <button type="button" class="carrossel-seta carrossel-seta-next" aria-label="Próxima etapa">
-          <span class="material-symbols-outlined">chevron_right</span>
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </button>
         <div class="carrossel-etapas-indicadores">
           <button type="button" class="carrossel-ponto is-ativo" aria-label="Ir para etapa 1"></button>
@@ -384,7 +391,7 @@
             <div class="faixa-valores-grupo">
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
                 <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">workspace_premium</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">workspace_premium</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Compromisso e reconhecimento</p>
@@ -393,7 +400,7 @@
               </div>
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
                 <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">diversity_3</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">diversity_3</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Qualidade que gera resultados</p>
@@ -404,7 +411,7 @@
             <div class="faixa-valores-grupo" aria-hidden="true">
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-primary">
                 <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">workspace_premium</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">workspace_premium</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Compromisso e reconhecimento</p>
@@ -413,7 +420,7 @@
               </div>
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-rio-deep-blue">
                 <span class="w-10 h-10 rounded-full bg-rio-deep-blue/10 text-rio-deep-blue flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">diversity_3</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">diversity_3</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Qualidade que gera resultados</p>
@@ -428,7 +435,7 @@
             <div class="faixa-valores-grupo">
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
                 <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">trending_up</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">trending_up</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Crescimento conjunto</p>
@@ -437,7 +444,7 @@
               </div>
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
                 <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">redeem</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">redeem</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Participação de todos</p>
@@ -448,7 +455,7 @@
             <div class="faixa-valores-grupo" aria-hidden="true">
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-festive-gold">
                 <span class="w-10 h-10 rounded-full bg-festive-gold/15 text-tertiary flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">trending_up</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">trending_up</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Crescimento conjunto</p>
@@ -457,7 +464,7 @@
               </div>
               <div class="cartao-info glass-card-active rounded-lg p-5 flex flex-col items-start gap-3 border-t-4 border-t-christmas-red">
                 <span class="w-10 h-10 rounded-full bg-christmas-red/10 text-christmas-red flex items-center justify-center">
-                  <span class="material-symbols-outlined text-xl">redeem</span>
+                  <span class="material-symbols-outlined text-xl" aria-hidden="true">redeem</span>
                 </span>
                 <div>
                   <p class="font-body font-bold text-on-surface text-body-md mb-1">Participação de todos</p>
@@ -488,7 +495,7 @@
 
       <div class="text-center sm:text-left">
         <p class="font-display text-label-md text-white uppercase tracking-widest mb-4">Navegação</p>
-        <nav class="flex flex-col items-center sm:items-start gap-2.5">
+        <nav aria-label="Rodapé" class="flex flex-col items-center sm:items-start gap-2.5">
           <a href="/" class="footer-nav-link">Início</a>
           <a href="#sobre-nos" class="footer-nav-link">Quem somos</a>
           <a href="#sobre-shinatal" class="footer-nav-link">Sobre o Shinatal</a>
@@ -504,11 +511,11 @@
         <p class="font-display text-label-md text-white uppercase tracking-widest mb-4">Fale com a gente</p>
         <div class="flex flex-col items-center sm:items-start gap-3">
           <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-link">
-            <span class="footer-icone"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
+            <span class="footer-icone"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
             @shinerioservicos
           </a>
           <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-link">
-            <span class="footer-icone"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></span>
+            <span class="footer-icone"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></span>
             WhatsApp
           </a>
         </div>
@@ -518,7 +525,7 @@
     <div class="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
       <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Todos os direitos reservados.</p>
       <p class="font-body text-label-sm text-on-surface-variant flex items-center gap-1.5">
-        Feliz Natal e um próspero Ano Novo <span class="material-symbols-outlined text-sm text-festive-gold">celebration</span>
+        Feliz Natal e um próspero Ano Novo <span class="material-symbols-outlined text-sm text-festive-gold" aria-hidden="true">celebration</span>
       </p>
     </div>
   </div>
@@ -528,6 +535,7 @@
   import { db } from "./js/firebase-init.js";
   import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar, ativarCarrosselEtapas, pausarAnimacaoForaDaTela, sincronizarAlturaHeader } from "./js/ui-utils.js";
+  import { movimentoPausado } from "./js/acessibilidade.js";
 
   ativarRevelacaoAoRolar();
   ativarCarrosselEtapas();
@@ -584,12 +592,15 @@
     const podeAutoplay = !prefereReduzido && !saveData;
 
     if (podeAutoplay) {
+      // Lido por js/acessibilidade.js: o botão "Pausar animações" só retoma o vídeo se o autoplay
+      // era permitido para este visitante.
+      videoHero.dataset.autoplayPermitido = "1";
       videoHero.preload = "auto";
-      videoHero.play().catch(() => {});
+      if (!movimentoPausado()) videoHero.play().catch(() => {});
     }
     document.addEventListener("visibilitychange", () => {
       if (!podeAutoplay) return;
-      if (document.hidden) videoHero.pause();
+      if (document.hidden || movimentoPausado()) videoHero.pause();
       else videoHero.play().catch(() => {});
     });
   }
@@ -652,7 +663,7 @@
 
     const ano = new Date().getFullYear();
     const qtdAnoEl = document.getElementById("qtd-colaboradores-ano");
-    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl">groups</span> Somos <strong id="num-colaboradores" class="valor-colaboradores-destaque">0</strong> colaboradores em ${ano}`;
+    qtdAnoEl.innerHTML = `<span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">groups</span> Somos <strong id="num-colaboradores" class="valor-colaboradores-destaque">0</strong> colaboradores em ${ano}`;
     document.getElementById("qtd-colaboradores-total").innerHTML =
       `<strong id="num-colaboradores-total" class="valor-colaboradores-destaque">0</strong> colaboradores no total`;
     animarNumero(document.getElementById("num-colaboradores"), colaboradores, { formatador: (v) => Math.round(v).toString() });

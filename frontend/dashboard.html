@@ -10,8 +10,11 @@
 <link rel="stylesheet" href="css/tailwind.css" />
 <link rel="stylesheet" href="css/styles.css" />
 <script type="module" src="js/perf-adaptativo.js"></script>
+<script type="module" src="js/acessibilidade.js"></script>
 </head>
 <body class="gradient-natalino pagina-dashboard min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo pb-24 md:pb-0">
+
+<a class="pular-conteudo" href="#topo">Pular para o conteúdo</a>
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -52,7 +55,7 @@
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
 <!-- ===== Nav superior (desktop) ===== -->
-<nav class="header-flutuante hidden md:flex">
+<nav aria-label="Principal" class="header-flutuante hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
     <a href="/dashboard" class="flex items-center gap-2.5 shrink-0" aria-label="Painel do Shinatal">
       <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
@@ -69,8 +72,8 @@
         <div id="avatar-desktop" class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-sm overflow-hidden">?</div>
         <span id="nome-desktop" class="font-body text-label-md text-on-surface whitespace-nowrap">Perfil</span>
       </a>
-      <button id="btn-sair-desktop" title="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
-        <span class="material-symbols-outlined">logout</span>
+      <button id="btn-sair-desktop" title="Sair" aria-label="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>
       </button>
     </div>
   </div>
@@ -85,7 +88,7 @@
 </header>
 
 <!-- ===== Conteúdo principal ===== -->
-<main id="topo" class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1">
+<main id="topo" class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-gutter relative z-10 flex-1" tabindex="-1">
 
   <header class="mb-2 conteudo-sobre-fundo anim-entrada anim-entrada-1">
     <p id="saudacao-data" class="font-body text-label-sm text-on-surface-variant uppercase tracking-wider mb-1"></p>
@@ -99,13 +102,13 @@
 
       <!-- Card centerpiece -->
       <div id="card-cota" class="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden flex flex-col items-center justify-center min-h-[340px] text-center anim-entrada anim-entrada-2">
-        <span class="material-symbols-outlined absolute top-5 right-5 text-festive-gold/60 text-3xl rotate-12">star</span>
-        <span class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5">Sua cota estimada hoje</span>
+        <span class="material-symbols-outlined absolute top-5 right-5 text-festive-gold/60 text-3xl rotate-12" aria-hidden="true">star</span>
+        <h2 class="font-display text-label-md text-on-surface-variant uppercase tracking-widest mb-5">Sua cota estimada hoje</h2>
         <div class="relative py-3 w-full flex items-center justify-center">
-          <h2 id="valor-cota" class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] skeleton w-48 h-12 relative px-2 whitespace-nowrap">&nbsp;</h2>
+          <p id="valor-cota" class="font-display text-gradiente-valor font-extrabold text-3xl sm:text-4xl md:text-5xl leading-[1.15] skeleton w-48 h-12 relative px-2 whitespace-nowrap">&nbsp;</p>
         </div>
-        <div id="badge-status-cota" class="mt-6 flex items-center gap-2 bg-surface-glass px-4 py-2 rounded-full border border-outline-variant">
-          <span class="material-symbols-outlined text-secondary text-base">trending_up</span>
+        <div id="badge-status-cota" role="status" class="mt-6 flex items-center gap-2 bg-surface-glass px-4 py-2 rounded-full border border-outline-variant">
+          <span class="material-symbols-outlined text-secondary text-base" aria-hidden="true">trending_up</span>
           <span class="font-body text-label-sm text-secondary font-semibold">Calculando...</span>
         </div>
         <p class="font-body text-label-sm text-on-surface-variant mt-4 max-w-sm">
@@ -116,7 +119,7 @@
       <!-- Card motivacional -->
       <div id="card-motivacional" class="glass-panel rounded-xl p-6 flex flex-col sm:flex-row items-center gap-6 border-l-4 border-l-primary">
         <div data-reveal class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <span class="material-symbols-outlined text-primary text-3xl">emoji_events</span>
+          <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">emoji_events</span>
         </div>
         <div data-reveal>
           <h3 id="motivacional-titulo" class="font-display text-headline-md text-on-surface mb-1">Continue assim!</h3>
@@ -129,21 +132,24 @@
       <!-- Resumo das regras -->
       <div class="glass-panel rounded-xl p-6">
         <div data-reveal>
-        <button class="w-full flex justify-between items-center" onclick="alternarAccordion('conteudo-regras-resumo','icone-regras-resumo')">
-          <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">gavel</span> Regras do Shinatal (resumo)
-          </h3>
-          <span id="icone-regras-resumo" class="material-symbols-outlined text-on-surface-variant transition-transform">expand_more</span>
-        </button>
+        <h3 class="font-display text-headline-md text-on-surface">
+          <button type="button" class="w-full flex justify-between items-center text-left" aria-expanded="false" aria-controls="conteudo-regras-resumo" onclick="alternarAccordion('conteudo-regras-resumo','icone-regras-resumo', this)">
+            <span class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary" aria-hidden="true">gavel</span> Regras do Shinatal (resumo)
+            </span>
+            <span id="icone-regras-resumo" class="material-symbols-outlined text-on-surface-variant transition-transform" aria-hidden="true">expand_more</span>
+          </button>
+        </h3>
         <div id="conteudo-regras-resumo" class="hidden font-body text-body-md text-on-surface-variant space-y-3 pl-2 md:pl-8 border-l-2 border-outline-variant/30 mt-4">
           <p><strong>Seção 7 — Faltas:</strong> cada falta injustificada desconta 1/30 da sua cota.</p>
           <p><strong>Seção 8 — Atrasos:</strong> 6+ atrasos (≥20min) no mês geram 1 ponto; cada ponto = 1% de desconto (teto 12%).</p>
           <p><strong>Seção 9 — Disciplina:</strong> advertências e suspensões reduzem sua cota; a 3ª suspensão zera o direito.</p>
           <p><strong>Seção 10 — Bônus:</strong> conduta perfeita no ano garante +3% sobre a cota final.</p>
           <button data-abrir-modal="modal-regras" class="inline-flex items-center gap-1 text-primary hover:underline font-body text-label-sm mt-1">
-            Ler regulamento completo <span class="material-symbols-outlined text-xs">arrow_forward</span>
+            Ler regulamento completo <span class="material-symbols-outlined text-xs" aria-hidden="true">arrow_forward</span>
           </button>
         </div>
+      </div>
       </div>
     </div>
 
@@ -158,7 +164,7 @@
             <span id="qtd-faltas" class="font-display text-headline-lg-mobile text-on-surface font-bold">—</span>
           </div>
           <div id="badge-faltas" class="px-3 py-1 rounded-full flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container">
-            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
             <span class="font-body text-label-sm">—</span>
           </div>
         </div>
@@ -169,7 +175,7 @@
             <span id="qtd-atrasos" class="font-display text-headline-lg-mobile text-on-surface font-bold">—</span>
           </div>
           <div id="badge-atrasos" class="px-3 py-1 rounded-full flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container">
-            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
             <span class="font-body text-label-sm">—</span>
           </div>
         </div>
@@ -180,7 +186,7 @@
             <span id="qtd-disciplinar" class="font-display text-headline-lg-mobile text-on-surface font-bold">—</span>
           </div>
           <div id="badge-disciplinar" class="px-3 py-1 rounded-full flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container">
-            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
             <span class="font-body text-label-sm">—</span>
           </div>
         </div>
@@ -189,7 +195,7 @@
       <!-- Valor do fundo -->
       <div class="glass-panel rounded-xl p-6">
         <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">savings</span> Valor do fundo
+          <span class="material-symbols-outlined text-primary" aria-hidden="true">savings</span> Valor do fundo
         </h3>
         <div class="bg-surface-glass rounded-lg p-4 border border-white/50 text-center">
           <span id="valor-fundo-total" class="font-display text-headline-lg-mobile text-on-surface font-bold block">—</span>
@@ -200,7 +206,7 @@
       <!-- Status de contratos -->
       <div class="glass-panel rounded-xl p-6">
         <h3 class="font-display text-headline-md text-on-surface mb-3 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">handshake</span> Status de contratos
+          <span class="material-symbols-outlined text-primary" aria-hidden="true">handshake</span> Status de contratos
         </h3>
         <div class="grid grid-cols-2 gap-3">
           <div class="bg-surface-glass rounded-lg p-4 border border-white/50 text-center">
@@ -217,21 +223,21 @@
       <!-- Simulador de impacto (autolimitado ao próprio colaborador) -->
       <div class="glass-panel rounded-xl p-6">
         <h3 class="font-display text-headline-md text-on-surface mb-1 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary">insights</span> Simulador de impacto
+          <span class="material-symbols-outlined text-primary" aria-hidden="true">insights</span> Simulador de impacto
         </h3>
         <p class="font-body text-label-sm text-on-surface-variant mb-4">Veja como faltas/atrasos extras afetariam a sua cota, sem gravar nada.</p>
         <div class="space-y-3">
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="label-shinatal">+ Faltas</label>
+              <label for="sim-faltas" class="label-shinatal">+ Faltas</label>
               <input id="sim-faltas" type="number" min="0" value="0" class="input-shinatal !pl-3" />
             </div>
             <div>
-              <label class="label-shinatal">+ Pontos atraso</label>
+              <label for="sim-pontos" class="label-shinatal">+ Pontos atraso</label>
               <input id="sim-pontos" type="number" min="0" value="0" class="input-shinatal !pl-3" />
             </div>
           </div>
-          <div id="sim-resultado" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 hidden">
+          <div id="sim-resultado" role="status" class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 hidden">
             <div class="flex justify-between text-label-md mb-1"><span>Cota atual</span><span id="sim-atual" class="font-bold">—</span></div>
             <div class="flex justify-between text-label-md text-christmas-red"><span>Cota simulada</span><span id="sim-simulada" class="font-bold">—</span></div>
           </div>
@@ -245,16 +251,16 @@
 <footer class="footer-shinatal mt-4">
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-      <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="h-7 w-auto footer-logo-invertido" />
         <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
       </a>
       <div class="flex items-center gap-2.5">
         <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         </a>
         <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
         </a>
       </div>
       <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal</p>
@@ -263,54 +269,54 @@
 </footer>
 
 <!-- ===== Dock inferior (mobile) ===== -->
-<nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-glass backdrop-blur-2xl border-t border-white/40 shadow-2xl rounded-t-xl">
+<nav aria-label="Atalhos do painel" class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-glass backdrop-blur-2xl border-t border-white/40 shadow-2xl rounded-t-xl">
   <div class="flex justify-around items-center px-4 py-2 pb-safe">
     <button data-nav="home" class="dock-item nav-ativo flex flex-col items-center px-3 py-1.5 rounded-xl" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">
-      <span class="material-symbols-outlined">home</span><span class="font-body text-label-sm mt-0.5">Painel</span>
+      <span class="material-symbols-outlined" aria-hidden="true">home</span><span class="font-body text-label-sm mt-0.5">Painel</span>
     </button>
     <button data-abrir-modal="modal-faltas" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
-      <span class="material-symbols-outlined">event_busy</span><span class="font-body text-label-sm mt-0.5">Faltas</span>
+      <span class="material-symbols-outlined" aria-hidden="true">event_busy</span><span class="font-body text-label-sm mt-0.5">Faltas</span>
     </button>
     <button data-abrir-modal="modal-advertencias" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
-      <span class="material-symbols-outlined">warning</span><span class="font-body text-label-sm mt-0.5">Advert.</span>
+      <span class="material-symbols-outlined" aria-hidden="true">warning</span><span class="font-body text-label-sm mt-0.5">Advert.</span>
     </button>
     <button data-abrir-modal="modal-regras" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
-      <span class="material-symbols-outlined">gavel</span><span class="font-body text-label-sm mt-0.5">Regras</span>
+      <span class="material-symbols-outlined" aria-hidden="true">gavel</span><span class="font-body text-label-sm mt-0.5">Regras</span>
     </button>
     <button data-abrir-modal="modal-conduta" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">
-      <span class="material-symbols-outlined">diversity_3</span><span class="font-body text-label-sm mt-0.5">Conduta</span>
+      <span class="material-symbols-outlined" aria-hidden="true">diversity_3</span><span class="font-body text-label-sm mt-0.5">Conduta</span>
     </button>
   </div>
 </nav>
 
 <!-- ===== Modal: Faltas ===== -->
-<div id="modal-faltas" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+<div id="modal-faltas" role="dialog" aria-modal="true" aria-labelledby="modal-faltas-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
   <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
     <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
-      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">event_busy</span> Minhas faltas</h3>
-      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+      <h2 id="modal-faltas-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">event_busy</span> Minhas faltas</h2>
+      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
     </div>
     <div id="lista-faltas" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
   </div>
 </div>
 
 <!-- ===== Modal: Advertências ===== -->
-<div id="modal-advertencias" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+<div id="modal-advertencias" role="dialog" aria-modal="true" aria-labelledby="modal-advertencias-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
   <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
     <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
-      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">warning</span> Minhas advertências</h3>
-      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+      <h2 id="modal-advertencias-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">warning</span> Minhas advertências</h2>
+      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
     </div>
     <div id="lista-advertencias" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
   </div>
 </div>
 
 <!-- ===== Modal: Regras completas ===== -->
-<div id="modal-regras" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+<div id="modal-regras" role="dialog" aria-modal="true" aria-labelledby="modal-regras-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
   <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
     <div class="flex justify-between items-center p-5 border-b border-outline-variant/30">
-      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">gavel</span> Regulamento Interno — Shinatal</h3>
-      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+      <h2 id="modal-regras-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">gavel</span> Regulamento Interno — Shinatal</h2>
+      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
     </div>
     <div class="p-5 overflow-y-auto font-body text-body-md text-on-surface-variant space-y-4 text-sm leading-relaxed">
       <p><strong class="text-on-surface">1. Objetivo.</strong> Prêmio anual por desempenho, comprometimento, disciplina e assiduidade, de natureza exclusivamente premial e liberal, sem incorporação ao contrato de trabalho.</p>
@@ -334,11 +340,11 @@
 </div>
 
 <!-- ===== Modal: Conduta (avaliação entre colegas) ===== -->
-<div id="modal-conduta" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
+<div id="modal-conduta" role="dialog" aria-modal="true" aria-labelledby="modal-conduta-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
   <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
     <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
-      <h3 class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">diversity_3</span> Avaliação de Conduta (entre colegas)</h3>
-      <button data-fechar-modal class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined">close</span></button>
+      <h2 id="modal-conduta-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">diversity_3</span> Avaliação de Conduta (entre colegas)</h2>
+      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
     </div>
     <div id="conteudo-conduta" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
   </div>

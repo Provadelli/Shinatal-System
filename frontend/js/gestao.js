@@ -7,7 +7,7 @@ import {
   onSnapshot, query, orderBy, limit, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
-import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, debounce } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
 } from "./calculo-shinatal.js";
@@ -32,10 +32,10 @@ ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
 document.getElementById("nome-desktop").textContent = (perfil.nome || perfil.email || "").split(" ")[0] || "—";
 document.getElementById("badge-role").innerHTML =
-  `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
+  `<span class="material-symbols-outlined text-base" aria-hidden="true">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
 const avatarHtml = construirAvatarHTML(perfil);
 document.getElementById("avatar-desktop").innerHTML = avatarHtml;
-document.getElementById("avatar-mobile").innerHTML = avatarHtml;
+preencherAvatarLink(document.getElementById("avatar-mobile"), perfil);
 document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
 sincronizarDiretorio(perfil); // não faz nada para o Presidente (não participa da função)
 
@@ -199,18 +199,18 @@ function renderDiretorio(filtro = "") {
         <td class="py-3 px-3 text-right whitespace-nowrap">
           ${PODE_VER_PERFIL() ? `
           <button data-ver-perfil-uid="${u.uid}" title="Ver perfil" aria-label="Ver perfil" class="text-on-surface-variant hover:text-primary transition-colors p-1">
-            <span class="material-symbols-outlined">person</span>
+            <span class="material-symbols-outlined" aria-hidden="true">person</span>
           </button>` : ""}
           ${EH_ADMIN_OU_PRESIDENTE() ? `
           <button data-editar-uid="${u.uid}" title="Editar colaborador" aria-label="Editar colaborador" class="text-on-surface-variant hover:text-primary transition-colors p-1">
-            <span class="material-symbols-outlined">edit</span>
+            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
           </button>` : ""}
           <button data-acao-uid="${u.uid}" title="Registrar ação" aria-label="Registrar ação" class="text-primary hover:text-on-primary-container transition-colors p-1">
-            <span class="material-symbols-outlined">edit_note</span>
+            <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
           </button>
           ${EH_ADMIN_OU_PRESIDENTE() ? `
           <button data-excluir-uid="${u.uid}" title="Excluir colaborador" aria-label="Excluir colaborador" class="text-christmas-red hover:opacity-70 transition-opacity p-1">
-            <span class="material-symbols-outlined">delete</span>
+            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
           </button>` : ""}
         </td>
       </tr>`;
@@ -269,7 +269,7 @@ function renderContratosResumo() {
       <span class="font-display text-headline-md text-christmas-red">${encerrados}</span>
     </div>
     <a href="/contratos" class="block text-center font-body text-label-sm text-primary hover:underline pt-1">
-      ${perfil.role === "admin" ? "Ver planilha de contratos" : "Ver contratos"} <span class="material-symbols-outlined text-xs align-middle">arrow_forward</span>
+      ${perfil.role === "admin" ? "Ver planilha de contratos" : "Ver contratos"} <span class="material-symbols-outlined text-xs align-middle" aria-hidden="true">arrow_forward</span>
     </a>`;
 }
 
@@ -501,7 +501,7 @@ function renderLancamentosExistentesAcao() {
     <div class="flex items-center justify-between gap-2 bg-surface-container rounded-lg px-3 py-2">
       <span class="font-body text-label-sm text-on-surface">${escaparHTML(descreverLancamentoAcao(tipo, r))}</span>
       ${podeExcluir ? `<button type="button" data-excluir-lancamento-acao data-tipo="${tipo}" data-id="${r.id}" data-uid="${uid}" title="Excluir (lançado por engano)" aria-label="Excluir lançamento" class="text-christmas-red hover:opacity-70 transition-opacity p-1 shrink-0">
-        <span class="material-symbols-outlined text-lg">delete</span>
+        <span class="material-symbols-outlined text-lg" aria-hidden="true">delete</span>
       </button>` : ""}
     </div>`).join("");
 }
@@ -841,7 +841,7 @@ function renderModalConduta() {
           <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
           <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
         </div>
-        <select data-votar-conduta="${u.uid}" class="input-shinatal !pl-3 !py-1.5 w-40">
+        <select data-votar-conduta="${u.uid}" aria-label="Avaliar ${escaparHTML(u.nome) || "colega"}" class="input-shinatal !pl-3 !py-1.5 w-40">
           <option value="">Avaliar...</option>
           ${["excelente", "bom", "regular", "insatisfatorio"].map((c) =>
             `<option value="${c}" ${condutaMeusVotos[u.uid] === c ? "selected" : ""}>${ROTULOS_CONCEITO[c]}</option>`).join("")}

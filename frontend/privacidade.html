@@ -11,8 +11,11 @@
 <link rel="stylesheet" href="css/tailwind.css" />
 <link rel="stylesheet" href="css/styles.css" />
 <script type="module" src="js/perf-adaptativo.js"></script>
+<script type="module" src="js/acessibilidade.js"></script>
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -54,21 +57,21 @@
 
 <header class="header-flutuante">
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop min-h-12 md:min-h-14 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
+    <a href="/" class="flex items-center gap-2.5">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-7 md:h-8 w-auto" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-7 md:h-8 w-auto" />
         <span class="font-body text-[9px] md:text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
     <a href="/" class="btn-fantasma !border-0 !py-2 !px-3 flex items-center gap-1.5 text-sm">
-      <span class="material-symbols-outlined text-lg">arrow_back</span>
-      <span class="hidden sm:inline">Página inicial</span>
+      <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
+      <span class="sr-only sm:not-sr-only">Página inicial</span>
     </a>
   </div>
 </header>
 
 <div class="flex-1 w-full py-10 px-margin-mobile md:px-margin-desktop">
-<main class="w-full max-w-3xl mx-auto relative z-10">
+<main id="conteudo" class="w-full max-w-3xl mx-auto relative z-10" tabindex="-1">
   <div class="relative w-full">
     <div class="barra-shinatal-topo anim-barra-shinatal" aria-hidden="true">
       <div class="barra-shinatal-pista">
@@ -91,7 +94,7 @@
 
     <div class="mb-8 relative">
       <p class="selo-premiacao font-display text-label-sm font-semibold uppercase tracking-widest mb-3 inline-flex items-center gap-2">
-        <span class="material-symbols-outlined text-base text-festive-gold">privacy_tip</span> LGPD
+        <span class="material-symbols-outlined text-base text-festive-gold" aria-hidden="true">privacy_tip</span> LGPD
       </p>
       <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-primary">Aviso de Privacidade</h1>
       <p class="font-body text-body-md text-on-surface-variant mt-2">
@@ -164,16 +167,16 @@
 <footer class="footer-shinatal w-full">
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-      <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="h-7 w-auto footer-logo-invertido" />
         <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
       </a>
       <div class="flex items-center gap-2.5">
         <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         </a>
         <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
         </a>
       </div>
       <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal</p>

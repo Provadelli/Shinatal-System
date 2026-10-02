@@ -1,0 +1,14 @@
+{
+  "name": "shinatal-auditoria-acessibilidade",
+  "private": true,
+  "type": "module",
+  "description": "Auditoria automatizada de acessibilidade (axe-core + Lighthouse) contra os emuladores do Firebase — nunca contra produção.",
+  "scripts": {
+    "test": "cd ../../.. && npm run build:css && firebase emulators:exec --project demo-shinatal --only auth,firestore \"node backend/tests/a11y/auditar.mjs\""
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.0",
+    "lighthouse": "^12.2.0",
+    "puppeteer-core": "^23.5.0"
+  }
+}

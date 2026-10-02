@@ -12,3 +12,6 @@ backend/cloudflare-worker/.dev.vars
 .claude/
 .agents/
 skills-lock.json
+
+# Relatórios gerados pela auditoria de acessibilidade (backend/tests/a11y).
+backend/tests/a11y/relatorio/

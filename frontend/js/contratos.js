@@ -8,7 +8,7 @@ import {
   collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
-import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML, debounce } from "./ui-utils.js";
+import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
 import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
@@ -38,10 +38,10 @@ const ehPresidente = perfil.role === "presidente";
 const podeGerenciar = perfil.role === "admin" || ehPresidente;
 document.getElementById("nome-desktop").textContent = (perfil.nome || perfil.email || "").split(" ")[0] || "—";
 document.getElementById("badge-role").innerHTML =
-  `<span class="material-symbols-outlined text-base">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
+  `<span class="material-symbols-outlined text-base" aria-hidden="true">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
 const avatarHtml = construirAvatarHTML(perfil);
 document.getElementById("avatar-desktop").innerHTML = avatarHtml;
-document.getElementById("avatar-mobile").innerHTML = avatarHtml;
+preencherAvatarLink(document.getElementById("avatar-mobile"), perfil);
 if (!ehPresidente) {
   document.getElementById("subtitulo-pagina").textContent =
     "Suas alterações aqui (criar, editar, entradas/saídas, excluir) viram uma solicitação — só valem depois que o Presidente aprovar.";
@@ -148,10 +148,10 @@ function renderTabela() {
     const duracaoPrevista = calcularDuracaoMesesPrevista(c.dataInicio, c.dataFimPrevista);
     const acoesAdmin = podeGerenciar ? `
         <button data-editar-contrato="${c.id}" title="Editar contrato" class="text-on-surface-variant hover:text-primary transition-colors p-1">
-          <span class="material-symbols-outlined">edit</span>
+          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
         </button>
         <button data-excluir-contrato="${c.id}" title="Excluir contrato" class="text-christmas-red hover:opacity-70 transition-opacity p-1">
-          <span class="material-symbols-outlined">delete</span>
+          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
         </button>` : "";
     return `
       <div class="glow-gold border-t-4 border-t-festive-gold bg-white/80 rounded-xl p-4 flex flex-col gap-3 hover:shadow-lg transition-shadow">
@@ -178,7 +178,7 @@ function renderTabela() {
           <div>
             <p class="text-label-sm text-on-surface-variant">Funcionários</p>
             <button data-ver-funcionarios="${c.id}" title="Ver funcionários" class="inline-flex items-center gap-1.5 -ml-2 font-semibold rounded-full px-2 py-0.5 transition-colors ${resumo.qtdAtual ? "text-primary hover:bg-primary-container/30" : "text-christmas-red hover:bg-error-container/40"}">
-              <span class="material-symbols-outlined text-lg">groups</span>${resumo.qtdAtual}
+              <span class="material-symbols-outlined text-lg" aria-hidden="true">groups</span>${resumo.qtdAtual}
             </button>
           </div>
           <div>
@@ -312,12 +312,29 @@ function somarMeses(dataISO, meses) {
 
 function alternarTabContrato(nomeTab) {
   document.querySelectorAll("[data-tab-contrato]").forEach((btn) => {
-    btn.classList.toggle("tab-contrato-ativo", btn.dataset.tabContrato === nomeTab);
+    const ativa = btn.dataset.tabContrato === nomeTab;
+    btn.classList.toggle("tab-contrato-ativo", ativa);
+    // Padrão de abas (WAI-ARIA): só a aba ativa entra na ordem do Tab; as outras, pelas setas.
+    btn.setAttribute("aria-selected", String(ativa));
+    btn.tabIndex = ativa ? 0 : -1;
   });
   document.querySelectorAll("[data-tab-painel]").forEach((painel) => {
     painel.classList.toggle("hidden", painel.dataset.tabPainel !== nomeTab);
   });
 }
+
+document.querySelector('[role="tablist"]')?.addEventListener("keydown", (e) => {
+  if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+  const abas = [...document.querySelectorAll("[data-tab-contrato]")].filter((b) => !b.disabled);
+  const atual = abas.indexOf(document.activeElement);
+  if (atual === -1) return;
+  e.preventDefault();
+  const destino = e.key === "Home" ? 0
+    : e.key === "End" ? abas.length - 1
+    : (atual + (e.key === "ArrowRight" ? 1 : -1) + abas.length) % abas.length;
+  alternarTabContrato(abas[destino].dataset.tabContrato);
+  abas[destino].focus();
+});
 
 document.querySelectorAll("[data-tab-contrato]").forEach((btn) => {
   btn.addEventListener("click", () => alternarTabContrato(btn.dataset.tabContrato));
@@ -418,7 +435,7 @@ function renderQuadroInicial() {
     return `
     <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
       <span class="text-on-surface-variant"><strong class="text-christmas-red">${qtd} ${qtd === 1 ? "saída" : "saídas"}</strong> em ${formatarData(s.data)}${s.motivo ? ` — ${escaparHTML(s.motivo)}` : ""}</span>
-      ${podeGerenciar ? `<button data-remover-saida-inicial="${i}" title="Desfazer esta saída" aria-label="Desfazer esta saída" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg">undo</span></button>` : ""}
+      ${podeGerenciar ? `<button data-remover-saida-inicial="${i}" title="Desfazer esta saída" aria-label="Desfazer esta saída" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg" aria-hidden="true">undo</span></button>` : ""}
     </li>`;
   }).join("");
 }
@@ -447,8 +464,8 @@ function renderEntradasContrato() {
   lista.innerHTML = entradas.map((en, i) => {
     const qtd = quantidadeDoRegistro(en);
     const acoesAdmin = podeGerenciar ? `
-        ${!en.dataSaida ? `<button data-marcar-saida-entrada="${i}" title="Registrar saída" aria-label="Registrar saída" class="text-on-surface-variant hover:text-christmas-red transition-colors p-1"><span class="material-symbols-outlined text-lg">person_remove</span></button>` : ""}
-        <button data-remover-entrada="${i}" title="Remover este registro" aria-label="Remover este registro" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg">undo</span></button>` : "";
+        ${!en.dataSaida ? `<button data-marcar-saida-entrada="${i}" title="Registrar saída" aria-label="Registrar saída" class="text-on-surface-variant hover:text-christmas-red transition-colors p-1"><span class="material-symbols-outlined text-lg" aria-hidden="true">person_remove</span></button>` : ""}
+        <button data-remover-entrada="${i}" title="Remover este registro" aria-label="Remover este registro" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg" aria-hidden="true">undo</span></button>` : "";
     const texto = en.dataSaida
       ? `<strong class="text-secondary">${qtd} ${qtd === 1 ? "entrada" : "entradas"}</strong> em ${formatarData(en.dataEntrada)} → <strong class="text-christmas-red">saída</strong> em ${formatarData(en.dataSaida)}`
       : `<strong class="text-secondary">${qtd} ${qtd === 1 ? "entrada" : "entradas"}</strong> em ${formatarData(en.dataEntrada)} — ainda ativo(s)`;
@@ -487,8 +504,8 @@ function renderBlocoPausas(pausas, resumoElId, listaElId, mensagemVazia) {
   lista.innerHTML = pausas.map((p, i) => {
     const qtd = quantidadeDoRegistro(p);
     const acoesAdmin = podeGerenciar ? `
-        ${!p.dataRetomada ? `<button data-marcar-retomada="${i}" title="Registrar retomada" aria-label="Registrar retomada" class="text-on-surface-variant hover:text-secondary transition-colors p-1"><span class="material-symbols-outlined text-lg">play_circle</span></button>` : ""}
-        <button data-remover-pausa="${i}" title="Remover este registro" aria-label="Remover este registro" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg">undo</span></button>` : "";
+        ${!p.dataRetomada ? `<button data-marcar-retomada="${i}" title="Registrar retomada" aria-label="Registrar retomada" class="text-on-surface-variant hover:text-secondary transition-colors p-1"><span class="material-symbols-outlined text-lg" aria-hidden="true">play_circle</span></button>` : ""}
+        <button data-remover-pausa="${i}" title="Remover este registro" aria-label="Remover este registro" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg" aria-hidden="true">undo</span></button>` : "";
     const texto = p.dataRetomada
       ? `<strong class="text-tertiary">${qtd} ${qtd === 1 ? "funcionário" : "funcionários"}</strong> pausado(s) em ${formatarData(p.dataPausa)} → <strong class="text-secondary">retomou</strong> em ${formatarData(p.dataRetomada)}`
       : `<strong class="text-tertiary">${qtd} ${qtd === 1 ? "funcionário" : "funcionários"}</strong> pausado(s) em ${formatarData(p.dataPausa)} — ainda pausado(s)`;

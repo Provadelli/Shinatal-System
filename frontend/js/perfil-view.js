@@ -13,7 +13,7 @@ const ROTULOS_CONCEITO = { excelente: "Excelente", bom: "Bom", regular: "Regular
 function botaoExcluir(tipo, id, tiposExcluiveis) {
   if (!tiposExcluiveis || !tiposExcluiveis.includes(tipo) || !id) return "";
   return `<button data-excluir-registro data-tipo="${tipo}" data-id="${id}" title="Excluir (lançado por engano)" aria-label="Excluir lançamento" class="text-christmas-red hover:opacity-70 transition-opacity p-1 shrink-0">
-    <span class="material-symbols-outlined text-lg">delete</span>
+    <span class="material-symbols-outlined text-lg" aria-hidden="true">delete</span>
   </button>`;
 }
 
@@ -43,7 +43,7 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
   container.innerHTML = `
     <div class="space-y-5">
       <div>
-        <h4 class="font-display text-headline-md text-on-surface">${escaparHTML(usuario.nome) || "—"}</h4>
+        <h3 class="font-display text-headline-md text-on-surface">${escaparHTML(usuario.nome) || "—"}</h3>
         <p class="font-body text-label-sm text-on-surface-variant">${escaparHTML(usuario.cargo) || "—"} · ${formatarJornadaSemanal(usuario.cargaHoraria)}</p>
       </div>
       <p class="font-body text-label-sm text-on-surface-variant">Admissão em ${usuario.dataAdmissao ? formatarData(usuario.dataAdmissao) : "—"}</p>

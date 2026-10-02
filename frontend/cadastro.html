@@ -11,8 +11,11 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="css/styles.css" />
 <script type="module" src="js/perf-adaptativo.js"></script>
+<script type="module" src="js/acessibilidade.js"></script>
 </head>
 <body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
   <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
@@ -54,21 +57,21 @@
 
 <header class="header-flutuante">
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop min-h-12 md:min-h-14 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
+    <a href="/" class="flex items-center gap-2.5">
       <span class="flex flex-col leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-7 md:h-8 w-auto" />
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-7 md:h-8 w-auto" />
         <span class="font-body text-[9px] md:text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
     <a href="/login" class="btn-fantasma !border-0 !py-2 !px-3 flex items-center gap-1.5 text-sm">
-      <span class="hidden sm:inline">Já tenho conta</span>
-      <span class="material-symbols-outlined text-lg">login</span>
+      <span class="sr-only sm:not-sr-only">Já tenho conta</span>
+      <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
     </a>
   </div>
 </header>
 
 <div class="flex-1 w-full flex items-center justify-center py-8 px-margin-mobile md:px-margin-desktop">
-<main class="w-full max-w-xl relative z-10">
+<main id="conteudo" class="w-full max-w-xl relative z-10" tabindex="-1">
   <div class="relative w-full">
     <div class="barra-shinatal-topo anim-barra-shinatal" aria-hidden="true">
       <div class="barra-shinatal-pista">
@@ -99,20 +102,20 @@
       <div class="flex flex-col items-center gap-3">
         <div class="relative">
           <div id="preview-foto" class="w-24 h-24 rounded-full bg-surface-container-highest border-2 border-dashed border-outline-variant flex items-center justify-center overflow-hidden">
-            <span class="material-symbols-outlined text-4xl text-outline">add_a_photo</span>
+            <span class="material-symbols-outlined text-4xl text-outline" aria-hidden="true">add_a_photo</span>
           </div>
-          <label for="foto" class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-md hover:bg-on-primary-container transition-colors">
-            <span class="material-symbols-outlined text-base">edit</span>
+          <label for="foto" title="Escolher foto" class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-8 h-8 flex items-center justify-center cursor-pointer shadow-md hover:bg-on-primary-container transition-colors">
+            <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
           </label>
         </div>
-        <input type="file" id="foto" accept="image/*" class="hidden" />
+        <input type="file" id="foto" accept="image/*" class="sr-only" aria-label="Escolher foto do colaborador (opcional)" />
         <p class="label-shinatal !mb-0 !normal-case text-center text-on-surface-variant">Foto do colaborador (opcional)</p>
       </div>
 
       <div>
         <label class="label-shinatal" for="nome">Nome completo</label>
         <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">badge</span>
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">badge</span>
           <input class="input-shinatal" id="nome" name="nome" type="text" autocomplete="name" placeholder="Seu nome completo" required maxlength="120" />
         </div>
       </div>
@@ -121,14 +124,14 @@
         <div>
           <label class="label-shinatal" for="cargo">Cargo / área de atuação</label>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">work</span>
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">work</span>
             <input class="input-shinatal" id="cargo" name="cargo" type="text" placeholder="Ex: Operações" required maxlength="80" />
           </div>
         </div>
         <div>
           <label class="label-shinatal" for="cargaHoraria">Tempo de trabalho</label>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">schedule</span>
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">schedule</span>
             <select class="input-shinatal appearance-none" id="cargaHoraria" name="cargaHoraria" required>
               <option value="" disabled selected>Selecione</option>
               <option value="8">40 horas semanais</option>
@@ -142,7 +145,7 @@
       <div>
         <label class="label-shinatal" for="dataAdmissao">Data de admissão</label>
         <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">event</span>
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">event</span>
           <input class="input-shinatal" id="dataAdmissao" name="dataAdmissao" type="date" required />
         </div>
       </div>
@@ -150,7 +153,7 @@
       <div>
         <label class="label-shinatal" for="email">E-mail institucional</label>
         <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">mail</span>
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">mail</span>
           <input class="input-shinatal" id="email" name="email" type="email" autocomplete="username" placeholder="nome@shinerio.com" required />
         </div>
         <p class="font-body text-label-sm text-on-surface-variant mt-1">Use seu e-mail @shinerio.com.</p>
@@ -160,14 +163,14 @@
         <div>
           <label class="label-shinatal" for="senha">Senha</label>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">lock</span>
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">lock</span>
             <input class="input-shinatal" id="senha" name="senha" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required minlength="6" />
           </div>
         </div>
         <div>
           <label class="label-shinatal" for="confirmarSenha">Confirmar senha</label>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl">lock_reset</span>
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">lock_reset</span>
             <input class="input-shinatal" id="confirmarSenha" name="confirmarSenha" type="password" autocomplete="new-password" placeholder="Repita a senha" required minlength="6" />
           </div>
         </div>
@@ -179,18 +182,18 @@
 
       <p class="font-body text-label-sm text-on-surface-variant text-center">
         Ao criar sua conta, você está de acordo com o
-        <a href="/privacidade" target="_blank" class="text-primary hover:underline">Aviso de Privacidade</a> do Shinatal.
+        <a href="/privacidade" target="_blank" class="text-primary font-semibold underline underline-offset-2">Aviso de Privacidade<span class="sr-only"> (abre em nova aba)</span></a> do Shinatal.
       </p>
 
       <button type="submit" id="btn-cadastrar" class="btn-primario w-full flex items-center justify-center gap-2">
         <span id="btn-cadastrar-texto">Criar minha conta</span>
-        <span id="btn-cadastrar-spinner" class="hidden animate-spin material-symbols-outlined text-lg">progress_activity</span>
+        <span id="btn-cadastrar-spinner" class="hidden animate-spin material-symbols-outlined text-lg" aria-hidden="true">progress_activity</span>
       </button>
     </form>
 
     <div class="mt-6 text-center border-t border-outline-variant/30 pt-5 relative">
       <a href="/login" class="font-body text-label-sm text-primary hover:underline inline-flex items-center gap-1">
-        <span class="material-symbols-outlined text-base">arrow_back</span> Já tenho conta, entrar
+        <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span> Já tenho conta, entrar
       </a>
     </div>
   </div>
@@ -201,19 +204,19 @@
 <footer class="footer-shinatal w-full">
   <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-      <a href="/" class="flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-7 w-auto footer-logo-invertido" />
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="h-7 w-auto footer-logo-invertido" />
         <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
       </a>
       <div class="flex items-center gap-2.5">
         <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         </a>
         <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
         </a>
       </div>
-      <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal · <a href="/privacidade" class="hover:text-primary hover:underline transition-colors">Privacidade</a></p>
+      <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal · <a href="/privacidade" class="underline underline-offset-2 hover:text-white transition-colors">Privacidade</a></p>
     </div>
   </div>
 </footer>

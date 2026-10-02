@@ -1,5 +1,6 @@
 // Shinatal — utilidades de UI compartilhadas entre todas as páginas.
 // Sem dependências externas além do DOM. Módulo ES (importado com <script type="module">).
+import { prenderFoco } from "./acessibilidade.js";
 
 /** Escapa `& < > " '` para uso seguro dentro de innerHTML — usar sempre que um texto vindo do
  * usuário/banco (nome, cargo, motivo, descrição etc.) for interpolado num template HTML, para
@@ -16,6 +17,20 @@ function construirAvatarHTML(usuario) {
   return usuario?.fotoBase64
     ? `<img src="${escaparHTML(usuario.fotoBase64)}" alt="${escaparHTML(usuario.nome)}" class="w-full h-full object-cover" />`
     : iniciais;
+}
+
+/**
+ * Preenche o avatar-link do header mobile e dá a ele um nome acessível que CONTÉM o que está
+ * visível (WCAG 2.5.3): sem foto, o link mostra as iniciais, então o nome é "AS — Meu perfil";
+ * com foto, só "Meu perfil" (a imagem entra como decorativa, o nome já diz para onde o link leva).
+ */
+function preencherAvatarLink(elemento, usuario) {
+  if (!elemento) return;
+  elemento.innerHTML = construirAvatarHTML(usuario);
+  const img = elemento.querySelector("img");
+  if (img) img.alt = "";
+  const iniciais = img ? "" : elemento.textContent.trim();
+  elemento.setAttribute("aria-label", iniciais ? `${iniciais} — Meu perfil` : "Meu perfil");
 }
 
 /**
@@ -89,15 +104,30 @@ function formatarDataHora(valor) {
  * Mostra uma notificação "toast" no canto inferior da tela.
  * tipo: 'sucesso' | 'erro' | 'info'
  */
-function mostrarToast(mensagem, tipo = "info") {
+/**
+ * Contêiner dos toasts, com duas regiões vivas: `status` (educada — sucesso/informação) e
+ * `alert` (assertiva — erro). Criado no carregamento da página, vazio: um leitor de tela só
+ * anuncia com segurança o que é inserido numa região que JÁ existia (WCAG 4.1.3). Antes o
+ * contêiner nascia junto com a primeira mensagem e não tinha papel nenhum — as mensagens de
+ * erro e de sucesso eram só visuais.
+ */
+function obterContainerToast() {
   let container = document.getElementById("toast-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "toast-container";
-    container.className =
-      "fixed z-[9999] bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center w-[calc(100%-2rem)] max-w-sm pointer-events-none";
-    document.body.appendChild(container);
-  }
+  if (container) return container;
+  container = document.createElement("div");
+  container.id = "toast-container";
+  container.className =
+    "fixed z-[9999] bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center w-[calc(100%-2rem)] max-w-sm pointer-events-none";
+  container.innerHTML =
+    `<div data-toast-regiao="status" role="status" aria-live="polite" class="flex flex-col gap-2 items-center w-full"></div>` +
+    `<div data-toast-regiao="alerta" role="alert" class="flex flex-col gap-2 items-center w-full"></div>`;
+  document.body.appendChild(container);
+  return container;
+}
+if (document.body) obterContainerToast();
+
+function mostrarToast(mensagem, tipo = "info") {
+  const container = obterContainerToast();
 
   const cores = {
     sucesso: "bg-secondary text-on-secondary",
@@ -108,15 +138,23 @@ function mostrarToast(mensagem, tipo = "info") {
 
   const toast = document.createElement("div");
   toast.className = `pointer-events-auto w-full shadow-lg rounded-lg px-4 py-3 flex items-center gap-2 font-body text-body-md ${cores[tipo] || cores.info} animate-[toast-in_0.25s_ease-out]`;
-  toast.innerHTML = `<span class="material-symbols-outlined text-xl">${icones[tipo] || icones.info}</span><span>${escaparHTML(mensagem)}</span>`;
-  container.appendChild(toast);
+  toast.innerHTML = `<span class="material-symbols-outlined text-xl" aria-hidden="true">${icones[tipo] || icones.info}</span><span>${escaparHTML(mensagem)}</span>`;
+  container.querySelector(`[data-toast-regiao="${tipo === "erro" ? "alerta" : "status"}"]`).appendChild(toast);
 
-  setTimeout(() => {
+  // Tempo proporcional ao texto (5 a 10 s) e pausado enquanto o ponteiro está sobre a mensagem —
+  // 4,2 s fixos não bastavam para ler as mensagens longas (WCAG 2.2.1).
+  const duracaoMs = Math.min(10000, Math.max(5000, 2500 + String(mensagem).length * 70));
+  let temporizador;
+  const remover = () => {
     toast.style.transition = "opacity 0.3s ease, transform 0.3s ease";
     toast.style.opacity = "0";
     toast.style.transform = "translateY(8px)";
     setTimeout(() => toast.remove(), 300);
-  }, 4200);
+  };
+  const agendar = () => { temporizador = setTimeout(remover, duracaoMs); };
+  toast.addEventListener("mouseenter", () => clearTimeout(temporizador));
+  toast.addEventListener("mouseleave", agendar);
+  agendar();
 }
 
 /**
@@ -159,7 +197,7 @@ function ligarToggleSenha(botaoId, inputId) {
   if (!botao || !input || !icone) return;
   botao.addEventListener("click", () => {
     // Só troca o glifo do <span> do ícone — nunca o textContent do botão inteiro, que apagaria
-    // o <span class="material-symbols-outlined"> e mostraria o nome do ícone como texto puro.
+    // o <span class="material-symbols-outlined" aria-hidden="true"> e mostraria o nome do ícone como texto puro.
     const senhaFicaVisivel = input.type === "password";
     input.type = senhaFicaVisivel ? "text" : "password";
     icone.textContent = senhaFicaVisivel ? "visibility_off" : "visibility";
@@ -180,19 +218,24 @@ function confirmarAcao({ titulo = "Confirmar ação", mensagem, textoConfirmar =
     const overlay = document.createElement("div");
     overlay.className = "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-inverse-surface/40";
     overlay.innerHTML = `
-      <div class="glass-card-active !bg-white rounded-xl p-6 w-full max-w-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-acao-titulo">
-        <h3 id="confirmar-acao-titulo" class="font-display text-headline-md text-on-surface mb-2">${escaparHTML(titulo)}</h3>
-        <p class="font-body text-body-md text-on-surface-variant mb-6">${escaparHTML(mensagem)}</p>
+      <div class="painel-confirmacao glass-card-active !bg-white rounded-xl p-6 w-full max-w-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-acao-titulo" aria-describedby="confirmar-acao-mensagem">
+        <h2 id="confirmar-acao-titulo" class="font-display text-headline-md text-on-surface mb-2">${escaparHTML(titulo)}</h2>
+        <p id="confirmar-acao-mensagem" class="font-body text-body-md text-on-surface-variant mb-6">${escaparHTML(mensagem)}</p>
         <div class="flex gap-3">
           <button type="button" data-cancelar class="btn-fantasma flex-1">${textoCancelar}</button>
           <button type="button" data-confirmar class="btn-primario flex-1 ${perigo ? "!bg-christmas-red" : ""}">${textoConfirmar}</button>
         </div>
       </div>`;
+    // Quem tinha o foco antes (o botão "Excluir" da linha, p.ex.) recebe-o de volta ao fechar.
+    const origemDoFoco = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.appendChild(overlay);
+    const soltarFoco = prenderFoco(overlay);
 
     function concluir(resultado) {
       document.removeEventListener("keydown", aoTeclar);
+      soltarFoco();
       overlay.remove();
+      if (origemDoFoco && document.contains(origemDoFoco)) origemDoFoco.focus();
       resolve(resultado);
     }
     function aoTeclar(e) {
@@ -202,7 +245,8 @@ function confirmarAcao({ titulo = "Confirmar ação", mensagem, textoConfirmar =
     overlay.querySelector("[data-confirmar]").addEventListener("click", () => concluir(true));
     overlay.addEventListener("click", (e) => { if (e.target === overlay) concluir(false); });
     document.addEventListener("keydown", aoTeclar);
-    overlay.querySelector("[data-confirmar]").focus();
+    // Ação destrutiva: o foco inicial vai para "Cancelar", para um Enter por reflexo não excluir.
+    overlay.querySelector(perigo ? "[data-cancelar]" : "[data-confirmar]").focus();
   });
 }
 
@@ -211,16 +255,20 @@ function marcarNavAtiva(chave) {
   document.querySelectorAll(`[data-nav]`).forEach((el) => {
     const ativo = el.dataset.nav === chave;
     el.classList.toggle("nav-ativo", ativo);
+    if (ativo) el.setAttribute("aria-current", "page");
+    else el.removeAttribute("aria-current");
   });
 }
 
-/** Alterna a exibição de um bloco (accordion) e gira o ícone associado. */
-function alternarAccordion(conteudoId, iconeId) {
+/** Alterna a exibição de um bloco (accordion), gira o ícone associado e informa o estado ao
+ * leitor de tela pelo `aria-expanded` do botão que disparou (`gatilho`). */
+function alternarAccordion(conteudoId, iconeId, gatilho = null) {
   const conteudo = document.getElementById(conteudoId);
   const icone = document.getElementById(iconeId);
   if (!conteudo) return;
   const abrindo = conteudo.classList.contains("hidden");
   conteudo.classList.toggle("hidden");
+  if (gatilho) gatilho.setAttribute("aria-expanded", String(abrindo));
   if (icone) icone.style.transform = abrindo ? "rotate(180deg)" : "rotate(0deg)";
 }
 
@@ -318,7 +366,11 @@ function ativarCarrosselEtapas(seletor = "[data-carrossel-etapas]") {
     // Chamada tanto por irPara() (otimista, na hora do clique) quanto pelo
     // IntersectionObserver (quando a mudança vem de arrasto manual, não de clique).
     function mostrarAtivo(indice) {
-      pontos.forEach((p, i) => p.classList.toggle("is-ativo", i === indice));
+      pontos.forEach((p, i) => {
+        p.classList.toggle("is-ativo", i === indice);
+        if (i === indice) p.setAttribute("aria-current", "true");
+        else p.removeAttribute("aria-current");
+      });
       slides.forEach((s, i) => s.classList.toggle("is-ativo", i === indice));
     }
 
@@ -448,6 +500,7 @@ export {
   escaparHTML,
   debounce,
   construirAvatarHTML,
+  preencherAvatarLink,
   redimensionarImagemParaBase64,
   sincronizarAlturaHeader,
   formatarMoeda,
