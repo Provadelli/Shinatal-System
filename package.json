@@ -9,6 +9,7 @@
     "build:css": "tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --minify",
     "watch:css": "tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --watch",
     "postinstall": "npm run build:css",
-    "optimize:images": "node scripts/optimize-images.mjs"
+    "optimize:images": "node scripts/optimize-images.mjs",
+    "config:firebase": "node scripts/codificar-config-firebase.mjs"
   }
 }

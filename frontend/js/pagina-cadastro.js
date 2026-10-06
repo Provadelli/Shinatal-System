@@ -1,6 +1,6 @@
 // Shinatal — script da página cadastro.html (antes inline; extraído para a CSP poder proibir
 // script inline — ver firebase.json).
-import { auth } from "./firebase-init.js";
+import { auth, tokenAppCheck } from "./firebase-init.js";
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./ui-utils.js";
@@ -106,6 +106,9 @@ form.addEventListener("submit", async (e) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token: tokenTurnstile(widgetTurnstile),
+          // Repassado pelo Worker ao Firebase (cabeçalho X-Firebase-AppCheck): com o App Check
+          // obrigatório, o cadastro só passa vindo do nosso site.
+          appCheckToken: await tokenAppCheck(),
           nome, email, cargo, cargaHoraria, dataAdmissao,
           fotoBase64: fotoBase64 || null, senha
         })

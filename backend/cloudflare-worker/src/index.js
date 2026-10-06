@@ -144,7 +144,13 @@ function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, s
 }
 
 async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
-  const { token, nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha } = corpo;
+  const { token, nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha, appCheckToken } = corpo;
+  // Token do App Check gerado no navegador (reCAPTCHA v3) e repassado ao Firebase em toda chamada
+  // abaixo: com o App Check obrigatório no console, sem ele o Firebase recusa o cadastro.
+  const cabecalhosFirebase = { "Content-Type": "application/json" };
+  if (typeof appCheckToken === "string" && appCheckToken && appCheckToken.length <= 4096) {
+    cabecalhosFirebase["X-Firebase-AppCheck"] = appCheckToken;
+  }
 
   const turnstileOk = await verificarTurnstile(token, env.TURNSTILE_SECRET_KEY, request.headers.get("CF-Connecting-IP"), hostnamesDe(allowedOrigins));
   if (!turnstileOk) return respostaJson({ ok: false, erro: "turnstile" }, 400, origin, allowedOrigins);
@@ -164,7 +170,7 @@ async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
     `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${env.FIREBASE_API_KEY}`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: cabecalhosFirebase,
       body: JSON.stringify({ email: emailNormalizado, password: senha, returnSecureToken: true })
     }
   );
@@ -189,7 +195,7 @@ async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
     `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/cadastrosPendentes/${uid}`,
     {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      headers: { ...cabecalhosFirebase, Authorization: `Bearer ${idToken}` },
       body: JSON.stringify(corpoFirestore)
     }
   );
@@ -198,7 +204,7 @@ async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
     // sem cadastro pendente, e o e-mail bloqueado por EMAIL_EXISTS numa nova tentativa.
     await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${env.FIREBASE_API_KEY}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: cabecalhosFirebase,
       body: JSON.stringify({ idToken })
     }).catch(() => {});
     // O detalhe do Firestore vai só para o log do Worker (wrangler tail), nunca para o navegador:
@@ -210,7 +216,7 @@ async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
   // 3) Dispara o e-mail de verificação (best-effort — mesmo comportamento do fluxo antigo).
   await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${env.FIREBASE_API_KEY}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: cabecalhosFirebase,
     body: JSON.stringify({ requestType: "VERIFY_EMAIL", idToken })
   }).catch(() => {});
 
@@ -231,8 +237,8 @@ export default {
     if (!origin || !allowedOrigins.includes(origin)) {
       return respostaJson({ ok: false, erro: "origin-not-allowed" }, 403, origin, allowedOrigins);
     }
-    if (!env.TURNSTILE_SECRET_KEY) {
-      console.error("TURNSTILE_SECRET_KEY não configurada no Worker");
+    if (!env.TURNSTILE_SECRET_KEY || !env.FIREBASE_API_KEY) {
+      console.error("TURNSTILE_SECRET_KEY e/ou FIREBASE_API_KEY não configuradas no Worker (wrangler secret put)");
       return respostaJson({ ok: false, erro: "auth/internal-error" }, 500, origin, allowedOrigins);
     }
     if (request.method !== "POST") {

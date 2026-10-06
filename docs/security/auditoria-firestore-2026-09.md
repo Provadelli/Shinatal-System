@@ -317,7 +317,15 @@ Correções de funcionamento que a revisão revelou (não eram falhas de seguran
 5. **Deploy:** publicar Worker (`npx wrangler deploy`) e hosting juntos — o hosting novo depende
    dos arquivos `js/pagina-*.js`, e a CSP precisa do domínio do Worker já no ar.
 
-### [BAIXA] Ausência de Firebase App Check
+### [BAIXA — REGISTRADO, FALTA APLICAR] Ausência de Firebase App Check
+
+> **Atualização 2026-10-06:** o App Check está registrado no console (provedor Fraud Defense, antigo reCAPTCHA Enterprise) e o código está pronto
+> (`frontend/js/firebase-init.js`, inclusive o app secundário da gestão e o cadastro via Worker,
+> que repassa o token em `X-Firebase-AppCheck`) e liga sozinho quando `recaptchaSiteKey` é
+> preenchido — passo a passo em `docs/SETUP.md`, seção 11. Na mesma mudança, a configuração do
+> Firebase saiu do código em texto puro (fica cifrada, gerada de `firebase-config.local.json`,
+> fora do git) e a apiKey saiu do `wrangler.toml` para `wrangler secret`. A cifra só esconde do
+> Ctrl+U; quem impede o uso da chave fora do site é o App Check aplicado (enforce).
 
 - **Onde:** `firebase.json` / `frontend/js/firebase-init.js` (nenhuma inicialização de App Check).
 - **Risco:** sem rate limiting/anti-bot nativo do app, `cadastro.html` e as coleções de leitura

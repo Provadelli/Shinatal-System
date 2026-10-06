@@ -2,12 +2,11 @@ name = "shinatal-turnstile"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
 
-# Não-secretos (a apiKey do Firebase já é pública por design — ver frontend/js/firebase-init.js).
-# TURNSTILE_SECRET_KEY é secreta e NUNCA vai aqui: configure com
+# Secretos — NUNCA vão aqui; configure com:
 #   wrangler secret put TURNSTILE_SECRET_KEY
+#   wrangler secret put FIREBASE_API_KEY   (a mesma apiKey de firebase-config.local.json)
 # (ou pelo painel Cloudflare: Workers & Pages > shinatal-turnstile > Settings > Variables).
 [vars]
-FIREBASE_API_KEY = "AIzaSyDlJ9A33891xJhxQ96SU-7oNmNNeFai3JI"
 FIREBASE_PROJECT_ID = "shinetal-cda20"
 # Lista separada por vírgula das origens que podem chamar este Worker (só produção). Requisição de
 # qualquer outra origem — ou sem Origin, como um script/curl — é recusada com 403 (ver src/index.js).

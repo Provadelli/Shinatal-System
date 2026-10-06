@@ -1,5 +1,5 @@
 // Shinatal — painel de gestão (DP / RH / Admin).
-import { db, firebaseConfig } from "./firebase-init.js";
+import { db, firebaseConfig, ativarAppCheck } from "./firebase-init.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
@@ -1102,6 +1102,7 @@ document.getElementById("form-novo-colaborador").addEventListener("submit", asyn
   if (!email.endsWith("@shinerio.com")) return mostrarToast("Use um e-mail @shinerio.com.", "erro");
 
   const appSecundario = initializeApp(firebaseConfig, `operador-${Date.now()}`);
+  ativarAppCheck(appSecundario);
   const authSecundario = getAuth(appSecundario);
   try {
     // Senha aleatória de uso único — ninguém (nem o operador) chega a conhecê-la. O colaborador

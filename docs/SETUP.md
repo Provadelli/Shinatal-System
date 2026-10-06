@@ -16,12 +16,27 @@ gratuito (Spark) do Firebase. Não é necessário cartão de crédito nem plano 
 
 ## 2. Colar as credenciais no projeto
 
-Abra `frontend/js/firebase-init.js` e substitua os valores `"SUBSTITUA_AQUI"` pelos valores
-reais copiados no passo anterior (`apiKey`, `authDomain`, `projectId`, `storageBucket`,
-`messagingSenderId`, `appId`).
+A configuração **não** é colada em texto puro no código. Crie `firebase-config.local.json` na
+raiz do projeto (já está no `.gitignore`, nunca vai para o repositório):
 
-> Esses valores são **públicos por design** do Firebase (todo app web os expõe). A
-> segurança de verdade vem do Firebase Authentication e das regras em `firestore.rules`.
+```json
+{
+  "apiKey": "...",
+  "authDomain": "SEU-PROJETO.firebaseapp.com",
+  "projectId": "SEU-PROJETO",
+  "appId": "...",
+  "recaptchaSiteKey": ""
+}
+```
+
+e rode `npm run config:firebase`. O script cifra esses valores e grava o resultado em
+`frontend/js/firebase-init.js` (linha `CONFIG_CODIFICADA`) — é esse arquivo cifrado que vai
+para o repositório e para o site. Rode de novo sempre que mudar algum valor.
+
+> **Limite:** a cifra tira a chave do código-fonte (Ctrl+U, leitura do `.js`), mas o navegador
+> precisa decifrá-la para falar com o Firebase, então ela ainda aparece no DevTools (aba Rede).
+> O que impede alguém de usar a chave fora do nosso site é o **App Check** (seção 11), junto com
+> as regras em `firestore.rules` e as restrições da chave no Google Cloud.
 
 ## 3. Ativar o Authentication
 
@@ -147,11 +162,11 @@ Antes do deploy, edite `wrangler.toml`:
 - `ALLOWED_ORIGINS`: só os domínios reais de produção — o Worker recusa (403) qualquer outra
   origem. Para testar com `wrangler dev`, ponha `ALLOWED_ORIGINS="http://localhost:5500"` em
   `.dev.vars` (fora do git), nunca no `wrangler.toml` publicado.
-- `FIREBASE_PROJECT_ID`/`FIREBASE_API_KEY`: já vêm preenchidos com os valores públicos deste
-  projeto; só troque se você criou um projeto Firebase próprio no passo 1.
+- `FIREBASE_PROJECT_ID`: já vem preenchido; só troque se você criou um projeto próprio no passo 1.
 
 ```bash
 npx wrangler secret put TURNSTILE_SECRET_KEY   # cole a Secret Key do passo 9.1 quando pedido
+npx wrangler secret put FIREBASE_API_KEY       # cole a apiKey de firebase-config.local.json
 npx wrangler deploy
 ```
 
@@ -236,6 +251,29 @@ silêncio, só no console) é a sincronização do diretório da aba Conduta; co
 novas, falhariam essa sincronização **e** todo voto de conduta. Depois de publicar as regras, abra
 `/gestao` uma vez com o Admin ou o Presidente: isso regrava o `diretorioPublico` de todos no
 formato novo (só o primeiro nome), removendo os nomes completos que estavam lá.
+
+## 11. Ativar o App Check (reCAPTCHA / Fraud Defense)
+
+Com o App Check, o Firebase só aceita requisições que venham do nosso site (o reCAPTCHA atesta
+o navegador). Alguém que copie a apiKey para um script ou outro site é recusado.
+
+**Estado em 2026-10-06:** feito — chave "Shinatal App Check" criada no projeto Google Cloud do
+Firebase e app web registrado no App Check com o provedor **Fraud Defense** (antigo reCAPTCHA
+Enterprise). Falta só o passo 4 (aplicar), depois do site novo no ar.
+
+Para refazer do zero:
+
+1. Em <https://www.google.com/recaptcha/admin/create>, crie uma chave **com base em pontuação**
+   com os domínios de produção e, em "Google Cloud Platform", escolha **o mesmo projeto do
+   Firebase**. Copie a **chave do site** (a secreta não é usada).
+2. Firebase Console > **App Check** > Apps > o app web > **Registrar** > **Fraud Defense** >
+   cole a chave do site > Salvar. (Não use a opção "reCAPTCHA" clássica: descontinuada.)
+3. Ponha a chave do site em `"recaptchaSiteKey"` no `firebase-config.local.json`, rode
+   `npm run config:firebase`, faça o commit e publique. O site passa a enviar o token do App
+   Check (inclusive no cadastro via Worker, que o repassa ao Firebase).
+4. Acompanhe por 1–2 dias em App Check > **APIs** que as requisições aparecem como
+   "verificadas". Só então clique em **Aplicar** (enforce) para **Cloud Firestore** e
+   **Authentication**. Aplicar antes de o site novo estar no ar derruba o login de todo mundo.
 
 ## Resumo do que é gratuito aqui
 

@@ -15,3 +15,6 @@ skills-lock.json
 
 # Relatórios gerados pela auditoria de acessibilidade (backend/tests/a11y).
 backend/tests/a11y/relatorio/
+
+# Configuração real do Firebase (vira CONFIG_CODIFICADA em frontend/js/firebase-init.js via npm run config:firebase).
+firebase-config.local.json

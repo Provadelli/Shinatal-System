@@ -45,7 +45,13 @@ function prepararSite() {
 
   const init = path.join(SITE, "js/firebase-init.js");
   const [hostFs, portaFs] = HOST_FIRESTORE.split(":");
-  writeFileSync(init, readFileSync(init, "utf8").replace(/projectId: "[^"]*"/, `projectId: "${PROJETO}"`) + `
+  // A configuração real vem codificada (CONFIG_CODIFICADA); aqui ela é trocada por uma fictícia do
+  // projeto demo, sem reCAPTCHA (App Check desligado), e o script falha se a linha mudar de forma.
+  const LINHA_CONFIG = "const { recaptchaSiteKey, ...firebaseConfig } = decodificar(CONFIG_CODIFICADA);";
+  const fonteInit = readFileSync(init, "utf8");
+  if (!fonteInit.includes(LINHA_CONFIG)) throw new Error("firebase-init.js mudou: não achei a linha da configuração.");
+  const configDemo = { apiKey: "demo-api-key", authDomain: `${PROJETO}.firebaseapp.com`, projectId: PROJETO, appId: "demo-app" };
+  writeFileSync(init, fonteInit.replace(LINHA_CONFIG, `const recaptchaSiteKey = ""; const firebaseConfig = ${JSON.stringify(configDemo)};`) + `
 import { connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 connectAuthEmulator(auth, "http://${HOST_AUTH}", { disableWarnings: true });
