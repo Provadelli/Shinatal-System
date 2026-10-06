@@ -87,7 +87,9 @@ testes automatizada, não apenas revisão teórica.
 ### 4. Headers de segurança (item manual, fora desta execução)
 
 - Configuração revisada em `firebase.json`/`vercel.json` (CSP, HSTS, X-Frame-Options,
-  Permissions-Policy) — presente e completa nos dois arquivos.
+  Permissions-Policy). **Correção (2026-10-06):** na época o `firebase.json` — o hosting de
+  produção — não tinha CSP nem Permissions-Policy, só o `vercel.json`. Ver o achado
+  "Roubo de sessão/chaves via script injetado" na ETAPA 4.
 - **Não executado ao vivo** nesta rodada (decisão do usuário: manter tudo restrito ao emulador
   local). Comando pronto em `manual-checks.md` para rodar quando desejado.
 
@@ -160,9 +162,10 @@ testes automatizada, não apenas revisão teórica.
      criado pelo seed, e em `frontend/js/auth.js` (`exigirAutenticacao`/`fazerLogin`) checar esse
      campo e forçar `sendPasswordResetEmail` (ou uma tela de troca obrigatória) antes de liberar
      qualquer página, removendo o campo após a troca.
-  3. **Opcional:** gerar uma senha aleatória por conta no próprio `seed-usuarios.js` (em vez de uma
-     constante compartilhada) e entregá-la individualmente fora do repositório (ex.: via
-     "Esqueci minha senha" enviado direto ao e-mail de cada conta, nunca impressa/commitada).
+  3. ✅ **Feito em 2026-10-06:** `seed-usuarios.js` não tem mais senha fixa — cada conta nova
+     recebe uma senha aleatória (`crypto.randomBytes`) mostrada uma única vez no terminal. A
+     senha antiga continua no **histórico** do git: trate-a como vazada (o item 1 continua
+     obrigatório em produção).
 
 ### ✅ [MÉDIA — REMEDIADO] Mass assignment em `usuarios/{uid}.create`
 
@@ -258,6 +261,61 @@ Correções de funcionamento que a revisão revelou (não eram falhas de seguran
   continuar operando o sistema até o último dia, isso precisa ser ajustado em `estaAtivo()`.
 - Perfis ou cadastros pendentes antigos com valor fora do novo schema (ex.: foto em outro formato)
   ficam sem poder ser editados/promovidos até um Admin corrigir o campo.
+
+### ✅ [ALTA — REMEDIADO] Roubo de sessão/chaves via script injetado (2026-10-06)
+
+- **Onde:** `firebase.json` (hosting de produção), `vercel.json`, `frontend/*.html`.
+- **Evidência:** o hosting de produção não enviava Content-Security-Policy; o `vercel.json`
+  enviava uma com `'unsafe-inline'`, `'unsafe-eval'` e `connect-src https:`. O token de sessão do
+  Firebase fica no IndexedDB da origem: qualquer script que rodasse na página (XSS, extensão
+  comprometida, CDN adulterada) podia lê-lo e enviá-lo para qualquer domínio — e com ele ler
+  tudo o que as rules liberam para aquela conta (perfis, fotos, contratos, conduta; para um
+  gestor, os dados de todos os colaboradores).
+- **Remediação:** todo script inline (tela de carregamento, scripts de página, `onclick`) foi
+  movido para `frontend/js/` (`tela-carregamento.js`, `pagina-*.js`), e uma CSP estrita vale nos
+  dois hostings: script só da própria origem, do caminho exato do SDK (`gstatic.com/firebasejs/10.13.0/`)
+  e do Turnstile; `connect-src` só para Auth, Firestore, o Worker e a BrasilAPI (exfiltração para
+  outro domínio é bloqueada pelo navegador); `img-src` sem `https:` genérico; `base-uri 'none'`,
+  `object-src 'none'`, `frame-ancestors 'none'`, `form-action 'self'`; mais Permissions-Policy e
+  Cross-Origin-Opener-Policy. `style-src` mantém `'unsafe-inline'` (atributos `style`) — sem
+  risco de execução de código.
+- **Validação:** `backend/tests/a11y/auditar.mjs` agora serve essa mesma CSP (lida do
+  `firebase.json`, só com os emuladores acrescentados) e falha se o navegador bloquear qualquer
+  coisa: 34 estados, logados em todos os perfis, com **0 bloqueios**.
+- **Ao mudar o front:** script novo vai em arquivo `.js`, nunca inline; domínio externo novo
+  precisa entrar na CSP em `firebase.json` **e** `vercel.json`, senão o navegador bloqueia.
+
+### ✅ [MÉDIA — REMEDIADO] Worker do Turnstile: vazamento de detalhes e origem não verificada (2026-10-06)
+
+- **Onde:** `backend/cloudflare-worker/src/index.js`, `wrangler.toml`.
+- **Evidência:** respostas de erro devolviam `detalhe` com o texto bruto da API do Firestore e
+  exceções internas; a origem só era usada para CORS (a requisição era processada mesmo vinda de
+  outro site ou de um script); `localhost` estava liberado no deploy de produção; o token do
+  Turnstile não era amarrado ao nosso domínio; corpo sem limite de tamanho.
+- **Remediação:** erros vão só para o log do Worker (`wrangler tail`), o cliente recebe código
+  genérico; origem fora de `ALLOWED_ORIGINS` (ou ausente) recebe 403 antes de qualquer trabalho;
+  `localhost` saiu do `wrangler.toml` (dev usa `.dev.vars`); com a secret de produção, o
+  `hostname` devolvido pelo siteverify precisa ser um dos domínios permitidos; corpo limitado a
+  200 KB e JSON validado; senha limitada a 128 caracteres; respostas com `Cache-Control: no-store`.
+- **Pendente (manual, painel do Google Cloud):** restringir a API key do Firebase — ver
+  "Ações manuais" abaixo.
+
+### [MÉDIA] Ações manuais pendentes em produção (não dá para fazer pelo código)
+
+1. **Trocar a senha das 4 contas privilegiadas** se ainda for a antiga senha padrão (ver o achado
+   ALTA no topo desta etapa).
+2. **Restringir a API key do Firebase** (Google Cloud Console > APIs e serviços > Credenciais >
+   a chave "Browser key"): em *Restrições de API*, liberar só Identity Toolkit API, Token Service
+   API e Cloud Firestore API. Não usar restrição por referenciador HTTP nesta chave enquanto o
+   Worker usar a mesma (chamadas do Worker não têm referenciador); se quiser essa restrição,
+   crie uma segunda chave só para o Worker e coloque-a como `wrangler secret`.
+3. **Firebase Auth > Configurações:** ativar *Proteção contra enumeração de e-mail* e uma
+   política de senha (mínimo 8+ caracteres).
+4. **Chave da conta de serviço** (`backend/scripts/service-account.json`): nunca foi versionada
+   (conferido em todo o histórico), mas dá poder total de admin. Guarde-a fora da pasta do projeto
+   quando não estiver usando o seed, e revogue/gere outra se o computador for compartilhado.
+5. **Deploy:** publicar Worker (`npx wrangler deploy`) e hosting juntos — o hosting novo depende
+   dos arquivos `js/pagina-*.js`, e a CSP precisa do domínio do Worker já no ar.
 
 ### [BAIXA] Ausência de Firebase App Check
 

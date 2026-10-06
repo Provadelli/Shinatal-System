@@ -51,17 +51,51 @@ function corsHeaders(origin, allowedOrigins) {
 function respostaJson(dados, status, origin, allowedOrigins) {
   return new Response(JSON.stringify(dados), {
     status,
-    headers: { "Content-Type": "application/json", ...corsHeaders(origin, allowedOrigins) }
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      ...corsHeaders(origin, allowedOrigins)
+    }
   });
 }
 
-async function verificarTurnstile(token, secret, ip) {
-  if (!token) return false;
+// Teto do corpo da requisição: o maior pedido legítimo é o cadastro com foto (TAMANHO_MAX_FOTO
+// abaixo, ~150 KB em base64) — qualquer coisa muito acima disso é abuso e nem é lida.
+const TAMANHO_MAX_CORPO = 200000;
+
+async function lerCorpoJson(request) {
+  const declarado = Number(request.headers.get("Content-Length") || 0);
+  if (declarado > TAMANHO_MAX_CORPO) return null;
+  const texto = await request.text();
+  if (texto.length > TAMANHO_MAX_CORPO) return null;
+  try {
+    const corpo = JSON.parse(texto);
+    return corpo && typeof corpo === "object" && !Array.isArray(corpo) ? corpo : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Valida o token no siteverify. Com a secret key de produção (começa com "0x"), exige também que
+ * o desafio tenha sido resolvido num dos domínios de ALLOWED_ORIGINS — um token gerado em outro
+ * site com a nossa site key (que é pública) não serve aqui. As chaves de teste da Cloudflare
+ * ("1x…", "2x…", "3x…") devolvem um hostname fictício, por isso ficam fora dessa checagem.
+ */
+async function verificarTurnstile(token, secret, ip, hostnamesPermitidos) {
+  if (typeof token !== "string" || !token || token.length > 2048) return false;
   const body = new URLSearchParams({ secret, response: token });
   if (ip) body.set("remoteip", ip);
   const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body });
   const dados = await res.json();
-  return dados.success === true;
+  if (dados.success !== true) return false;
+  if (secret.startsWith("0x") && !hostnamesPermitidos.includes(dados.hostname)) return false;
+  return true;
+}
+
+function hostnamesDe(allowedOrigins) {
+  return allowedOrigins.map((o) => { try { return new URL(o).hostname; } catch { return null; } }).filter(Boolean);
 }
 
 /** Converte um valor JS simples no formato de "Value" da API REST do Firestore. */
@@ -80,9 +114,8 @@ function documentoFirestore(campos) {
   return { fields };
 }
 
-async function tratarVerificar(request, env, origin, allowedOrigins) {
-  const { token } = await request.json();
-  const ok = await verificarTurnstile(token, env.TURNSTILE_SECRET_KEY, request.headers.get("CF-Connecting-IP"));
+async function tratarVerificar(corpo, request, env, origin, allowedOrigins) {
+  const ok = await verificarTurnstile(corpo.token, env.TURNSTILE_SECRET_KEY, request.headers.get("CF-Connecting-IP"), hostnamesDe(allowedOrigins));
   return respostaJson({ ok }, ok ? 200 : 400, origin, allowedOrigins);
 }
 
@@ -103,18 +136,17 @@ function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, s
   if (!CARGAS_HORARIAS_VALIDAS.includes(Number(cargaHoraria))) return false;
   if (typeof dataAdmissao !== "string" || !REGEX_DATA_ISO.test(dataAdmissao)) return false;
   if (dataAdmissao > new Date().toISOString().slice(0, 10)) return false;
-  if (typeof senha !== "string" || senha.length < 6) return false;
+  if (typeof senha !== "string" || senha.length < 6 || senha.length > 128) return false;
   if (fotoBase64 != null) {
     if (typeof fotoBase64 !== "string" || !REGEX_FOTO.test(fotoBase64) || fotoBase64.length > TAMANHO_MAX_FOTO) return false;
   }
   return true;
 }
 
-async function tratarCadastro(request, env, origin, allowedOrigins) {
-  const corpo = await request.json();
+async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
   const { token, nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha } = corpo;
 
-  const turnstileOk = await verificarTurnstile(token, env.TURNSTILE_SECRET_KEY, request.headers.get("CF-Connecting-IP"));
+  const turnstileOk = await verificarTurnstile(token, env.TURNSTILE_SECRET_KEY, request.headers.get("CF-Connecting-IP"), hostnamesDe(allowedOrigins));
   if (!turnstileOk) return respostaJson({ ok: false, erro: "turnstile" }, 400, origin, allowedOrigins);
 
   const emailNormalizado = String(email || "").trim().toLowerCase();
@@ -169,8 +201,10 @@ async function tratarCadastro(request, env, origin, allowedOrigins) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken })
     }).catch(() => {});
-    const detalhe = await resFirestore.text();
-    return respostaJson({ ok: false, erro: "auth/internal-error", detalhe }, 500, origin, allowedOrigins);
+    // O detalhe do Firestore vai só para o log do Worker (wrangler tail), nunca para o navegador:
+    // a mensagem de erro da API expõe caminhos, nomes de campos e trechos das regras.
+    console.error("cadastro: gravação em cadastrosPendentes recusada", resFirestore.status, await resFirestore.text());
+    return respostaJson({ ok: false, erro: "auth/internal-error" }, 500, origin, allowedOrigins);
   }
 
   // 3) Dispara o e-mail de verificação (best-effort — mesmo comportamento do fluxo antigo).
@@ -192,19 +226,31 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders(origin, allowedOrigins) });
     }
+    // CORS sozinho só impede o navegador de LER a resposta — a requisição ainda chegaria aqui.
+    // Origem fora da lista (ou ausente, como num script/curl) é recusada antes de qualquer trabalho.
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return respostaJson({ ok: false, erro: "origin-not-allowed" }, 403, origin, allowedOrigins);
+    }
     if (!env.TURNSTILE_SECRET_KEY) {
-      return respostaJson({ ok: false, erro: "TURNSTILE_SECRET_KEY não configurada no Worker" }, 500, origin, allowedOrigins);
+      console.error("TURNSTILE_SECRET_KEY não configurada no Worker");
+      return respostaJson({ ok: false, erro: "auth/internal-error" }, 500, origin, allowedOrigins);
     }
     if (request.method !== "POST") {
       return respostaJson({ ok: false, erro: "method-not-allowed" }, 405, origin, allowedOrigins);
     }
 
+    const rotas = { "/api/turnstile/verificar": tratarVerificar, "/api/turnstile/cadastro": tratarCadastro };
+    const tratar = rotas[url.pathname];
+    if (!tratar) return respostaJson({ ok: false, erro: "not-found" }, 404, origin, allowedOrigins);
+
     try {
-      if (url.pathname === "/api/turnstile/verificar") return await tratarVerificar(request, env, origin, allowedOrigins);
-      if (url.pathname === "/api/turnstile/cadastro") return await tratarCadastro(request, env, origin, allowedOrigins);
-      return respostaJson({ ok: false, erro: "not-found" }, 404, origin, allowedOrigins);
+      const corpo = await lerCorpoJson(request);
+      if (!corpo) return respostaJson({ ok: false, erro: "shinatal/dados-invalidos" }, 400, origin, allowedOrigins);
+      return await tratar(corpo, request, env, origin, allowedOrigins);
     } catch (erro) {
-      return respostaJson({ ok: false, erro: "auth/internal-error", detalhe: String(erro) }, 500, origin, allowedOrigins);
+      // Exceção interna fica no log do Worker; o navegador só recebe o código genérico.
+      console.error("erro interno no Worker", erro);
+      return respostaJson({ ok: false, erro: "auth/internal-error" }, 500, origin, allowedOrigins);
     }
   }
 };

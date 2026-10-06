@@ -12,12 +12,19 @@
  *   3. node scripts/seed-usuarios.js
  */
 
+const crypto = require("crypto");
 const admin = require("firebase-admin");
 const serviceAccount = require("./service-account.json");
 
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
-const SENHA_PADRAO = "Shine@2026";
+// Sem senha fixa no código: cada conta NOVA recebe uma senha aleatória forte, mostrada uma única
+// vez neste terminal. A antiga senha padrão ficou no histórico do git e deve ser considerada
+// vazada — ver docs/security/auditoria-firestore-2026-09.md.
+function gerarSenhaTemporaria() {
+  return crypto.randomBytes(18).toString("base64url");
+}
+const senhasCriadas = [];
 
 const USUARIOS = [
   { email: "ti@shinerio.com", nome: "Administrador TI", cargo: "Tecnologia da Informação", role: "admin" },
@@ -33,12 +40,14 @@ async function principal() {
       userRecord = await admin.auth().getUserByEmail(u.email);
       console.log(`Já existe no Auth: ${u.email} (uid ${userRecord.uid})`);
     } catch {
+      const senha = gerarSenhaTemporaria();
       userRecord = await admin.auth().createUser({
         email: u.email,
-        password: SENHA_PADRAO,
+        password: senha,
         displayName: u.nome,
         emailVerified: true
       });
+      senhasCriadas.push({ email: u.email, senha });
       console.log(`Criado no Auth: ${u.email} (uid ${userRecord.uid})`);
     }
 
@@ -59,7 +68,13 @@ async function principal() {
     console.log(`Perfil Firestore gravado para ${u.email} (role: ${u.role}).`);
   }
 
-  console.log(`\nConcluído! Senha padrão de todos: ${SENHA_PADRAO} — oriente a troca no primeiro acesso.`);
+  console.log("\nConcluído!");
+  if (senhasCriadas.length) {
+    // Não ficam salvas em lugar nenhum: entregue cada uma pessoalmente e peça a troca no primeiro
+    // acesso ("Esqueci minha senha" na tela de login).
+    console.log("Senhas temporárias das contas criadas agora (anote — não serão mostradas de novo):");
+    for (const { email, senha } of senhasCriadas) console.log(`  ${email}: ${senha}`);
+  }
   process.exit(0);
 }
 

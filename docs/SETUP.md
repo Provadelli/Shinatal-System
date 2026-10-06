@@ -60,7 +60,8 @@ firebase deploy --only firestore:rules
    npm install
    npm run seed
    ```
-3. Isso cria, com senha padrão **Shine@2026**:
+3. Isso cria as contas abaixo, cada uma com uma **senha temporária aleatória** impressa uma única
+   vez no terminal (não há senha fixa no código):
    - `shinerio@shinerio.com` (Presidente — acima do Admin, aprova solicitações)
    - `ti@shinerio.com` (Admin — acesso total, sem aprovação)
    - `dp@shinerio.com` (Departamento Pessoal)
@@ -143,8 +144,9 @@ npx wrangler login          # abre o navegador para autenticar com a SUA conta C
 ```
 
 Antes do deploy, edite `wrangler.toml`:
-- `ALLOWED_ORIGINS`: troque pelos domínios reais de produção (e mantenha os `localhost` para
-  testar localmente) — sem o domínio certo aqui, o navegador bloqueia a resposta por CORS.
+- `ALLOWED_ORIGINS`: só os domínios reais de produção — o Worker recusa (403) qualquer outra
+  origem. Para testar com `wrangler dev`, ponha `ALLOWED_ORIGINS="http://localhost:5500"` em
+  `.dev.vars` (fora do git), nunca no `wrangler.toml` publicado.
 - `FIREBASE_PROJECT_ID`/`FIREBASE_API_KEY`: já vêm preenchidos com os valores públicos deste
   projeto; só troque se você criou um projeto Firebase próprio no passo 1.
 

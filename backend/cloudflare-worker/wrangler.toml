@@ -9,7 +9,8 @@ compatibility_date = "2026-09-01"
 [vars]
 FIREBASE_API_KEY = "AIzaSyDlJ9A33891xJhxQ96SU-7oNmNNeFai3JI"
 FIREBASE_PROJECT_ID = "shinetal-cda20"
-# Lista separada por vírgula das origens que podem chamar este Worker. Ajuste para o(s) domínio(s)
-# reais de produção (Firebase Hosting e/ou Vercel) antes do primeiro deploy — sem o domínio certo
-# aqui, o navegador bloqueia a resposta por CORS mesmo com o resto funcionando.
-ALLOWED_ORIGINS = "https://shinatal.shinerio.com,https://shinetal-cda20.web.app,https://shinetal-cda20.firebaseapp.com,http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+# Lista separada por vírgula das origens que podem chamar este Worker (só produção). Requisição de
+# qualquer outra origem — ou sem Origin, como um script/curl — é recusada com 403 (ver src/index.js).
+# Para testar localmente com "wrangler dev", NÃO acrescente localhost aqui: crie .dev.vars (já no
+# .gitignore) com ALLOWED_ORIGINS="http://localhost:5500" e as chaves de teste do Turnstile.
+ALLOWED_ORIGINS = "https://shinatal.shinerio.com,https://shinetal-cda20.web.app,https://shinetal-cda20.firebaseapp.com"

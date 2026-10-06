@@ -22,35 +22,7 @@
     <span class="tela-carregamento-glow" aria-hidden="true"></span>
   </div>
 </div>
-<script>
-  (function () {
-    var texto = document.getElementById("tela-carregamento-texto");
-    "Carregando".split("").forEach(function (letra, i) {
-      var span = document.createElement("span");
-      span.className = "tela-carregamento-letra";
-      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
-      span.textContent = letra;
-      texto.appendChild(span);
-    });
-
-    var el = document.getElementById("tela-carregamento");
-    var inicio = Date.now();
-    var minimoMs = 650;
-    var escondida = false;
-    function esconder() {
-      if (escondida) return;
-      escondida = true;
-      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
-      setTimeout(function () {
-        el.classList.add("tela-carregamento-oculta");
-        setTimeout(function () { el.style.display = "none"; }, 550);
-      }, atraso);
-    }
-    if (document.readyState === "complete") esconder();
-    else window.addEventListener("load", esconder);
-    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
-  })();
-</script>
+<script src="js/tela-carregamento.js"></script>
 
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
@@ -61,7 +33,7 @@
       <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="logo-vermelho h-8 w-auto" />
     </a>
     <div class="flex-1 min-w-0 flex flex-wrap gap-x-4 gap-y-1 lg:gap-x-6 items-center justify-center">
-      <button data-nav="home" class="nav-link nav-ativo font-body text-label-md py-1 whitespace-nowrap shrink-0" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">Painel</button>
+      <button data-nav="home" class="nav-link nav-ativo font-body text-label-md py-1 whitespace-nowrap shrink-0" data-rolar-para="topo">Painel</button>
       <button data-abrir-modal="modal-faltas" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Faltas</button>
       <button data-abrir-modal="modal-advertencias" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Advertências</button>
       <button data-abrir-modal="modal-regras" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Regras do evento</button>
@@ -133,7 +105,7 @@
       <div class="glass-panel rounded-xl p-6">
         <div data-reveal>
         <h3 class="font-display text-headline-md text-on-surface">
-          <button type="button" class="w-full flex justify-between items-center text-left" aria-expanded="false" aria-controls="conteudo-regras-resumo" onclick="alternarAccordion('conteudo-regras-resumo','icone-regras-resumo', this)">
+          <button type="button" class="w-full flex justify-between items-center text-left" aria-expanded="false" aria-controls="conteudo-regras-resumo" data-accordion="conteudo-regras-resumo" data-accordion-icone="icone-regras-resumo">
             <span class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary" aria-hidden="true">gavel</span> Regras do Shinatal (resumo)
             </span>
@@ -271,7 +243,7 @@
 <!-- ===== Dock inferior (mobile) ===== -->
 <nav aria-label="Atalhos do painel" class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-glass backdrop-blur-2xl border-t border-white/40 shadow-2xl rounded-t-xl">
   <div class="flex justify-around items-center px-4 py-2 pb-safe">
-    <button data-nav="home" class="dock-item nav-ativo flex flex-col items-center px-3 py-1.5 rounded-xl" onclick="document.getElementById('topo').scrollIntoView({behavior:'smooth'})">
+    <button data-nav="home" class="dock-item nav-ativo flex flex-col items-center px-3 py-1.5 rounded-xl" data-rolar-para="topo">
       <span class="material-symbols-outlined" aria-hidden="true">home</span><span class="font-body text-label-sm mt-0.5">Painel</span>
     </button>
     <button data-abrir-modal="modal-faltas" class="dock-item flex flex-col items-center px-3 py-1.5 rounded-xl">

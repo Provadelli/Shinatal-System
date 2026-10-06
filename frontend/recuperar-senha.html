@@ -23,35 +23,7 @@
     <span class="tela-carregamento-glow" aria-hidden="true"></span>
   </div>
 </div>
-<script>
-  (function () {
-    var texto = document.getElementById("tela-carregamento-texto");
-    "Carregando".split("").forEach(function (letra, i) {
-      var span = document.createElement("span");
-      span.className = "tela-carregamento-letra";
-      span.style.animationDelay = (0.08 * i).toFixed(2) + "s";
-      span.textContent = letra;
-      texto.appendChild(span);
-    });
-
-    var el = document.getElementById("tela-carregamento");
-    var inicio = Date.now();
-    var minimoMs = 650;
-    var escondida = false;
-    function esconder() {
-      if (escondida) return;
-      escondida = true;
-      var atraso = Math.max(0, minimoMs - (Date.now() - inicio));
-      setTimeout(function () {
-        el.classList.add("tela-carregamento-oculta");
-        setTimeout(function () { el.style.display = "none"; }, 550);
-      }, atraso);
-    }
-    if (document.readyState === "complete") esconder();
-    else window.addEventListener("load", esconder);
-    setTimeout(esconder, 3000); // rede de segurança: nunca fica presa carregando
-  })();
-</script>
+<script src="js/tela-carregamento.js"></script>
 
 <div id="bg-pao-acucar" aria-hidden="true"></div>
 
@@ -156,62 +128,6 @@
   </div>
 </footer>
 
-<script type="module">
-  import { enviarLinkRedefinicaoSenha } from "./js/auth.js";
-  import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./js/ui-utils.js";
-  import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./js/turnstile-config.js";
-
-  ativarRevelacaoAoRolar();
-  sincronizarAlturaHeader();
-
-  const widgetTurnstile = await montarTurnstile("turnstile-recuperar", TURNSTILE_SITE_KEY);
-
-  const form = document.getElementById("form-recuperar");
-  const btn = document.getElementById("btn-enviar");
-  const btnTexto = document.getElementById("btn-enviar-texto");
-  const spinner = document.getElementById("btn-enviar-spinner");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = document.getElementById("email").value.trim();
-
-    if (TURNSTILE_CONFIGURADO && !tokenTurnstile(widgetTurnstile)) {
-      mostrarToast("Confirme que você não é um robô.", "erro");
-      return;
-    }
-
-    btn.disabled = true;
-    btnTexto.textContent = "Enviando...";
-    spinner.classList.remove("hidden");
-
-    try {
-      // Mesma barreira best-effort do login (ver comentário em login.html): evita que scripts
-      // simples fiquem disparando e-mails de redefinição em massa para inboxes de terceiros.
-      if (TURNSTILE_CONFIGURADO) {
-        const resposta = await fetch(`${TURNSTILE_WORKER_URL}/api/turnstile/verificar`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: tokenTurnstile(widgetTurnstile) })
-        });
-        const dados = await resposta.json();
-        if (!dados.ok) {
-          mostrarToast("Não foi possível confirmar que você não é um robô. Tente novamente.", "erro");
-          resetarTurnstile(widgetTurnstile);
-          btn.disabled = false;
-          btnTexto.textContent = "Enviar link de redefinição";
-          spinner.classList.add("hidden");
-          return;
-        }
-      }
-      await enviarLinkRedefinicaoSenha(email);
-    } catch (erro) {
-      // Por segurança não revelamos se o e-mail existe ou não — seguimos para a tela de sucesso.
-      console.warn("Falha ao enviar redefinição:", erro?.code);
-    }
-
-    form.classList.add("hidden");
-    document.getElementById("bloco-sucesso").classList.remove("hidden");
-  });
-</script>
+<script type="module" src="js/pagina-recuperar-senha.js"></script>
 </body>
 </html>

@@ -15,8 +15,13 @@ import {
   sincronizarDiretorio, assinarFlagConduta, assinarDiretorio, assinarMeusVotos, votarConduta
 } from "./conduta-service.js";
 
-// dashboard.html chama alternarAccordion(...) via onclick inline — precisa estar global.
-window.alternarAccordion = alternarAccordion;
+// Sem onclick inline no HTML (a CSP proíbe) — os gatilhos são ligados aqui, antes de qualquer await.
+document.querySelectorAll("[data-rolar-para]").forEach((botao) => {
+  botao.addEventListener("click", () => document.getElementById(botao.dataset.rolarPara).scrollIntoView({ behavior: "smooth" }));
+});
+document.querySelectorAll("[data-accordion]").forEach((botao) => {
+  botao.addEventListener("click", () => alternarAccordion(botao.dataset.accordion, botao.dataset.accordionIcone, botao));
+});
 
 const ANO_EXERCICIO = new Date().getFullYear();
 

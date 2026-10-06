@@ -9,6 +9,10 @@
 // Rodar (a partir desta pasta):  npm install && npm test
 // Variáveis opcionais:  CHROME_PATH=<caminho do chrome>   SEM_LIGHTHOUSE=1 (só axe, mais rápido)
 //
+// A Content-Security-Policy de produção (firebase.json) também é servida aqui — só com os
+// emuladores acrescentados ao connect-src —, e qualquer bloqueio dela conta como falha: assim a
+// CSP é provada contra o app inteiro logado, não só a página inicial.
+//
 // Saída: resumo no terminal + relatorio/ultimo.json. Sai com código 1 se o axe achar violação ou
 // se alguma página ficar abaixo de 100 em Acessibilidade no Lighthouse.
 
@@ -54,6 +58,22 @@ connectFirestoreEmulator(db, "${hostFs}", ${Number(portaFs)});
     .replace(/export const TURNSTILE_CONFIGURADO =[\s\S]*?;/, "export const TURNSTILE_CONFIGURADO = false;"));
 }
 
+/** CSP de produção (firebase.json), com os emuladores locais liberados no connect-src. */
+function cspLocal() {
+  const fb = JSON.parse(readFileSync(path.join(RAIZ, "firebase.json"), "utf8"));
+  const csp = fb.hosting.headers.flatMap((h) => h.headers).find((h) => h.key === "Content-Security-Policy").value;
+  return csp
+    .split(/;\s*/)
+    .filter((d) => d !== "upgrade-insecure-requests") // o servidor local é http
+    .map((d) => (d.startsWith("connect-src ")
+      // emuladores + fonts.googleapis.com, que o próprio axe-core baixa via fetch para analisar o CSS
+      ? `${d} http://${HOST_AUTH} http://${HOST_FIRESTORE} https://fonts.googleapis.com`
+      : d))
+    .join("; ");
+}
+const CSP_LOCAL = cspLocal();
+const bloqueiosCsp = [];
+
 const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".webp": "image/webp", ".png": "image/png", ".mp4": "video/mp4", ".json": "application/json", ".txt": "text/plain"
@@ -71,7 +91,9 @@ function servir() {
       arquivo = path.join(SITE, "404.html");
       status = 404;
     }
-    res.writeHead(status, { "Content-Type": MIME[path.extname(arquivo)] || "application/octet-stream" });
+    const cabecalhos = { "Content-Type": MIME[path.extname(arquivo)] || "application/octet-stream" };
+    if (arquivo.endsWith(".html")) cabecalhos["Content-Security-Policy"] = CSP_LOCAL;
+    res.writeHead(status, cabecalhos);
     createReadStream(arquivo).pipe(res);
   }).listen(PORTA, "127.0.0.1");
 }
@@ -208,8 +230,12 @@ async function capturar(pagina, rotulo) {
   await pagina.screenshot({ path: path.join(pasta, `${nome}.png`) });
 }
 
+const FONTE_AXE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+
 async function axe(pagina, rotulo) {
-  await pagina.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
+  // Injetado via CDP (evaluate), não como <script>: a CSP do site proíbe script inline e deve
+  // continuar valendo durante a auditoria.
+  await pagina.evaluate(FONTE_AXE);
   const r = await pagina.evaluate(async (tags) => {
     const res = await window.axe.run(document, { runOnly: { type: "tag", values: tags }, resultTypes: ["violations", "incomplete"] });
     const resumir = (lista) => lista.map((v) => ({
@@ -321,6 +347,11 @@ async function principal() {
   const navegador = await puppeteer.launch({ executablePath: caminhoDoChrome(), headless: true, args: ["--autoplay-policy=no-user-gesture-required"] });
   const pagina = await navegador.newPage();
   pagina.on("pageerror", (e) => console.log(`  [erro de script na página] ${e.message}`));
+  pagina.on("console", (m) => {
+    if (!/Content Security Policy/i.test(m.text())) return;
+    bloqueiosCsp.push({ url: pagina.url(), texto: m.text() });
+    console.log(`  [CSP bloqueou] ${m.text()}`);
+  });
 
   try {
     console.log("\n== Páginas públicas");
@@ -506,6 +537,7 @@ async function principal() {
     for (const ex of r.exemplos.slice(0, 2)) console.log(`      ${ex.alvo}\n      ${ex.resumo}`);
   }
   console.log(`axe "precisa de revisão manual": ${Object.entries(incompletos).map(([k, n]) => `${k}(${n})`).join(", ") || "nada"}`);
+  console.log(`CSP: ${bloqueiosCsp.length} bloqueio(s)${bloqueiosCsp.length ? " — " + [...new Set(bloqueiosCsp.map((b) => b.texto.slice(0, 160)))].join(" | ") : ""}`);
   console.log(`teclado: ${relatorio.teclado.length - tecladoFalhas.length}/${relatorio.teclado.length} verificações ok`);
   for (const l of relatorio.lighthouse) console.log(`Lighthouse ${l.pagina}: acessibilidade ${l.acessibilidade} · boas práticas ${l.boasPraticas} · SEO ${l.seo}`);
   const outros = [...new Set(relatorio.lighthouse.flatMap((l) => l.outros))];
@@ -513,8 +545,8 @@ async function principal() {
   for (const l of relatorio.lighthouse) for (const a of l.reprovados) console.log(`  ${l.pagina}: ${a.id} — ${a.titulo}\n      ${a.itens.join("\n      ")}`);
 
   mkdirSync(path.join(__dirname, "relatorio"), { recursive: true });
-  writeFileSync(path.join(__dirname, "relatorio/ultimo.json"), JSON.stringify(relatorio, null, 2));
-  process.exitCode = violacoes.length || tecladoFalhas.length || lhFalhas.length ? 1 : 0;
+  writeFileSync(path.join(__dirname, "relatorio/ultimo.json"), JSON.stringify({ ...relatorio, csp: bloqueiosCsp }, null, 2));
+  process.exitCode = violacoes.length || tecladoFalhas.length || lhFalhas.length || bloqueiosCsp.length ? 1 : 0;
 }
 
 await principal();
