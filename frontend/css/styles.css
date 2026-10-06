@@ -836,14 +836,14 @@ html.modo-leve .header-flutuante.header-transparente {
 /* Marfim da própria paleta (o azul-noite anterior não existia em mais nenhum lugar do sistema):
    degradê claro com dois focos dourados nos cantos — a mesma luz de .fundo-bege-dourado-suave —
    e o fio dourado no topo. Texto em tons de tinta, links em verde, logo em vinho. A versão
-   completa (.footer-shinatal-completo: colunas + logo gigante reativa) fica só na página
+   completa (.footer-shinatal-completo, em colunas) fica só na página
    inicial; as demais usam a compacta de uma linha (.footer-shinatal), com as mesmas cores e
    os mesmos hovers. */
 .footer-shinatal,
 .footer-shinatal-completo {
   position: relative;
   z-index: 10;
-  overflow: hidden; /* a logo gigante inclina em 3D e não pode vazar para fora */
+  overflow: hidden;
   background:
     radial-gradient(760px 320px at 0% 100%, rgba(176, 141, 47, 0.16), transparent 65%),
     radial-gradient(760px 320px at 100% 0%, rgba(176, 141, 47, 0.12), transparent 65%),
@@ -918,46 +918,6 @@ a.footer-icone:hover,
   border-color: var(--shinatal-primary);
   color: var(--shinatal-bg);
   transform: rotate(8deg) scale(1.08);
-}
-
-/* ---------- Logo gigante do footer da home ----------
-   A logo (ampliada em assets/logo-shinatal-grande.webp) é usada como MÁSCARA: o que se vê é o
-   fundo do bloco recortado no formato dela. Sem mouse, é um degradê vinho → dourado parado. Com
-   mouse, fica "gravada" em tom sobre tom no marfim e um foco de luz — vinho no centro, halo
-   dourado — acende o trecho por onde o cursor passa, enquanto o bloco inclina de leve em 3D na
-   direção dele. --mx/--my/--rx/--ry/--luz são escritos pelo script da home (index.html).
-   Decorativa (aria-hidden): a logo de verdade, com nome acessível, está no topo do footer. */
-@property --luz { syntax: "<number>"; inherits: false; initial-value: 0; }
-.footer-logo-gigante {
-  --mx: 50%;
-  --my: 50%;
-  --rx: 0deg;
-  --ry: 0deg;
-  width: 100%;
-  max-width: 1000px;
-  aspect-ratio: 1920 / 726;
-  margin: 2.5rem auto 0;
-  -webkit-mask: url("../assets/logo-shinatal-grande.webp") center / contain no-repeat;
-  mask: url("../assets/logo-shinatal-grande.webp") center / contain no-repeat;
-  background: linear-gradient(100deg, var(--shinatal-red) 0%, #8A4A2A 55%, var(--shinatal-gold) 100%);
-}
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .footer-logo-gigante {
-    background:
-      radial-gradient(circle 17rem at var(--mx) var(--my),
-        rgba(110, 36, 48, var(--luz)) 0%,
-        rgba(176, 141, 47, calc(var(--luz) * 0.95)) 52%,
-        rgba(176, 141, 47, 0) 100%),
-      #CFC19B;
-    transition: --luz 0.45s ease;
-  }
-  /* A inclinação só existe enquanto o cursor está no footer (classe posta pelo script): um
-     transform 3D permanente faz o navegador rasterizar a máscara numa camada à parte, e a logo
-     em repouso ficava com a borda borrada. */
-  .footer-logo-gigante.reagindo {
-    transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), --luz 0.45s ease;
-  }
 }
 
 /* ---------- Formulários ---------- */

@@ -388,23 +388,14 @@ async function principal() {
     await pausa(400);
     await capturar(pagina, "login · footer compacto");
 
-    // Footer da home: logo gigante reage ao mouse (luz + inclinação).
+    // Footer da home.
     await pagina.setViewport(DESKTOP);
     await pagina.goto(`${BASE}/`, { waitUntil: "networkidle2" });
     await assentar(pagina);
-    // behavior "instant": a página usa rolagem suave, e medir a caixa no meio dela daria a posição errada.
-    await pagina.evaluate(() => document.getElementById("footer-logo-gigante").scrollIntoView({ block: "end", behavior: "instant" }));
+    await pagina.evaluate(() => document.querySelector("footer").scrollIntoView({ block: "end", behavior: "instant" }));
     await pausa(900);
-    const caixa = await pagina.evaluate(() => { const r = document.getElementById("footer-logo-gigante").getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
     await capturar(pagina, "home · footer em repouso");
-    await pagina.mouse.move(caixa.x + caixa.w * 0.3, caixa.y + caixa.h * 0.45, { steps: 12 });
-    await pausa(700);
-    const luz = await pagina.evaluate(() => {
-      const s = document.getElementById("footer-logo-gigante").style;
-      return { mx: s.getPropertyValue("--mx"), luz: s.getPropertyValue("--luz"), ry: s.getPropertyValue("--ry") };
-    });
-    conferir("home: logo do footer reage ao mouse (luz e inclinação)", luz.luz === "1" && luz.mx.endsWith("px") && luz.ry !== "" && luz.ry !== "0deg", JSON.stringify(luz));
-    await axe(pagina, "home · footer com a logo iluminada");
+    await axe(pagina, "home · footer");
     // Hover do "fio dourado" num link do rodapé e num botão — só captura.
     await pagina.hover(".footer-nav-link");
     await pausa(500);

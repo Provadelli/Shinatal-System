@@ -96,46 +96,6 @@ if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
   });
 }
 
-// Logo gigante do footer: um foco de luz acompanha o cursor por dentro da logo e o bloco
-// inclina de leve na direção dele. Mesmo padrão do spotlight acima (uma escrita de estilo por
-// quadro, via requestAnimationFrame). Só com mouse e sem prefers-reduced-motion — fora disso a
-// logo fica no degradê estático definido no CSS.
-const logoGigante = document.getElementById("footer-logo-gigante");
-const rodape = logoGigante?.closest("footer");
-if (rodape && window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)").matches) {
-  let logoX = 0, logoY = 0, logoAgendado = false, logoRepouso;
-  function aplicarLuzLogo() {
-    logoAgendado = false;
-    clearTimeout(logoRepouso);
-    logoGigante.classList.add("reagindo");
-    const r = logoGigante.getBoundingClientRect();
-    const x = logoX - r.left, y = logoY - r.top;
-    logoGigante.style.setProperty("--mx", `${x}px`);
-    logoGigante.style.setProperty("--my", `${y}px`);
-    // Inclinação limitada (±6° / ±5°): o canto mais perto do cursor "afunda".
-    const fx = Math.max(-0.5, Math.min(0.5, x / r.width - 0.5));
-    const fy = Math.max(-0.5, Math.min(0.5, y / r.height - 0.5));
-    logoGigante.style.setProperty("--ry", `${(fx * 12).toFixed(2)}deg`);
-    logoGigante.style.setProperty("--rx", `${(-fy * 10).toFixed(2)}deg`);
-    logoGigante.style.setProperty("--luz", "1");
-  }
-  rodape.addEventListener("pointermove", (e) => {
-    logoX = e.clientX;
-    logoY = e.clientY;
-    if (!logoAgendado) {
-      logoAgendado = true;
-      requestAnimationFrame(aplicarLuzLogo);
-    }
-  });
-  rodape.addEventListener("pointerleave", () => {
-    logoGigante.style.setProperty("--luz", "0");
-    logoGigante.style.setProperty("--rx", "0deg");
-    logoGigante.style.setProperty("--ry", "0deg");
-    // Tira a camada 3D depois que a logo termina de voltar ao plano (ver .reagindo no CSS).
-    logoRepouso = setTimeout(() => logoGigante.classList.remove("reagindo"), 700);
-  });
-}
-
 // ---------------------------------------------------------------
 // Números de destaque — lidos ao vivo de "estatisticas/publico" (documento
 // agregado público, publicado automaticamente por js/gestao.js sempre que um
