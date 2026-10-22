@@ -30,7 +30,7 @@ async function carregarContratosEmpresariais() {
 async function recalcularEPublicarFundo({ usuarios, anoExercicio, atualizadoPorUid }) {
   const contratosEmpresariais = await carregarContratosEmpresariais();
 
-  const { arrecadado, estornos, saldoDisponivel } = calcularFundo(contratosEmpresariais);
+  const { arrecadado, estornos, saldoDisponivel } = calcularFundo(contratosEmpresariais, anoExercicio);
   const elegiveis = usuarios.filter((u) => verificarElegibilidade(u).elegivel);
   const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
 

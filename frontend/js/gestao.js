@@ -9,7 +9,8 @@ import {
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
 import {
-  calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial
+  calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial,
+  calcularContribuicaoNoAno
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
@@ -112,7 +113,7 @@ async function carregarTudo() {
     });
   }
 
-  const { saldoDisponivel } = calcularFundo(state.contratosEmpresariais);
+  const { saldoDisponivel } = calcularFundo(state.contratosEmpresariais, ANO_EXERCICIO);
   const elegiveis = state.usuarios.filter((u) => verificarElegibilidade(u).elegivel);
   const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, ANO_EXERCICIO), 0);
   state.fundo = { saldoDisponivel, somaPesos };
@@ -249,8 +250,10 @@ function renderContratosResumo() {
   const ativos = state.contratosEmpresariais.filter((c) => c.status === "ativo").length;
   const pausados = state.contratosEmpresariais.filter((c) => c.status === "pausado").length;
   const encerrados = state.contratosEmpresariais.filter((c) => c.status === "encerrado").length;
+  // Só o que os contratos movimentaram no fundo DESTE ano (contratos de anos anteriores só
+  // entram aqui com descontos/estornos que aconteceram neste ano).
   const totalCreditadoEmp = state.contratosEmpresariais.reduce(
-    (soma, c) => soma + calcularResumoContratoEmpresarial(c).totalCreditadoFundo, 0
+    (soma, c) => soma + calcularContribuicaoNoAno(c, ANO_EXERCICIO).liquido, 0
   );
 
   document.getElementById("resumo-contratos").innerHTML = `
@@ -264,7 +267,7 @@ function renderContratosResumo() {
     <div class="flex justify-between items-center p-3 border border-outline-variant rounded-lg">
       <div>
         <p class="font-body font-bold text-on-surface">Contratos encerrados</p>
-        <p class="font-body text-label-sm text-on-surface-variant">Total creditado ao fundo: ${formatarMoeda(totalCreditadoEmp)}</p>
+        <p class="font-body text-label-sm text-on-surface-variant">Movimentado no fundo ${ANO_EXERCICIO}: ${formatarMoeda(totalCreditadoEmp)}</p>
       </div>
       <span class="font-display text-headline-md text-christmas-red">${encerrados}</span>
     </div>

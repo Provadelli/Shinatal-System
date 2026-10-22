@@ -13,7 +13,7 @@ import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
   quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
-  montarPausasAposTransicao
+  montarPausasAposTransicao, calcularContribuicaoNoAno
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
@@ -146,6 +146,8 @@ function renderTabela() {
     const status = ROTULOS_STATUS_CONTRATO[c.status] || ROTULOS_STATUS_CONTRATO.ativo;
     const rotuloEstorno = c.status === "encerrado" ? "aplicado no encerramento" : "se encerrar hoje";
     const duracaoPrevista = calcularDuracaoMesesPrevista(c.dataInicio, c.dataFimPrevista);
+    const noAno = calcularContribuicaoNoAno(c, ANO_EXERCICIO);
+    const anoImplantacao = c.dataInicio ? calcularMesReferenciaImplantacao(c.dataInicio).ano : ANO_EXERCICIO;
     const acoesAdmin = podeGerenciar ? `
         <button data-editar-contrato="${c.id}" title="Editar contrato" class="text-on-surface-variant hover:text-primary transition-colors p-1">
           <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -209,6 +211,12 @@ function renderTabela() {
           <div>
             <p class="text-label-sm text-on-surface-variant">Contribuindo ao fundo</p>
             <p class="font-semibold text-primary">${formatarMoeda(resumo.totalCreditadoFundo)}</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-label-sm text-on-surface-variant">No Shinatal ${ANO_EXERCICIO}</p>
+            <p class="font-semibold ${noAno.liquido < 0 ? "text-christmas-red" : noAno.liquido > 0 ? "text-secondary" : "text-on-surface-variant"}">${formatarMoeda(noAno.liquido)}</p>
+            ${anoImplantacao < ANO_EXERCICIO ? `
+            <p class="text-label-sm text-on-surface-variant">Implantado em ${anoImplantacao} — o crédito já foi contabilizado no Shinatal ${anoImplantacao}; aqui só entram as movimentações de ${ANO_EXERCICIO}.</p>` : ""}
           </div>
         </div>
 
@@ -651,10 +659,18 @@ function descreverDeltaFundo(antes, depois) {
 async function confirmarEAplicarMovimentacao({ idContrato, contratoBase, contratoDepois, tipo, descricaoEvento, camposParaSalvar }) {
   const antes = calcularResumoContratoEmpresarial(contratoBase).totalCreditadoFundo;
   const depois = calcularResumoContratoEmpresarial(contratoDepois).totalCreditadoFundo;
+  // Impacto no fundo DESTE ano — num contrato implantado em ano anterior, é aqui que aparece o
+  // desconto de um encerramento antecipado ou de uma saída.
+  const noAnoAntes = calcularContribuicaoNoAno(contratoBase, ANO_EXERCICIO).liquido;
+  const noAnoDepois = calcularContribuicaoNoAno(contratoDepois, ANO_EXERCICIO).liquido;
+  const deltaAno = noAnoDepois - noAnoAntes;
+  const textoAno = Math.abs(deltaAno) >= 0.005
+    ? ` No Fundo Shinatal ${ANO_EXERCICIO}: ${deltaAno > 0 ? "+" : "−"}${formatarMoeda(Math.abs(deltaAno))}.`
+    : "";
   const ok = await confirmarAcao({
     titulo: "Confirmar alteração no contrato",
-    mensagem: `${descricaoEvento} — ${descreverDeltaFundo(antes, depois)}.${ehPresidente ? "" : " Isso vai virar uma solicitação, só valendo depois que o Presidente aprovar."}`,
-    perigo: depois < antes
+    mensagem: `${descricaoEvento} — ${descreverDeltaFundo(antes, depois)}.${textoAno}${ehPresidente ? "" : " Isso vai virar uma solicitação, só valendo depois que o Presidente aprovar."}`,
+    perigo: depois < antes || deltaAno < 0
   });
   if (!ok) return null;
 

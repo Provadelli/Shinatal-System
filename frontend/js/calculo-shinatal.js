@@ -93,22 +93,52 @@ function calcularPesoIndividual(usuario, anoExercicio) {
 /* Fundo Shinatal                                                      */
 /* ------------------------------------------------------------------ */
 
+/** Ano (exercício do Shinatal) a que uma movimentação pertence. O crédito inicial segue o mês
+ * de referência da implantação (regra do dia 15 — implantado em 20/12/2025 conta em 2026); as
+ * demais movimentações, o ano da própria data. */
+function anoDoMovimento(movimento) {
+  if (!movimento.data) return null;
+  if (movimento.tipo === "credito_inicial") return calcularMesReferenciaImplantacao(movimento.data).ano;
+  return Number(String(movimento.data).slice(0, 4));
+}
+
 /**
- * O contrato individual do colaborador (coleção `contratos`, ações "Ativar
- * contrato"/"Encerrar contrato" da aba RH) é dado interno — não alimenta o fundo. A única
- * fonte de dinheiro do Fundo Shinatal é a aba "Contratos" (empresariais, por CNPJ).
- * @param {object[]} contratosEmpresariais contratos empresariais (CNPJ) — feature do Admin. Cada
- *   um já carrega seu próprio `quantidadeFuncionariosIniciais`/`saidasIniciais`/`entradasContrato`
- *   diretamente no documento (sem subcoleção).
+ * Quanto um contrato movimentou o Fundo Shinatal de um ano específico. Cada movimentação conta
+ * no ano em que aconteceu: um contrato implantado em 2025 não credita nada em 2026, mas saídas,
+ * redução de prazo e o estorno de um encerramento antecipado em 2026 descontam do fundo de 2026.
+ * @returns {{creditado:number, descontado:number, estorno:number, liquido:number}}
  */
-function calcularFundo(contratosEmpresariais = []) {
+function calcularContribuicaoNoAno(contrato, ano, hojeISO) {
+  const { movimentos } = calcularResumoContratoEmpresarial(contrato, hojeISO);
+  let creditado = 0;
+  let descontado = 0;
+  let estorno = 0;
+  for (const m of movimentos) {
+    if (anoDoMovimento(m) !== ano || !m.valor) continue;
+    if (m.valor > 0) creditado += m.valor;
+    else if (m.tipo === "estorno") estorno += -m.valor;
+    else descontado += -m.valor;
+  }
+  return { creditado, descontado, estorno, liquido: creditado - descontado - estorno };
+}
+
+/**
+ * Fundo Shinatal de um exercício (ano). O contrato individual do colaborador (coleção
+ * `contratos`, ações "Ativar contrato"/"Encerrar contrato" da aba RH) é dado interno — não
+ * alimenta o fundo. A única fonte de dinheiro é a aba "Contratos" (empresariais, por CNPJ), e só
+ * entram as movimentações daquele ano (`calcularContribuicaoNoAno`): créditos de contratos de
+ * anos anteriores já pertencem ao Shinatal daquele ano; aqui só entram os descontos/estornos.
+ * @param {object[]} contratosEmpresariais contratos empresariais (CNPJ)
+ * @param {number} [anoExercicio] ano do fundo — padrão: ano atual
+ */
+function calcularFundo(contratosEmpresariais = [], anoExercicio = new Date().getFullYear()) {
   let arrecadado = 0;
   let estornos = 0;
 
   for (const ce of contratosEmpresariais) {
-    const resumo = calcularResumoContratoEmpresarial(ce);
-    arrecadado += resumo.totalCreditado;
-    if (ce.status === "encerrado") estornos += resumo.estorno;
+    const contribuicao = calcularContribuicaoNoAno(ce, anoExercicio);
+    arrecadado += contribuicao.creditado;
+    estornos += contribuicao.descontado + contribuicao.estorno;
   }
 
   return {
@@ -290,15 +320,28 @@ function calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, d
   const valor = (dataISO, qtd) => valorMes * qtd * calcularMesesRestantesContrato(dataISO, dataInicioISO, dataFimPrevistaISO);
   let acrescido = 0;
   let descontado = 0;
+  const movimentos = []; // cada ajuste com sua data — base do fundo por ano (calcularFundo)
   for (const e of (entradasContrato || [])) {
     const qtd = quantidadeDoRegistro(e);
-    if (e.dataEntrada && e.dataEntrada <= dataReferenciaISO) acrescido += valor(e.dataEntrada, qtd);
-    if (e.dataSaida && e.dataSaida <= dataReferenciaISO) descontado += valor(e.dataSaida, qtd);
+    if (e.dataEntrada && e.dataEntrada <= dataReferenciaISO) {
+      const v = valor(e.dataEntrada, qtd);
+      acrescido += v;
+      movimentos.push({ tipo: "entrada", data: e.dataEntrada, valor: v });
+    }
+    if (e.dataSaida && e.dataSaida <= dataReferenciaISO) {
+      const v = valor(e.dataSaida, qtd);
+      descontado += v;
+      movimentos.push({ tipo: "saida", data: e.dataSaida, valor: -v });
+    }
   }
   for (const s of (saidasIniciais || [])) {
-    if (s.data && s.data <= dataReferenciaISO) descontado += valor(s.data, quantidadeDoRegistro(s));
+    if (s.data && s.data <= dataReferenciaISO) {
+      const v = valor(s.data, quantidadeDoRegistro(s));
+      descontado += v;
+      movimentos.push({ tipo: "saida", data: s.data, valor: -v });
+    }
   }
-  return { acrescido, descontado };
+  return { acrescido, descontado, movimentos };
 }
 
 /**
@@ -416,13 +459,16 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
   let acrescido = 0;
   let descontado = 0;
   let estornoLotes = 0;
+  const movimentos = [{ tipo: "credito_inicial", data: contrato.dataInicio, valor: creditoInicial }];
 
   let qtdIniciaisRestantes = qtdIniciais;
   for (const s of saidasIniciais) {
     if (!s.data || s.data > dataReferencia) continue;
     const qtd = quantidadeDoRegistro(s);
     qtdIniciaisRestantes -= qtd;
-    descontado += desconto(contrato.dataInicio, s.data, qtd);
+    const v = desconto(contrato.dataInicio, s.data, qtd);
+    descontado += v;
+    movimentos.push({ tipo: "saida", data: s.data, valor: -v });
   }
   if (qtdIniciaisRestantes > 0) estornoLotes += desconto(contrato.dataInicio, dataReferencia, qtdIniciaisRestantes);
 
@@ -430,8 +476,14 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
     if (!e.dataEntrada || e.dataEntrada > dataReferencia) continue;
     const qtd = quantidadeDoRegistro(e);
     acrescido += CREDITO_POR_CONTRATO * qtd;
-    if (e.dataSaida && e.dataSaida <= dataReferencia) descontado += desconto(e.dataEntrada, e.dataSaida, qtd);
-    else estornoLotes += desconto(e.dataEntrada, dataReferencia, qtd);
+    movimentos.push({ tipo: "entrada", data: e.dataEntrada, valor: CREDITO_POR_CONTRATO * qtd });
+    if (e.dataSaida && e.dataSaida <= dataReferencia) {
+      const v = desconto(e.dataEntrada, e.dataSaida, qtd);
+      descontado += v;
+      movimentos.push({ tipo: "saida", data: e.dataSaida, valor: -v });
+    } else {
+      estornoLotes += desconto(e.dataEntrada, dataReferencia, qtd);
+    }
   }
 
   const totalCreditado = Math.max(0, creditoInicial + acrescido - descontado);
@@ -439,6 +491,7 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
   const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferencia);
   const estorno = Math.min(totalCreditado, estornoLotes + valorMes * funcionarioMesesPausados);
   const totalCreditadoFundo = encerrado ? Math.max(0, totalCreditado - estorno) : totalCreditado;
+  if (encerrado && estorno > 0) movimentos.push({ tipo: "estorno", data: dataReferencia, valor: -estorno });
 
   const saidasIniciaisQtd = saidasIniciais.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
   const entradasAtivasQtd = entradasContrato.filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
@@ -446,8 +499,33 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
   const qtdPausadaAtual = funcionariosPausados.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
   return {
     creditoInicial, acrescido, descontado, ajustePrazo: 0, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
-    qtdAtual, mesesPausados: calcularMesesPausados(pausas, dataReferencia), funcionarioMesesPausados, qtdPausadaAtual
+    qtdAtual, mesesPausados: calcularMesesPausados(pausas, dataReferencia), funcionarioMesesPausados, qtdPausadaAtual,
+    movimentos
   };
+}
+
+/** Converte a data de uma entrada do histórico (Timestamp do Firestore, Date, {seconds} ou
+ * string) para 'aaaa-mm-dd'; null se não der para ler. */
+function dataHistoricoParaISO(valor) {
+  if (!valor) return null;
+  let d = null;
+  if (typeof valor.toDate === "function") d = valor.toDate();
+  else if (valor instanceof Date) d = valor;
+  else if (typeof valor.seconds === "number") d = new Date(valor.seconds * 1000);
+  else if (typeof valor === "string") d = new Date(valor.length === 10 ? valor + "T00:00:00" : valor);
+  if (!d || Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Data da última alteração de prazo registrada no histórico do contrato (ou null). */
+function dataUltimaAlteracaoPrazo(contrato) {
+  const alteracoes = (contrato.historicoMovimentacoes || [])
+    .filter((h) => h.tipo === "edicao_prazo" && /prazo/i.test(h.descricao || ""));
+  for (let i = alteracoes.length - 1; i >= 0; i--) {
+    const iso = dataHistoricoParaISO(alteracoes[i].data);
+    if (iso) return iso;
+  }
+  return null;
 }
 
 /**
@@ -475,7 +553,7 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOS
   const saidasIniciais = contrato.saidasIniciais || [];
   const entradasContrato = contrato.entradasContrato || [];
   const creditoInicial = calcularCreditoInicialContratoEmpresarial(contrato);
-  const { acrescido: acrescidoFuncionarios, descontado: descontadoFuncionarios } =
+  const { acrescido: acrescidoFuncionarios, descontado: descontadoFuncionarios, movimentos: movimentosFuncionarios } =
     calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferencia, contrato.dataInicio, contrato.dataFimPrevista);
 
   // Contratos antigos (de antes deste campo existir) não têm dataFimPrevistaOriginal — nesse
@@ -505,9 +583,23 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOS
   const mesesPausados = calcularMesesPausados(pausas, dataReferencia);
   const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferencia);
   const qtdPausadaAtual = funcionariosPausados.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+
+  // Movimentações datadas (base do fundo por ano — ver calcularFundo): crédito inicial pelo
+  // prazo original na implantação, ajuste de prazo na data da última alteração registrada,
+  // entradas/saídas nas próprias datas e o estorno na data do encerramento.
+  const movimentos = [
+    { tipo: "credito_inicial", data: contrato.dataInicio, valor: creditoInicialOriginal },
+    ...movimentosFuncionarios
+  ];
+  if (ajustePrazo !== 0) {
+    movimentos.push({ tipo: "prazo", data: dataUltimaAlteracaoPrazo(contrato) || contrato.dataInicio, valor: ajustePrazo });
+  }
+  if (contrato.status === "encerrado" && estorno > 0) {
+    movimentos.push({ tipo: "estorno", data: dataReferencia, valor: -estorno });
+  }
   return {
     creditoInicial, acrescido, descontado, ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
-    qtdAtual, mesesPausados, funcionarioMesesPausados, qtdPausadaAtual
+    qtdAtual, mesesPausados, funcionarioMesesPausados, qtdPausadaAtual, movimentos
   };
 }
 
@@ -712,7 +804,7 @@ function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExerc
  * então devolve o resultado individual do `uidAlvo`. Use esta função no dashboard/simulador.
  */
 function calcularCotaComContexto(uidAlvo, todosUsuarios, mapaDados, contratosEmpresariais, anoExercicio) {
-  const { saldoDisponivel } = calcularFundo(contratosEmpresariais);
+  const { saldoDisponivel } = calcularFundo(contratosEmpresariais, anoExercicio);
   const elegiveis = todosUsuarios.filter((u) => verificarElegibilidade(u).elegivel);
   const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
 
@@ -732,6 +824,7 @@ export {
   percentualCargaHoraria,
   calcularPesoIndividual,
   calcularFundo,
+  calcularContribuicaoNoAno,
   mesesEntreDatas,
   contarFaltasComDesconto,
   calcularDescontoFaltas,
