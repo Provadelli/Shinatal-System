@@ -219,8 +219,8 @@ function validarCNPJ(valor) {
 /* o contrato entra em `entradasContrato` (data de entrada + data de   */
 /* saída, se já saiu também) — nenhum dos dois precisa de nome, só a   */
 /* contagem e a data importam para o cálculo. Cada entrada/saída       */
-/* ajusta o fundo em R$150,00 (valor fixo por funcionário — não é      */
-/* proporcionalizado por mês). O crédito inicial (Seção 2.1) é         */
+/* ajusta o fundo em R$150/12 por funcionário × os meses do contrato   */
+/* que restam a partir da data. O crédito inicial (Seção 2.1) é        */
 /* proporcional aos MESES PREVISTOS do contrato (dataInicio →          */
 /* dataFimPrevista), limitados a 12 — um contrato previsto para 12+    */
 /* meses credita o valor cheio de R$150/funcionário, e um previsto     */
@@ -230,7 +230,6 @@ function validarCNPJ(valor) {
 /* meses REALMENTE decorridos até o encerramento.                      */
 /* ------------------------------------------------------------------ */
 
-const CREDITO_AJUSTE_FUNCIONARIO_CONTRATO = 150;
 
 /** Duração prevista entre o início e o encerramento previsto do contrato (regra do dia 15 —
  * ver `calcularMesesDesdeInicio`). */
@@ -260,23 +259,42 @@ function quantidadeDoRegistro(registro) {
 }
 
 /**
- * Ajustes de +150,00 (entrada durante o contrato) e -150,00 (saída — do quadro inicial ou de
- * uma entrada) POR FUNCIONÁRIO, até a data de referência. Cada registro pode representar um
- * lote de N funcionários (campo `quantidade`) — nenhum dos dois precisa de nome, só datas e a
- * contagem de cada lote.
+ * Meses do contrato que restam a partir de uma data de entrada/saída até o encerramento
+ * previsto (regra do dia 15, inclusiva — mesma régua de `calcularMesesDesdeInicio`), limitados
+ * aos meses vigentes do contrato (teto de 12; 0 se o contrato não gera crédito). Uma data antes
+ * do início conta o contrato todo; depois do fim previsto conta 0.
+ */
+function calcularMesesRestantesContrato(dataISO, dataInicioISO, dataFimPrevistaISO) {
+  const mesesVigentes = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
+  if (!dataISO || mesesVigentes <= 0) return 0;
+  const restantes = calcularMesesDesdeInicio(dataISO, dataFimPrevistaISO);
+  return Math.max(0, Math.min(restantes, mesesVigentes));
+}
+
+/**
+ * Ajustes por entrada (+) e saída (−, do quadro inicial ou de uma entrada) de funcionários
+ * durante o contrato, até a data de referência. Cada funcionário vale R$150/12 × os meses do
+ * contrato que restam a partir da data de entrada/saída (`calcularMesesRestantesContrato`) —
+ * a mesma proporção do crédito inicial, então entrar e sair na mesma data se anulam. Cada
+ * registro pode representar um lote de N funcionários (campo `quantidade`).
  * @param {Array<{dataEntrada:string, dataSaida?:string|null, quantidade?:number}>} entradasContrato
  * @param {Array<{data:string, quantidade?:number}>} saidasIniciais
+ * @param {string} dataReferenciaISO
+ * @param {string} dataInicioISO início do contrato
+ * @param {string} dataFimPrevistaISO encerramento previsto atual do contrato
  */
-function calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferenciaISO) {
+function calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferenciaISO, dataInicioISO, dataFimPrevistaISO) {
+  const valorMes = CREDITO_POR_CONTRATO / MESES_ANO;
+  const valor = (dataISO, qtd) => valorMes * qtd * calcularMesesRestantesContrato(dataISO, dataInicioISO, dataFimPrevistaISO);
   let acrescido = 0;
   let descontado = 0;
   for (const e of (entradasContrato || [])) {
     const qtd = quantidadeDoRegistro(e);
-    if (e.dataEntrada && e.dataEntrada <= dataReferenciaISO) acrescido += CREDITO_AJUSTE_FUNCIONARIO_CONTRATO * qtd;
-    if (e.dataSaida && e.dataSaida <= dataReferenciaISO) descontado += CREDITO_AJUSTE_FUNCIONARIO_CONTRATO * qtd;
+    if (e.dataEntrada && e.dataEntrada <= dataReferenciaISO) acrescido += valor(e.dataEntrada, qtd);
+    if (e.dataSaida && e.dataSaida <= dataReferenciaISO) descontado += valor(e.dataSaida, qtd);
   }
   for (const s of (saidasIniciais || [])) {
-    if (s.data && s.data <= dataReferenciaISO) descontado += CREDITO_AJUSTE_FUNCIONARIO_CONTRATO * quantidadeDoRegistro(s);
+    if (s.data && s.data <= dataReferenciaISO) descontado += valor(s.data, quantidadeDoRegistro(s));
   }
   return { acrescido, descontado };
 }
@@ -374,7 +392,7 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOS
   const entradasContrato = contrato.entradasContrato || [];
   const creditoInicial = calcularCreditoInicialContratoEmpresarial(contrato);
   const { acrescido: acrescidoFuncionarios, descontado: descontadoFuncionarios } =
-    calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferencia);
+    calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferencia, contrato.dataInicio, contrato.dataFimPrevista);
 
   // Contratos antigos (de antes deste campo existir) não têm dataFimPrevistaOriginal — nesse
   // caso o prazo atual vira a própria base de comparação, então o ajuste dá 0 (comportamento
@@ -644,7 +662,7 @@ export {
   normalizarCNPJ,
   formatarCNPJ,
   validarCNPJ,
-  CREDITO_AJUSTE_FUNCIONARIO_CONTRATO,
+  calcularMesesRestantesContrato,
   calcularDuracaoMesesPrevista,
   calcularMesesVigentesContrato,
   quantidadeDoRegistro,
