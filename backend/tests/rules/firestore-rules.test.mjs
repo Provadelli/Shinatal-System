@@ -1611,7 +1611,26 @@ describe("contratosEmpresariais/{id}: validação", () => {
     await assertSucceeds(setDoc(doc(db, "contratosEmpresariais", "e2"), novoContratoEmpresarial("pres1", { valorContrato: null })));
   });
 
+  it("contrato de prazo indeterminado (sem data de fim) é aceito", async () => {
+    await seedUsuario("pres1", "presidente");
+    const db = ctx("pres1").firestore();
+    await assertSucceeds(setDoc(doc(db, "contratosEmpresariais", "e7"), novoContratoEmpresarial("pres1", {
+      prazoIndeterminado: true, dataFimPrevista: null, dataFimPrevistaOriginal: null, duracaoMesesPrevista: null
+    })));
+  });
+
+  it("Presidente alterna o contrato para prazo indeterminado", async () => {
+    await seedUsuario("pres1", "presidente");
+    await semRegras((db) => setDoc(doc(db, "contratosEmpresariais", "e8"), novoContratoEmpresarial("pres1")));
+    const db = ctx("pres1").firestore();
+    await assertSucceeds(updateDoc(doc(db, "contratosEmpresariais", "e8"), {
+      prazoIndeterminado: true, dataFimPrevista: null, duracaoMesesPrevista: null
+    }));
+    await assertFails(updateDoc(doc(db, "contratosEmpresariais", "e8"), { prazoIndeterminado: "sim" }));
+  });
+
   for (const [rotulo, campos] of Object.entries({
+    "prazo indeterminado não-booleano": { prazoIndeterminado: "sim" },
     "CNPJ com caracteres inválidos": { cnpj: "11.222.333/0001" },
     "valor negativo": { valorContrato: -1 },
     "quadro inicial negativo": { quantidadeFuncionariosIniciais: -5 },

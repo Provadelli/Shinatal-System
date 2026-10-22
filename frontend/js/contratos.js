@@ -188,8 +188,11 @@ function renderTabela() {
           </div>
           <div>
             <p class="text-label-sm text-on-surface-variant">Encerramento previsto</p>
+            ${c.prazoIndeterminado ? `
+            <p class="text-on-surface">Indeterminado</p>
+            <p class="text-label-sm text-on-surface-variant">sem data de encerramento</p>` : `
             <p class="text-on-surface">${formatarData(c.dataFimPrevista)}</p>
-            <p class="text-label-sm text-on-surface-variant">${duracaoPrevista} meses previstos</p>
+            <p class="text-label-sm text-on-surface-variant">${duracaoPrevista} meses previstos</p>`}
           </div>
           <div>
             <p class="text-label-sm text-on-surface-variant">Descontado (saídas/prazo)</p>
@@ -361,11 +364,30 @@ function habilitarTabFuncionarios(habilitar) {
   atualizarVisibilidadeBotoesFuncionarios();
 }
 
+/** Checkbox "Prazo indeterminado" marcado? */
+function prazoIndeterminadoMarcado() {
+  return document.getElementById("ce-prazo-indeterminado").checked;
+}
+
+/** Esconde/mostra a data de encerramento previsto conforme o checkbox de prazo indeterminado. */
+function aplicarEstadoPrazoIndeterminado() {
+  const indeterminado = prazoIndeterminadoMarcado();
+  const fim = document.getElementById("ce-fim-previsto");
+  fim.disabled = indeterminado;
+  fim.required = !indeterminado;
+  fim.closest("div").classList.toggle("opacity-50", indeterminado);
+  if (indeterminado) fim.value = "";
+}
+
 /** Preview ao vivo: duração prevista entre início e encerramento previsto (informativo). */
 function atualizarPreviewDuracao() {
   const inicio = document.getElementById("ce-inicio").value;
   const fimPrevisto = document.getElementById("ce-fim-previsto").value;
   const el = document.getElementById("ce-duracao-prevista");
+  if (prazoIndeterminadoMarcado()) {
+    el.textContent = "Prazo indeterminado: R$150 por funcionário. Se o contrato encerrar (ou o funcionário sair), conta só os meses que cada um permaneceu, até 12.";
+    return;
+  }
   if (!inicio || !fimPrevisto) { el.textContent = ""; return; }
   const meses = calcularDuracaoMesesPrevista(inicio, fimPrevisto);
   const aviso = meses > MESES_ANO ? " O crédito ao fundo é limitado a 12 meses (Seção 2)." : "";
@@ -377,7 +399,7 @@ function atualizarPreviewCreditoInicial() {
   const qtd = Number(document.getElementById("ce-qtd-iniciais").value) || 0;
   const inicio = document.getElementById("ce-inicio").value;
   const fimPrevisto = document.getElementById("ce-fim-previsto").value;
-  const meses = calcularMesesVigentesContrato(inicio, fimPrevisto);
+  const meses = prazoIndeterminadoMarcado() ? MESES_ANO : calcularMesesVigentesContrato(inicio, fimPrevisto);
   document.getElementById("ce-preview-credito-inicial").textContent =
     formatarMoeda((CREDITO_POR_CONTRATO / MESES_ANO) * qtd * meses);
 }
@@ -545,6 +567,7 @@ function resetarModalContrato() {
   document.getElementById("ce-titulo").textContent = "Novo contrato empresarial";
   document.getElementById("ce-botao-submit").textContent = "Cadastrar contrato";
   document.getElementById("form-contrato-empresarial").reset();
+  aplicarEstadoPrazoIndeterminado();
   travarDadosOriginais(false);
   document.getElementById("ce-cnpj-status").textContent = "";
   document.getElementById("ce-duracao-prevista").textContent = "";
@@ -588,12 +611,13 @@ function montarPausasAtualizadas(statusSelecionado) {
 function atualizarPreviewEstornoContrato() {
   if (!contratoEmEdicao) return;
   const dataInicio = document.getElementById("ce-inicio").value;
-  const dataFimPrevista = document.getElementById("ce-fim-previsto").value || contratoEmEdicao.dataFimPrevista;
+  const prazoIndeterminado = prazoIndeterminadoMarcado();
+  const dataFimPrevista = prazoIndeterminado ? null : (document.getElementById("ce-fim-previsto").value || contratoEmEdicao.dataFimPrevista);
   const dataFimReal = document.getElementById("ce-fim-real").value || new Date().toISOString().slice(0, 10);
   const statusSelecionado = document.getElementById("ce-status").value;
   const pausas = montarPausasAtualizadas(statusSelecionado) ?? contratoEmEdicao.pausas;
   const resumo = calcularResumoContratoEmpresarial(
-    { ...contratoEmEdicao, status: "encerrado", dataInicio, dataFimPrevista, dataEncerramentoReal: dataFimReal, pausas }
+    { ...contratoEmEdicao, status: "encerrado", dataInicio, dataFimPrevista, prazoIndeterminado, dataEncerramentoReal: dataFimReal, pausas }
   );
   document.getElementById("ce-preview-estorno").textContent = formatarMoeda(resumo.estorno);
 }
@@ -700,7 +724,9 @@ function prepararModalContrato(contrato, tabInicial) {
   atualizarStatusCNPJ(contrato.cnpj);
   document.getElementById("ce-valor-contrato").value = contrato.valorContrato ?? "";
   document.getElementById("ce-inicio").value = contrato.dataInicio;
-  document.getElementById("ce-fim-previsto").value = contrato.dataFimPrevista;
+  document.getElementById("ce-prazo-indeterminado").checked = !!contrato.prazoIndeterminado;
+  aplicarEstadoPrazoIndeterminado();
+  document.getElementById("ce-fim-previsto").value = contrato.dataFimPrevista || "";
   atualizarPreviewDuracao();
   document.getElementById("ce-qtd-iniciais").value = contrato.quantidadeFuncionariosIniciais ?? 0;
   atualizarPreviewCreditoInicial();
@@ -735,7 +761,19 @@ document.getElementById("btn-novo-contrato-emp").addEventListener("click", reset
 
 document.getElementById("ce-inicio").addEventListener("change", (e) => {
   const fimPrevisto = document.getElementById("ce-fim-previsto");
-  if (!fimPrevisto.value && e.target.value) fimPrevisto.value = somarMeses(e.target.value, MESES_ANO);
+  if (!fimPrevisto.value && e.target.value && !prazoIndeterminadoMarcado()) fimPrevisto.value = somarMeses(e.target.value, MESES_ANO);
+  atualizarPreviewDuracao();
+  atualizarPreviewCreditoInicial();
+  atualizarPreviewEstornoContrato();
+});
+document.getElementById("ce-prazo-indeterminado").addEventListener("change", () => {
+  aplicarEstadoPrazoIndeterminado();
+  const inicio = document.getElementById("ce-inicio").value;
+  const fimPrevisto = document.getElementById("ce-fim-previsto");
+  // Desmarcou: sugere 12 meses a partir do início (mesmo comportamento do cadastro normal).
+  if (!prazoIndeterminadoMarcado() && !fimPrevisto.value && inicio) {
+    fimPrevisto.value = contratoEmEdicao?.dataFimPrevista || somarMeses(inicio, MESES_ANO);
+  }
   atualizarPreviewDuracao();
   atualizarPreviewCreditoInicial();
   atualizarPreviewEstornoContrato();
@@ -783,16 +821,20 @@ document.getElementById("ce-data-retomada").addEventListener("input", atualizarP
 document.getElementById("form-contrato-empresarial").addEventListener("submit", async (e) => {
   e.preventDefault();
   const eraEdicao = !!contratoEmEdicao;
-  const dataFimPrevista = document.getElementById("ce-fim-previsto").value;
+  const prazoIndeterminado = prazoIndeterminadoMarcado();
+  const dataFimPrevista = prazoIndeterminado ? null : document.getElementById("ce-fim-previsto").value;
+  const ERRO_DATA_FIM = "Informe uma data de encerramento prevista a partir do início — ou marque \"Prazo indeterminado\".";
 
   let dados;
   if (eraEdicao) {
     // Dados originais (nome, CNPJ, valor, início, quadro inicial) são travados após o cadastro
     // — só o prazo previsto pode mudar aqui (mais status/encerramento, abaixo).
     const dataInicio = contratoEmEdicao.dataInicio;
-    if (dataFimPrevista < dataInicio) return mostrarToast("A data de encerramento prevista não pode ser antes do início.", "erro");
-    const duracaoMesesPrevista = calcularDuracaoMesesPrevista(dataInicio, dataFimPrevista);
+    if (!prazoIndeterminado && (!dataFimPrevista || dataFimPrevista < dataInicio)) return mostrarToast(ERRO_DATA_FIM, "erro");
+    const duracaoMesesPrevista = prazoIndeterminado ? null : calcularDuracaoMesesPrevista(dataInicio, dataFimPrevista);
+    // Só grava o campo quando ele está em jogo — contratos antigos (com prazo) não ganham o campo.
     dados = { dataFimPrevista, duracaoMesesPrevista };
+    if (prazoIndeterminado || contratoEmEdicao.prazoIndeterminado) dados.prazoIndeterminado = prazoIndeterminado;
   } else {
     const nomeEmpresa = document.getElementById("ce-nome").value.trim();
     const cnpj = normalizarCNPJ(document.getElementById("ce-cnpj").value);
@@ -802,12 +844,13 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
     const quantidadeFuncionariosIniciais = Number(document.getElementById("ce-qtd-iniciais").value);
 
     if (!validarCNPJ(cnpj)) return mostrarToast("CNPJ inválido. Confira os dígitos e tente novamente.", "erro");
-    if (dataFimPrevista < dataInicio) return mostrarToast("A data de encerramento prevista não pode ser antes do início.", "erro");
+    if (!dataInicio) return mostrarToast("Informe a data de início do contrato.", "erro");
+    if (!prazoIndeterminado && (!dataFimPrevista || dataFimPrevista < dataInicio)) return mostrarToast(ERRO_DATA_FIM, "erro");
     if (!Number.isInteger(quantidadeFuncionariosIniciais) || quantidadeFuncionariosIniciais < 0) {
       return mostrarToast("Informe a quantidade de funcionários do quadro inicial (0 ou mais).", "erro");
     }
 
-    const duracaoMesesPrevista = calcularDuracaoMesesPrevista(dataInicio, dataFimPrevista);
+    const duracaoMesesPrevista = prazoIndeterminado ? null : calcularDuracaoMesesPrevista(dataInicio, dataFimPrevista);
     // dataFimPrevistaOriginal fica travada para sempre (nunca entra em "dados" na edição) —
     // é a base de comparação para mostrar o efeito de futuras mudanças de prazo como
     // acréscimo/desconto na planilha (ver calcularResumoContratoEmpresarial).
@@ -815,6 +858,7 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
       nomeEmpresa, cnpj, valorContrato, dataInicio, dataFimPrevista, dataFimPrevistaOriginal: dataFimPrevista,
       duracaoMesesPrevista, quantidadeFuncionariosIniciais
     };
+    if (prazoIndeterminado) dados.prazoIndeterminado = true;
   }
   const statusVisivel = !document.getElementById("ce-bloco-status").classList.contains("hidden");
   if (statusVisivel) {
@@ -835,7 +879,12 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
       // Sem mudança real (reenvio do formulário sem editar nada): não pede confirmação nem
       // grava movimentação, só fecha o modal.
       const partesDescricao = [];
-      if (dados.dataFimPrevista !== contratoEmEdicao.dataFimPrevista) {
+      const eraIndeterminado = !!contratoEmEdicao.prazoIndeterminado;
+      if (dados.prazoIndeterminado && !eraIndeterminado) {
+        partesDescricao.push("Prazo alterado para indeterminado");
+      } else if (!dados.prazoIndeterminado && eraIndeterminado) {
+        partesDescricao.push(`Prazo definido: ${dados.duracaoMesesPrevista} meses (até ${formatarData(dados.dataFimPrevista)})`);
+      } else if (!dados.prazoIndeterminado && dados.dataFimPrevista !== contratoEmEdicao.dataFimPrevista) {
         const duracaoAntiga = calcularDuracaoMesesPrevista(contratoEmEdicao.dataInicio, contratoEmEdicao.dataFimPrevista);
         partesDescricao.push(`Prazo previsto alterado de ${duracaoAntiga} para ${dados.duracaoMesesPrevista} meses`);
       }
@@ -883,7 +932,9 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
     const creditoInicial = calcularResumoContratoEmpresarial(contratoBaseCriacao).totalCreditadoFundo;
     const historicoMovimentacoes = [{
       tipo: "criacao",
-      descricao: `Crédito inicial lançado: ${dados.quantidadeFuncionariosIniciais} funcionário(s) × ${dados.duracaoMesesPrevista} meses previstos`,
+      descricao: dados.prazoIndeterminado
+        ? `Crédito inicial lançado: ${dados.quantidadeFuncionariosIniciais} funcionário(s) × R$150 (prazo indeterminado)`
+        : `Crédito inicial lançado: ${dados.quantidadeFuncionariosIniciais} funcionário(s) × ${dados.duracaoMesesPrevista} meses previstos`,
       fundoAntes: 0, fundoDepois: creditoInicial, data: new Date(), registradoPor: perfil.uid
     }];
     const payloadCriacao = { ...contratoBaseCriacao, historicoMovimentacoes, registradoPor: perfil.uid, criadoEm: serverTimestamp() };

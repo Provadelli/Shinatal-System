@@ -369,6 +369,87 @@ function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, d
   return Math.min(valorCreditadoAteAData, (valorCreditadoAteAData / mesesAlvo) * mesesFaltantes);
 }
 
+/* ------------------------------------------------------------------ */
+/* Contratos de prazo indeterminado (`prazoIndeterminado: true`)       */
+/* Sem data de fim, não há "meses previstos": cada funcionário entra   */
+/* com os R$150 cheios (12 meses adiantados — Seção 2), seja do quadro */
+/* inicial ou de uma entrada. Quando ele sai, ou o contrato encerra, o */
+/* valor dele passa a ser R$150/12 × os meses que ele realmente ficou  */
+/* (até 12) — a diferença é descontada/estornada.                      */
+/* ------------------------------------------------------------------ */
+
+/** Meses de pausa do contrato inteiro que caem dentro do intervalo [inicio, fim]. */
+function calcularMesesPausadosEntre(pausas, inicioISO, fimISO) {
+  return (pausas || []).reduce((soma, p) => {
+    if (!p.dataPausa) return soma;
+    const ini = p.dataPausa > inicioISO ? p.dataPausa : inicioISO;
+    const fimPausa = p.dataRetomada || fimISO;
+    const fim = fimPausa < fimISO ? fimPausa : fimISO;
+    if (fim <= ini) return soma;
+    return soma + Math.max(0, mesesEntreDatas(ini, fim));
+  }, 0);
+}
+
+/** Meses que um lote ficou no contrato (regra do dia 15 nas duas pontas), sem as pausas do
+ * contrato inteiro nesse período, limitados a 12. */
+function calcularMesesPermanencia(entradaISO, saidaISO, pausas) {
+  const brutos = Math.max(0, calcularMesesDesdeInicio(entradaISO, saidaISO));
+  const efetivos = Math.max(0, brutos - calcularMesesPausadosEntre(pausas, entradaISO, saidaISO));
+  return Math.min(efetivos, MESES_ANO);
+}
+
+/** Resumo de um contrato de prazo indeterminado — mesmos campos de
+ * `calcularResumoContratoEmpresarial`, para que todas as telas funcionem igual. */
+function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
+  const encerrado = contrato.status === "encerrado";
+  const dataReferencia = encerrado ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
+  const valorMes = CREDITO_POR_CONTRATO / MESES_ANO;
+  const pausas = contrato.pausas || [];
+  const saidasIniciais = contrato.saidasIniciais || [];
+  const entradasContrato = contrato.entradasContrato || [];
+  const qtdIniciais = contrato.quantidadeFuncionariosIniciais || 0;
+  // Desconto de quem sai antes de completar 12 meses: R$12,50 × meses que faltaram.
+  const desconto = (entradaISO, saidaISO, qtd) =>
+    valorMes * qtd * (MESES_ANO - calcularMesesPermanencia(entradaISO, saidaISO, pausas));
+
+  const creditoInicial = CREDITO_POR_CONTRATO * qtdIniciais;
+  let acrescido = 0;
+  let descontado = 0;
+  let estornoLotes = 0;
+
+  let qtdIniciaisRestantes = qtdIniciais;
+  for (const s of saidasIniciais) {
+    if (!s.data || s.data > dataReferencia) continue;
+    const qtd = quantidadeDoRegistro(s);
+    qtdIniciaisRestantes -= qtd;
+    descontado += desconto(contrato.dataInicio, s.data, qtd);
+  }
+  if (qtdIniciaisRestantes > 0) estornoLotes += desconto(contrato.dataInicio, dataReferencia, qtdIniciaisRestantes);
+
+  for (const e of entradasContrato) {
+    if (!e.dataEntrada || e.dataEntrada > dataReferencia) continue;
+    const qtd = quantidadeDoRegistro(e);
+    acrescido += CREDITO_POR_CONTRATO * qtd;
+    if (e.dataSaida && e.dataSaida <= dataReferencia) descontado += desconto(e.dataEntrada, e.dataSaida, qtd);
+    else estornoLotes += desconto(e.dataEntrada, dataReferencia, qtd);
+  }
+
+  const totalCreditado = Math.max(0, creditoInicial + acrescido - descontado);
+  const funcionariosPausados = [...(contrato.pausasQuadroInicial || []), ...(contrato.pausasEntradas || [])];
+  const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferencia);
+  const estorno = Math.min(totalCreditado, estornoLotes + valorMes * funcionarioMesesPausados);
+  const totalCreditadoFundo = encerrado ? Math.max(0, totalCreditado - estorno) : totalCreditado;
+
+  const saidasIniciaisQtd = saidasIniciais.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
+  const entradasAtivasQtd = entradasContrato.filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
+  const qtdAtual = Math.max(0, qtdIniciais - saidasIniciaisQtd) + entradasAtivasQtd;
+  const qtdPausadaAtual = funcionariosPausados.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+  return {
+    creditoInicial, acrescido, descontado, ajustePrazo: 0, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
+    qtdAtual, mesesPausados: calcularMesesPausados(pausas, dataReferencia), funcionarioMesesPausados, qtdPausadaAtual
+  };
+}
+
 /**
  * Resumo financeiro completo de um contrato empresarial: crédito inicial, ajustes por
  * entrada/saída e o estorno — real se já encerrado, ou projetado ("se encerrasse hoje")
@@ -389,6 +470,7 @@ function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, d
  *   pausasEntradas?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>}} contrato
  */
 function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOString().slice(0, 10)) {
+  if (contrato.prazoIndeterminado) return calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO);
   const dataReferencia = contrato.status === "encerrado" ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
   const saidasIniciais = contrato.saidasIniciais || [];
   const entradasContrato = contrato.entradasContrato || [];

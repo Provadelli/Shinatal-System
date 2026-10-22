@@ -369,7 +369,7 @@ service cloud.firestore {
     function camposContratoEmpresarialMutaveis() {
       return ['dataFimPrevista', 'duracaoMesesPrevista', 'status', 'dataEncerramentoReal',
               'pausas', 'saidasIniciais', 'entradasContrato', 'pausasQuadroInicial',
-              'pausasEntradas', 'historicoMovimentacoes'];
+              'pausasEntradas', 'historicoMovimentacoes', 'prazoIndeterminado'];
     }
 
     // Schema fechado da criação — exatamente o que contratos.js grava (payloadCriacao).
@@ -378,7 +378,7 @@ service cloud.firestore {
               'dataFimPrevistaOriginal', 'duracaoMesesPrevista', 'quantidadeFuncionariosIniciais',
               'status', 'dataEncerramentoReal', 'pausas', 'saidasIniciais', 'entradasContrato',
               'pausasQuadroInicial', 'pausasEntradas', 'historicoMovimentacoes',
-              'registradoPor', 'criadoEm'];
+              'prazoIndeterminado', 'registradoPor', 'criadoEm'];
     }
 
     match /contratosEmpresariais/{id} {
@@ -398,10 +398,12 @@ service cloud.firestore {
         && dataIso(request.resource.data.dataInicio)
         && request.resource.data.quantidadeFuncionariosIniciais is int
         && request.resource.data.quantidadeFuncionariosIniciais >= 0
-        && request.resource.data.status in statusContratoEmpresarialValidos();
+        && request.resource.data.status in statusContratoEmpresarialValidos()
+        && request.resource.data.get('prazoIndeterminado', false) is bool;
       allow update: if operadorValido() && ehPresidente()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(camposContratoEmpresarialMutaveis())
         && request.resource.data.get('status', 'ativo') in statusContratoEmpresarialValidos()
+        && request.resource.data.get('prazoIndeterminado', false) is bool
         && dataIsoOuNula(request.resource.data.get('dataEncerramentoReal', null));
       allow delete: if operadorValido() && ehPresidente();
     }
