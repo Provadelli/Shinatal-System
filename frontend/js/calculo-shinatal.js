@@ -146,18 +146,20 @@ function formatarMesReferencia({ ano, mes }) {
 }
 
 /**
- * Meses decorridos desde o início do contrato (aplicando a regra do dia 15 de
- * `calcularMesReferenciaImplantacao`) até uma data de referência, contados de forma inclusiva —
- * o próprio mês de referência já conta como o 1º mês. Base tanto da duração prevista do contrato
- * quanto dos meses efetivamente decorridos usados no estorno (Seção 2.1/2.2), para que os dois
- * fiquem sempre na mesma régua.
+ * Meses decorridos desde o início do contrato até uma data de referência, com a regra do dia 15
+ * nas DUAS pontas: no início, até o dia 15 o mês conta e do dia 16 em diante começa no mês
+ * seguinte (`calcularMesReferenciaImplantacao`); na data final/referência, até o dia 15 aquele
+ * mês NÃO conta e do dia 16 em diante conta. Ex.: 09/02 → 01/03 = 1 mês; 01/03 → 31/08 = 6.
+ * Base tanto da duração prevista do contrato quanto dos meses efetivamente decorridos usados no
+ * estorno (Seção 2.1/2.2), para que os dois fiquem sempre na mesma régua.
  * @param {string} dataInicioISO 'aaaa-mm-dd'
  * @param {string} dataReferenciaISO 'aaaa-mm-dd'
  */
 function calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO) {
   const { ano, mes } = calcularMesReferenciaImplantacao(dataInicioISO);
   const ref = new Date(dataReferenciaISO + "T00:00:00");
-  return (ref.getFullYear() - ano) * 12 + (ref.getMonth() - mes) + 1;
+  const contaMesFinal = ref.getDate() >= 16 ? 1 : 0;
+  return (ref.getFullYear() - ano) * 12 + (ref.getMonth() - mes) + contaMesFinal;
 }
 
 /* ------------------------------------------------------------------ */
@@ -239,10 +241,10 @@ function calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO) {
 }
 
 /** Meses previstos do contrato, limitados a 12 (o crédito nunca ultrapassa R$150/func. — Seção 2).
- * Contratos com menos de 2 meses previstos não são contabilizados (não geram crédito). */
+ * Um contrato de 1 mês já gera crédito (R$150/12 por funcionário); só 0 meses não gera. */
 function calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO) {
   const meses = calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO);
-  if (meses < 2) return 0;
+  if (meses < 1) return 0;
   return Math.min(meses, MESES_ANO);
 }
 
