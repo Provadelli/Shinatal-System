@@ -49,8 +49,10 @@ async function recalcularEPublicarFundo({ usuarios, anoExercicio, atualizadoPorU
     (soma, ce) => soma + calcularResumoContratoEmpresarial(ce).qtdAtual, 0
   );
 
+  // `arrecadado` público = saldo líquido do fundo (já descontadas saídas e estornos), o mesmo
+  // valor mostrado em gestao.html (#fundo-saldo). Não publicar o bruto: a landing divergiria.
   await setDoc(doc(db, "estatisticas", "publico"), {
-    arrecadado,
+    arrecadado: saldoDisponivel,
     colaboradores,
     atualizadoEm: serverTimestamp()
   }, { merge: true });
