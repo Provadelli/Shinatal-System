@@ -36,6 +36,8 @@ const PROJETO = "demo-shinatal";
 const HOST_AUTH = process.env.FIREBASE_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
 const HOST_FIRESTORE = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
 const SENHA = "Auditoria#2026";
+// Versão vigente dos Termos/Política (frontend/js/lgpd-config.js) — as contas de teste nascem com ela.
+const VERSAO_TERMOS = readFileSync(path.join(RAIZ, "frontend/js/lgpd-config.js"), "utf8").match(/VERSAO_TERMOS = "([^"]+)"/)[1];
 const TAGS_AXE = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"];
 
 /* ------------------------------------------------------------------ */
@@ -148,15 +150,19 @@ async function gravar(caminho, dados) {
 async function semear() {
   const ano = new Date().getFullYear();
   const agora = new Date();
-  const perfil = (nome, email, cargo, role) => ({
+  // Contas de teste já com o aceite dos termos na versão vigente (senão o diálogo de aceite da
+  // LGPD cobriria todas as páginas logadas). A Carla fica SEM aceite, para auditar esse diálogo.
+  const perfil = (nome, email, cargo, role, aceite = true) => ({
     nome, email, cargo, cargaHoraria: 8, role, status: "ativo", motivoPerdaIntegral: null,
-    fotoBase64: null, dataAdmissao: `${ano - 1}-03-01`, dataDesligamento: null, criadoEm: agora
+    fotoBase64: null, dataAdmissao: `${ano - 1}-03-01`, dataDesligamento: null, criadoEm: agora,
+    ...(aceite ? { aceiteTermos: { versao: VERSAO_TERMOS, aceitoEm: agora } } : {})
   });
   const contas = {
     pres: perfil("Paula Presidente", "presidente@shinerio.com", "Presidência", "presidente"),
     dp: perfil("Dora Pessoal", "dp@shinerio.com", "Departamento Pessoal", "dp"),
     ana: perfil("Ana Souza", "ana@shinerio.com", "Operações", "colaborador"),
-    bruno: perfil("Bruno Lima", "bruno@shinerio.com", "Financeiro", "colaborador")
+    bruno: perfil("Bruno Lima", "bruno@shinerio.com", "Financeiro", "colaborador"),
+    carla: perfil("Carla Nunes", "carla@shinerio.com", "Operações", "colaborador", false)
   };
   const uid = {};
   for (const [chave, p] of Object.entries(contas)) {
@@ -432,7 +438,7 @@ async function principal() {
 
   try {
     console.log("\n== Páginas públicas");
-    for (const [caminho, rotulo] of [["/", "home"], ["/login", "login"], ["/cadastro", "cadastro"], ["/recuperar-senha", "recuperar senha"], ["/privacidade", "privacidade"], ["/pagina-que-nao-existe", "404"]]) {
+    for (const [caminho, rotulo] of [["/", "home"], ["/login", "login"], ["/cadastro", "cadastro"], ["/recuperar-senha", "recuperar senha"], ["/privacidade", "privacidade"], ["/termos", "termos de uso"], ["/pagina-que-nao-existe", "404"]]) {
       await visitar(pagina, caminho, `${rotulo} (desktop)`);
     }
     await visitar(pagina, "/", "home (celular)", CELULAR);
@@ -509,10 +515,65 @@ async function principal() {
     await capturar(pagina, "home (celular) · footer");
     await pagina.setViewport(DESKTOP);
 
-    for (const [caminho, rotulo] of [["/", "home"], ["/login", "login"], ["/cadastro", "cadastro"], ["/recuperar-senha", "recuperar senha"], ["/privacidade", "privacidade"]]) {
+    for (const [caminho, rotulo] of [["/", "home"], ["/login", "login"], ["/cadastro", "cadastro"], ["/recuperar-senha", "recuperar senha"], ["/privacidade", "privacidade"], ["/termos", "termos de uso"]]) {
       await rodarLighthouse(navegador, caminho, rotulo);
       await rodarLighthouseDesktop(navegador, caminho, rotulo);
     }
+
+    // LGPD — caixa de aceite do cadastro: sem marcar, o erro aparece e o foco vai para a caixa.
+    console.log("\n== LGPD");
+    await pagina.goto(`${BASE}/cadastro`, { waitUntil: "networkidle2" });
+    await assentar(pagina);
+    await pagina.type("#nome", "Teste Aceite");
+    await pagina.type("#cargo", "Operações");
+    await pagina.evaluate(() => { document.getElementById("dataAdmissao").value = "2025-01-10"; });
+    await pagina.type("#email", "teste.aceite@shinerio.com");
+    await pagina.type("#senha", SENHA);
+    await pagina.type("#confirmarSenha", SENHA);
+    await pagina.click("#btn-cadastrar");
+    await pausa(300);
+    const semAceite = await pagina.evaluate(() => ({
+      erro: !document.getElementById("erro-form").classList.contains("hidden"),
+      foco: document.activeElement?.id,
+      invalido: document.getElementById("aceiteTermos").getAttribute("aria-invalid")
+    }));
+    conferir("cadastro: sem marcar o aceite, mostra erro e leva o foco à caixa", semAceite.erro && semAceite.foco === "aceiteTermos" && semAceite.invalido === "true", JSON.stringify(semAceite));
+    await axe(pagina, "cadastro · erro do aceite dos termos");
+
+    // LGPD — conta sem aceite (Carla): o diálogo bloqueia a página até aceitar.
+    await entrar(pagina, "carla@shinerio.com");
+    await pagina.waitForSelector('[role="alertdialog"]', { timeout: 10000 });
+    await pausa(400);
+    await axe(pagina, "diálogo de aceite dos termos (1º acesso)");
+    const dialogo = () => pagina.evaluate(() => {
+      const d = document.querySelector('[role="alertdialog"]');
+      return { aberto: Boolean(d), focoDentro: Boolean(d && d.contains(document.activeElement)) };
+    });
+    conferir("aceite: foco começa dentro do diálogo", (await dialogo()).focoDentro);
+    for (let i = 0; i < 8; i++) await pagina.keyboard.press("Tab");
+    conferir("aceite: Tab fica preso no diálogo", (await dialogo()).focoDentro);
+    await pagina.keyboard.press("Escape");
+    await pausa(200);
+    conferir("aceite: Esc NÃO fecha (o aceite é obrigatório)", (await dialogo()).aberto);
+    await pagina.click("[data-aceitar]");
+    await pausa(300);
+    const semMarcar = await pagina.evaluate(() => ({
+      erro: !document.getElementById("aceite-erro").classList.contains("hidden"),
+      foco: document.activeElement?.id
+    }));
+    conferir("aceite: sem marcar a caixa, mostra erro e foca a caixa", semMarcar.erro && semMarcar.foco === "aceite-caixa", JSON.stringify(semMarcar));
+    await axe(pagina, "diálogo de aceite · erro");
+    await pagina.click("#aceite-caixa");
+    await pagina.click("[data-aceitar]");
+    await pagina.waitForFunction(() => !document.querySelector('[role="alertdialog"]'), { timeout: 10000 }).catch(() => {});
+    const liberado = await pagina.evaluate(() => ({
+      fechou: !document.querySelector('[role="alertdialog"]'),
+      inerte: [...document.body.children].some((el) => el.inert)
+    }));
+    conferir("aceite: aceitar grava o registro e libera a página", liberado.fechou && !liberado.inerte, JSON.stringify(liberado));
+    await pagina.reload({ waitUntil: "networkidle2" });
+    await pausa(1500);
+    conferir("aceite: depois de aceitar, não pergunta de novo", !(await dialogo()).aberto);
 
     console.log("\n== Colaborador (Ana)");
     await pagina.setViewport(DESKTOP);

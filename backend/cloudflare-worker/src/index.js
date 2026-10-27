@@ -105,6 +105,8 @@ function valorFirestore(v) {
   if (typeof v === "boolean") return { booleanValue: v };
   if (typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
   if (v instanceof Date) return { timestampValue: v.toISOString() };
+  // Mapa simples (ex.: aceiteTermos: { versao, aceitoEm }).
+  if (typeof v === "object" && !Array.isArray(v)) return { mapValue: documentoFirestore(v) };
   throw new Error(`Tipo não suportado para o Firestore: ${typeof v}`);
 }
 
@@ -129,6 +131,8 @@ const CARGAS_HORARIAS_VALIDAS = [4, 6, 8];
 const TAMANHO_MAX_FOTO = 150000;
 // Mesmo formato de fotoValida() nas rules: imagem rasterizada em base64, nunca SVG nem URL externa.
 const REGEX_FOTO = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+// Versão dos Termos/Política aceita na caixa do cadastro (LGPD) — ex.: "2026-10-27".
+const REGEX_VERSAO_TERMOS = /^[\w.-]{1,20}$/;
 
 function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha }) {
   if (typeof nome !== "string" || !nome.trim() || nome.length > 120) return false;
@@ -144,7 +148,7 @@ function cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, s
 }
 
 async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
-  const { token, nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha, appCheckToken } = corpo;
+  const { token, nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha, appCheckToken, aceiteTermos, versaoTermos } = corpo;
   // Token do App Check gerado no navegador (reCAPTCHA v3) e repassado ao Firebase em toda chamada
   // abaixo: com o App Check obrigatório no console, sem ele o Firebase recusa o cadastro.
   const cabecalhosFirebase = { "Content-Type": "application/json" };
@@ -158,6 +162,10 @@ async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
   const emailNormalizado = String(email || "").trim().toLowerCase();
   if (!REGEX_EMAIL_INSTITUCIONAL.test(emailNormalizado)) {
     return respostaJson({ ok: false, erro: "auth/invalid-email" }, 400, origin, allowedOrigins);
+  }
+  // LGPD: sem a caixa de aceite marcada, nenhuma conta é criada.
+  if (aceiteTermos !== true || typeof versaoTermos !== "string" || !REGEX_VERSAO_TERMOS.test(versaoTermos)) {
+    return respostaJson({ ok: false, erro: "shinatal/termos-nao-aceitos" }, 400, origin, allowedOrigins);
   }
   if (!cadastroValido({ nome, cargo, cargaHoraria, dataAdmissao, fotoBase64, senha })) {
     // Código próprio (traduzido em auth.js) — "internal-error" faria a pessoa tentar de novo em vão.
@@ -189,7 +197,9 @@ async function tratarCadastro(corpo, request, env, origin, allowedOrigins) {
   //    inteiro pelos campos abaixo, equivalente ao setDoc() sem merge que o cliente fazia antes.
   const corpoFirestore = documentoFirestore({
     nome: nome.trim(), email: emailNormalizado, cargo: cargo.trim(), cargaHoraria: Number(cargaHoraria),
-    fotoBase64: fotoBase64 || null, dataAdmissao, criadoEm: new Date()
+    fotoBase64: fotoBase64 || null, dataAdmissao, criadoEm: new Date(),
+    // Registro do aceite (LGPD) — copiado para o perfil no primeiro login (auth.js).
+    aceiteTermos: { versao: versaoTermos, aceitoEm: new Date() }
   });
   const resFirestore = await fetch(
     `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/cadastrosPendentes/${uid}`,

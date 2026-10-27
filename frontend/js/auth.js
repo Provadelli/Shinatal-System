@@ -9,6 +9,7 @@ import {
   deleteUser
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { aceitouVersaoAtual, pedirAceite } from "./consentimento.js";
 
 /** Painel de destino de cada papel após o login. */
 export const PAGINA_POR_ROLE = {
@@ -62,7 +63,10 @@ async function promoverCadastroPendente(user) {
     dataAdmissao: p.dataAdmissao,
     dataDesligamento: null,
     // criadoPor só existe quando um Admin/Presidente cadastrou a pessoa pelo painel.
-    criadoPor: p.criadoPor || undefined
+    criadoPor: p.criadoPor || undefined,
+    // Aceite dos termos dado no cadastro (LGPD) — o convite do Admin não tem, e aí o aceite é
+    // pedido logo em seguida, por exigirAutenticacao().
+    aceiteTermos: p.aceiteTermos || undefined
   }).filter(([, valor]) => valor !== undefined));
   try {
     await setDoc(doc(db, "usuarios", user.uid), { ...perfilNovo, criadoEm: serverTimestamp() });
@@ -104,13 +108,15 @@ async function obterOuCriarPerfil(user) {
  * de Auth para não deixar uma órfã que bloquearia o e-mail ("já existe uma conta").
  * @param {import("firebase/auth").User} usuarioAuth conta recém-criada (ainda logada no seu app)
  * @param {{nome:string,email:string,cargo:string,cargaHoraria:number,dataAdmissao:string,
- *   fotoBase64?:string|null,criadoPor?:string}} dados `criadoPor` só quando Admin/Presidente cadastra
+ *   fotoBase64?:string|null,criadoPor?:string,versaoTermosAceita?:string}} dados `criadoPor` só
+ *   quando Admin/Presidente cadastra; `versaoTermosAceita` só no autocadastro (caixa marcada)
  */
-export async function gravarCadastroPendente(usuarioAuth, { nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64 = null, criadoPor }) {
+export async function gravarCadastroPendente(usuarioAuth, { nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64 = null, criadoPor, versaoTermosAceita }) {
   try {
     await setDoc(doc(db, "cadastrosPendentes", usuarioAuth.uid), {
       nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64,
       ...(criadoPor ? { criadoPor } : {}),
+      ...(versaoTermosAceita ? { aceiteTermos: { versao: versaoTermosAceita, aceitoEm: serverTimestamp() } } : {}),
       criadoEm: serverTimestamp()
     });
   } catch (erro) {
@@ -214,6 +220,9 @@ export function exigirAutenticacao(rolesPermitidos = null) {
         window.location.href = PAGINA_POR_ROLE[roleEfetivo] || "/login";
         return;
       }
+      // LGPD: sem o aceite da versão vigente dos Termos/Política, a página não carrega — o
+      // diálogo só sai aceitando (registro em usuarios/{uid}.aceiteTermos) ou saindo da conta.
+      if (!aceitouVersaoAtual(perfil)) await pedirAceite(perfil, fazerLogout);
       resolve(perfil);
     });
   });
@@ -234,6 +243,7 @@ export function traduzirErroAuth(erro) {
   const mapa = {
     "shinatal/email-nao-verificado": "Confirme seu e-mail antes de entrar. Reenviamos o link de verificação — confira sua caixa de entrada (e o spam).",
     "shinatal/ativacao-falhou": "Não foi possível ativar seu cadastro agora. Tente novamente em instantes.",
+    "shinatal/termos-nao-aceitos": "Para criar a conta, marque que leu e concorda com os Termos de Uso e a Política de Privacidade.",
     "shinatal/dados-invalidos": "Confira os dados: nome (até 120 caracteres), cargo (até 80), tempo de trabalho, data de admissão válida (não futura) e senha com pelo menos 6 caracteres.",
     "auth/invalid-email": "E-mail inválido.",
     "auth/user-disabled": "Este usuário está desativado.",

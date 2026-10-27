@@ -10,6 +10,8 @@ import {
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
+import { ENCARREGADO, CONTROLADORA, linkEncarregado } from "./lgpd-config.js";
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
 
@@ -103,12 +105,107 @@ inputFoto.addEventListener("change", async () => {
     await updateDoc(doc(db, "usuarios", perfil.uid), { fotoBase64 });
     perfil.fotoBase64 = fotoBase64;
     document.getElementById("avatar-perfil").innerHTML = construirAvatarHTML(perfil);
+    renderizarMeusDados();
     mostrarToast("Foto atualizada!", "sucesso");
   } catch (erro) {
     console.error(erro);
     mostrarToast("Não foi possível atualizar sua foto agora. Tente novamente.", "erro");
   } finally {
     inputFoto.value = "";
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Meus dados (LGPD, art. 18)                                          */
+/* ------------------------------------------------------------------ */
+
+/** Timestamp do Firestore (ou Date) → texto ISO, para o arquivo exportado ser legível. */
+function paraJson(valor) {
+  if (valor && typeof valor.toDate === "function") return valor.toDate().toISOString();
+  if (valor instanceof Date) return valor.toISOString();
+  if (Array.isArray(valor)) return valor.map(paraJson);
+  if (valor && typeof valor === "object") return Object.fromEntries(Object.entries(valor).map(([k, v]) => [k, paraJson(v)]));
+  return valor;
+}
+
+function dataDoAceite(aceite) {
+  const d = aceite?.aceitoEm?.toDate ? aceite.aceitoEm.toDate() : aceite?.aceitoEm instanceof Date ? aceite.aceitoEm : null;
+  return d ? d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) : null;
+}
+
+function renderizarMeusDados() {
+  const quando = dataDoAceite(perfil.aceiteTermos);
+  document.getElementById("perfil-aceite").textContent = perfil.aceiteTermos?.versao
+    ? `Você aceitou os Termos de Uso e a Política de Privacidade (versão ${perfil.aceiteTermos.versao})${quando ? ` em ${quando}` : ""}.`
+    : "";
+  document.getElementById("email-encarregado").textContent = ENCARREGADO.email;
+  document.getElementById("link-pedido-titular").href = linkEncarregado(`Pedido do titular — ${perfil.nome || perfil.email}`);
+  document.getElementById("btn-remover-foto").classList.toggle("hidden", !perfil.fotoBase64);
+}
+renderizarMeusDados();
+
+// Acesso e portabilidade (art. 18, II e V): tudo o que o sistema guarda sobre a pessoa e que ela
+// mesma pode ler (as firestore.rules já limitam cada leitura ao próprio titular).
+document.getElementById("btn-baixar-dados").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  try {
+    const [contratos, votosDados, contagemRecebida] = await Promise.all([
+      buscarPorUid("contratos", perfil.uid),
+      getDocs(query(collection(db, "votosConduta"), where("avaliadorUid", "==", perfil.uid)))
+        .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      getDoc(doc(db, "condutaContagem", perfil.uid)).then((s) => (s.exists() ? s.data() : null))
+    ]);
+    const { uid, ...dadosPerfil } = perfil;
+    const exportacao = paraJson({
+      sobre: {
+        sistema: "Shinatal — programa de premiação da Shine Rio",
+        controladora: CONTROLADORA,
+        encarregado: ENCARREGADO,
+        geradoEm: new Date(),
+        observacao: "Cópia dos seus dados pessoais no Shinatal (LGPD, art. 18). Senha não é guardada pelo sistema."
+      },
+      identificador: uid,
+      perfil: dadosPerfil,
+      faltas: dados.faltas,
+      atrasos: dados.atrasos,
+      advertencias: dados.advertencias,
+      avaliacoesDeDesempenho: dados.avaliacoes,
+      contratosIndividuais: contratos,
+      avaliacaoDeConduta: {
+        votosQueVoceDeu: votosDados,
+        contagemRecebidaAnonima: contagemRecebida
+      }
+    });
+    const arquivo = new Blob([JSON.stringify(exportacao, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(arquivo);
+    link.download = `shinatal-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    mostrarToast("Arquivo com os seus dados baixado.", "sucesso");
+  } catch (erro) {
+    console.error("[Shinatal] Falha ao exportar os dados:", erro);
+    mostrarToast("Não foi possível gerar o arquivo agora. Tente novamente.", "erro");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Revogação do consentimento da foto (art. 8º, §5º): a foto é opcional e sai na hora.
+document.getElementById("btn-remover-foto").addEventListener("click", async () => {
+  try {
+    await updateDoc(doc(db, "usuarios", perfil.uid), { fotoBase64: null });
+    perfil.fotoBase64 = null;
+    document.getElementById("avatar-perfil").innerHTML = construirAvatarHTML(perfil);
+    renderizarMeusDados();
+    document.getElementById("btn-baixar-dados").focus();
+    mostrarToast("Foto removida.", "sucesso");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Não foi possível remover a foto agora. Tente novamente.", "erro");
   }
 });
 

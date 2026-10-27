@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from "
 import { traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./ui-utils.js";
 import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./turnstile-config.js";
+import { VERSAO_TERMOS } from "./lgpd-config.js";
 
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
@@ -60,6 +61,12 @@ function mostrarErro(msg) {
   erroEl.classList.remove("hidden");
 }
 
+// Caixa de aceite dos Termos de Uso / Política de Privacidade (LGPD) — obrigatória.
+const caixaAceite = document.getElementById("aceiteTermos");
+caixaAceite.addEventListener("change", () => {
+  if (caixaAceite.checked) caixaAceite.removeAttribute("aria-invalid");
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   erroEl.classList.add("hidden");
@@ -88,6 +95,12 @@ form.addEventListener("submit", async (e) => {
     mostrarErro("As senhas não coincidem.");
     return;
   }
+  if (!caixaAceite.checked) {
+    mostrarErro("Para criar a conta, marque que leu e concorda com os Termos de Uso e a Política de Privacidade.");
+    caixaAceite.setAttribute("aria-invalid", "true");
+    caixaAceite.focus();
+    return;
+  }
   if (TURNSTILE_CONFIGURADO && !tokenTurnstile(widgetTurnstile)) {
     mostrarErro("Confirme que você não é um robô.");
     return;
@@ -110,7 +123,9 @@ form.addEventListener("submit", async (e) => {
           // obrigatório, o cadastro só passa vindo do nosso site.
           appCheckToken: await tokenAppCheck(),
           nome, email, cargo, cargaHoraria, dataAdmissao,
-          fotoBase64: fotoBase64 || null, senha
+          fotoBase64: fotoBase64 || null, senha,
+          // Aceite dos termos (LGPD): o Worker grava { versao, aceitoEm } no cadastro pendente.
+          aceiteTermos: true, versaoTermos: VERSAO_TERMOS
         })
       });
       const dados = await resposta.json();
@@ -120,7 +135,9 @@ form.addEventListener("submit", async (e) => {
       // cadastro fica "em espera" (cadastrosPendentes): só vira colaborador de verdade
       // (usuarios/{uid}) no primeiro login, depois de confirmar o e-mail — ver auth.js.
       const cred = await createUserWithEmailAndPassword(auth, email, senha);
-      await gravarCadastroPendente(cred.user, { nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64: fotoBase64 || null });
+      await gravarCadastroPendente(cred.user, {
+        nome, email, cargo, cargaHoraria, dataAdmissao, fotoBase64: fotoBase64 || null, versaoTermosAceita: VERSAO_TERMOS
+      });
       await sendEmailVerification(cred.user);
       await signOut(auth);
     }

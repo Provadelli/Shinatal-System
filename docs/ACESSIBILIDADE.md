@@ -27,9 +27,10 @@ diálogo de confirmação aberto. Além das regras automáticas, ele confere pel
 ferramentas não medem: foco entra no diálogo, Tab não escapa, Esc fecha, foco volta para quem
 abriu, setas trocam de aba, o botão de pausa realmente para o vídeo.
 
-Resultado em 2026-10-27: **axe-core 0 violações** nos 34 estados, **56/56** verificações de
-teclado, **Lighthouse Acessibilidade 100** e **Boas práticas 100** nas 9 páginas, e todos os
-ícones desenhados.
+Resultado em 2026-10-27: **axe-core 0 violações** nos 38 estados, **63/63** verificações de
+teclado, **Lighthouse Acessibilidade 100** e **Boas práticas 100** nas 10 páginas, e todos os
+ícones desenhados. Inclui a LGPD: Termos de Uso, caixa de aceite do cadastro e o diálogo de
+aceite no login (foco preso, Esc não fecha, aceitar libera e não pergunta de novo).
 
 ## Performance (Lighthouse, celular)
 

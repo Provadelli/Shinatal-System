@@ -168,11 +168,26 @@ service cloud.firestore {
             && v.size() <= 150000);
     }
 
+    // Registro do aceite dos Termos de Uso / Política de Privacidade (LGPD): só a versão aceita e
+    // quando. Nulo/ausente = ainda não aceitou (o site pede o aceite no próximo login). A data não
+    // pode estar no futuro; a tolerância de 5 min cobre a diferença de relógio do Worker do
+    // cadastro, que grava com a própria hora. Quando é o PRÓPRIO usuário aceitando no site, a
+    // regra de update exige ainda `aceitoEm == request.time` (hora do servidor, não forjável).
+    function aceiteValido(v) {
+      return v == null
+        || (v is map
+            && v.keys().hasAll(['versao', 'aceitoEm'])
+            && v.keys().hasOnly(['versao', 'aceitoEm'])
+            && v.versao is string && v.versao.size() > 0 && v.versao.size() <= 20
+            && v.aceitoEm is timestamp
+            && v.aceitoEm <= request.time + duration.value(5, 'm'));
+    }
+
     // Campos permitidos num perfil (usados tanto no create quanto no update).
     function camposPerfil() {
       return ['nome', 'email', 'cargo', 'cargaHoraria', 'status', 'role',
               'fotoBase64', 'motivoPerdaIntegral', 'dataAdmissao', 'dataDesligamento',
-              'criadoEm', 'criadoPor'];
+              'criadoEm', 'criadoPor', 'aceiteTermos'];
     }
 
     // Valores de perfil coerentes — aplicado a QUALQUER escrita em usuarios/{uid}, inclusive a
@@ -193,6 +208,7 @@ service cloud.firestore {
         && d.get('status', 'ativo') in statusColaboradorValidos()
         && d.get('role', 'colaborador') in papeisValidos()
         && fotoValida(d.get('fotoBase64', null))
+        && aceiteValido(d.get('aceiteTermos', null))
         && (d.get('motivoPerdaIntegral', null) == null
             || d.get('motivoPerdaIntegral', '') in motivosPerdaValidos())
         && (d.get('dataAdmissao', null) == null
@@ -221,6 +237,7 @@ service cloud.firestore {
         && d.get('dataAdmissao', null) == p.get('dataAdmissao', null)
         && d.get('fotoBase64', null) == p.get('fotoBase64', null)
         && d.get('criadoPor', null) == p.get('criadoPor', null)
+        && d.get('aceiteTermos', null) == p.get('aceiteTermos', null)
         && d.status == 'ativo'
         && d.get('motivoPerdaIntegral', null) == null
         && d.get('dataDesligamento', null) == null;
@@ -231,8 +248,12 @@ service cloud.firestore {
     function cadastroPendenteValido() {
       return request.resource.data.keys().hasAll(['nome', 'email', 'cargo', 'cargaHoraria', 'dataAdmissao'])
         && request.resource.data.keys().hasOnly([
-             'nome', 'email', 'cargo', 'cargaHoraria', 'dataAdmissao', 'fotoBase64', 'criadoEm', 'criadoPor'
+             'nome', 'email', 'cargo', 'cargaHoraria', 'dataAdmissao', 'fotoBase64', 'criadoEm', 'criadoPor',
+             'aceiteTermos'
            ])
+        // Opcional: o convite do Admin não tem aceite (o convidado aceita no 1º login), e o Worker
+        // antigo de cadastro também não gravava — quem chega sem aceite vê o pedido ao entrar.
+        && aceiteValido(request.resource.data.get('aceiteTermos', null))
         && request.resource.data.nome is string && request.resource.data.nome.size() > 0 && request.resource.data.nome.size() <= 120
         && request.resource.data.cargo is string && request.resource.data.cargo.size() > 0 && request.resource.data.cargo.size() <= 80
         && request.resource.data.cargaHoraria in [4, 6, 8]
@@ -291,9 +312,14 @@ service cloud.firestore {
         && valoresPerfilValidos()
         && (
           (request.auth.uid == uid &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64'])) ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'fotoBase64', 'aceiteTermos']) &&
+            // Aceite dos termos (LGPD): só o próprio titular registra, com a hora do servidor.
+            (!('aceiteTermos' in request.resource.data.diff(resource.data).affectedKeys())
+              || request.resource.data.aceiteTermos.aceitoEm == request.time)) ||
           (ehAdminOuPresidente() &&
-            (request.resource.data.role != 'presidente' || ehPresidente())) ||
+            (request.resource.data.role != 'presidente' || ehPresidente()) &&
+            // Ninguém registra (nem apaga) o aceite de outra pessoa — nem Admin/Presidente.
+            !('aceiteTermos' in request.resource.data.diff(resource.data).affectedKeys())) ||
           (papel() == 'rh' && request.auth.uid != uid &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'motivoPerdaIntegral', 'dataDesligamento']))
         );

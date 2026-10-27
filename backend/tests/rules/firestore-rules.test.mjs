@@ -22,7 +22,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, collection,
-  writeBatch, runTransaction, increment, serverTimestamp
+  writeBatch, runTransaction, increment, serverTimestamp, Timestamp
 } from "firebase/firestore";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1866,5 +1866,76 @@ describe("configuracoes/avaliacaoConduta: validação", () => {
     await assertFails(setDoc(ref, { ativo: true, atualizadoPor: "pres1" }));
     await assertFails(setDoc(ref, { ativo: "sim", atualizadoPor: "admin1" }));
     await assertFails(setDoc(ref, { ativo: true, atualizadoPor: "admin1", extra: 1 }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LGPD: registro do aceite dos Termos de Uso / Política de Privacidade
+// ---------------------------------------------------------------------------
+describe("LGPD: aceite dos termos (aceiteTermos)", () => {
+  const VERSAO = "2026-10-27";
+  const ontem = () => Timestamp.fromMillis(Date.now() - 86400000);
+
+  it("o próprio colaborador registra o aceite com a hora do servidor", async () => {
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "usuarios", "colabA"), { aceiteTermos: { versao: VERSAO, aceitoEm: serverTimestamp() } }));
+  });
+
+  it("aceite com data forjada (não é a hora do servidor) é recusado", async () => {
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    await assertFails(updateDoc(doc(db, "usuarios", "colabA"), { aceiteTermos: { versao: VERSAO, aceitoEm: ontem() } }));
+  });
+
+  it("aceite com campo extra ou versão inválida é recusado", async () => {
+    await seedUsuario("colabA", "colaborador");
+    const db = ctx("colabA").firestore();
+    const ref = doc(db, "usuarios", "colabA");
+    await assertFails(updateDoc(ref, { aceiteTermos: { versao: VERSAO, aceitoEm: serverTimestamp(), ip: "1.2.3.4" } }));
+    await assertFails(updateDoc(ref, { aceiteTermos: { versao: 2026, aceitoEm: serverTimestamp() } }));
+    await assertFails(updateDoc(ref, { aceiteTermos: { versao: "", aceitoEm: serverTimestamp() } }));
+    await assertFails(updateDoc(ref, { aceiteTermos: true }));
+  });
+
+  it("ninguém registra nem apaga o aceite de outra pessoa — nem Admin nem Presidente", async () => {
+    await seedUsuario("colabA", "colaborador", { aceiteTermos: { versao: VERSAO, aceitoEm: ontem() } });
+    await seedUsuario("admin1", "admin");
+    await seedUsuario("pres1", "presidente");
+    for (const quem of ["admin1", "pres1"]) {
+      const ref = doc(ctx(quem).firestore(), "usuarios", "colabA");
+      await assertFails(updateDoc(ref, { aceiteTermos: { versao: "9999", aceitoEm: serverTimestamp() } }));
+      await assertFails(updateDoc(ref, { aceiteTermos: null }));
+      // O resto da edição de perfil pelo Admin/Presidente continua funcionando.
+      await assertSucceeds(updateDoc(ref, { cargo: `Cargo ${quem}` }));
+    }
+  });
+
+  it("cadastro pendente aceita o registro do aceite, e também sem ele (convite do Admin)", async () => {
+    const db = ctx("novoL1", { emailVerificado: false }).firestore();
+    const base = { nome: "Colab L1", email: `novoL1${DOMINIO}`, cargo: "Operações", cargaHoraria: 8, dataAdmissao: "2026-01-01", fotoBase64: null, criadoEm: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(db, "cadastrosPendentes", "novoL1"), { ...base, aceiteTermos: { versao: VERSAO, aceitoEm: serverTimestamp() } }));
+    const db2 = ctx("novoL2", { emailVerificado: false }).firestore();
+    await assertSucceeds(setDoc(doc(db2, "cadastrosPendentes", "novoL2"), { ...base, email: `novoL2${DOMINIO}` }));
+  });
+
+  it("cadastro pendente com aceite datado no futuro é recusado", async () => {
+    const db = ctx("novoL3", { emailVerificado: false }).firestore();
+    await assertFails(setDoc(doc(db, "cadastrosPendentes", "novoL3"), {
+      nome: "Colab L3", email: `novoL3${DOMINIO}`, cargo: "Operações", cargaHoraria: 8, dataAdmissao: "2026-01-01",
+      aceiteTermos: { versao: VERSAO, aceitoEm: Timestamp.fromMillis(Date.now() + 86400000) }
+    }));
+  });
+
+  it("no 1º login o perfil herda exatamente o aceite do cadastro pendente", async () => {
+    const aceite = { versao: VERSAO, aceitoEm: ontem() };
+    await seedPendente("colabP", { aceiteTermos: aceite });
+    const db = ctx("colabP").firestore();
+    const perfil = { nome: "Colab colabP", email: `colabP${DOMINIO}`, cargo: "Operações", cargaHoraria: 8, dataAdmissao: "2026-01-01",
+      fotoBase64: null, role: "colaborador", status: "ativo", motivoPerdaIntegral: null, dataDesligamento: null };
+    // Aceite diferente do registrado no cadastro (outra versão) é recusado...
+    await assertFails(setDoc(doc(db, "usuarios", "colabP"), { ...perfil, aceiteTermos: { versao: "outra", aceitoEm: aceite.aceitoEm } }));
+    // ...e o idêntico passa.
+    await assertSucceeds(setDoc(doc(db, "usuarios", "colabP"), { ...perfil, aceiteTermos: aceite }));
   });
 });
