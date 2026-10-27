@@ -5,7 +5,7 @@
 // no documento do contrato — nenhum funcionário precisa ser nomeado, só contado e datado.
 import { db } from "./firebase-init.js";
 import {
-  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
 import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
@@ -13,7 +13,7 @@ import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
   quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
-  montarPausasAposTransicao, calcularContribuicaoNoAno
+  montarPausasAposTransicao, calcularContribuicaoNoAno, calcularFundo
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
@@ -83,6 +83,8 @@ try {
   console.error("[Shinatal] Falha ao carregar contratos empresariais:", erro);
   mostrarToast("Não foi possível carregar todos os dados. Alguns números podem estar desatualizados.", "erro");
 }
+// Em segundo plano: não bloqueia a página nem mostra erro ao usuário.
+sincronizarFundoPublicado().catch((erro) => console.error("[Shinatal] Falha ao sincronizar o fundo publicado:", erro));
 
 /* ------------------------------------------------------------------ */
 /* Carregamento                                                        */
@@ -103,6 +105,28 @@ async function recalcularEPublicarFundo() {
   await publicarFundo({
     usuarios: state.usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid
   });
+}
+
+/** Os totais publicados (`fundo/{ano}` e `estatisticas/publico`) só são regravados quando um
+ * contrato muda. Se a regra de cálculo mudar (ex.: mês do encerramento sempre conta), os valores
+ * salvos ficam desatualizados — então, ao abrir a página, compara com o recálculo e republica
+ * só se houver diferença. */
+async function sincronizarFundoPublicado() {
+  if (!state.contratosEmpresariais.length) return;
+  const { arrecadado, estornos, saldoDisponivel } = calcularFundo(state.contratosEmpresariais, ANO_EXERCICIO);
+  const [fundoSnap, publicoSnap] = await Promise.all([
+    getDoc(doc(db, "fundo", String(ANO_EXERCICIO))),
+    getDoc(doc(db, "estatisticas", "publico"))
+  ]);
+  const difere = (a, b) => Math.abs((Number(a) || 0) - b) >= 0.005;
+  const fundo = fundoSnap.exists() ? fundoSnap.data() : null;
+  const publico = publicoSnap.exists() ? publicoSnap.data() : null;
+  const desatualizado = !fundo
+    || difere(fundo.arrecadado, arrecadado)
+    || difere(fundo.estornos, estornos)
+    || difere(fundo.saldoDisponivel, saldoDisponivel)
+    || difere(publico?.arrecadado, saldoDisponivel);
+  if (desatualizado) await recalcularEPublicarFundo();
 }
 
 /* ------------------------------------------------------------------ */
