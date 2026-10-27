@@ -47,24 +47,29 @@ if (sentinelaFaixa && faixaSecao && "IntersectionObserver" in window) {
 }
 
 // ---------------------------------------------------------------
-// Vídeo do hero — autoplay para todo o público, exceto quem pede menos movimento
-// (prefers-reduced-motion) ou está com Data Saver ligado (connection.saveData) —
-// ambos sinais explícitos do usuário, não uma suposição de "dispositivo fraco".
-// Sem autoplay no HTML: sem esses sinais, o elemento fica só no poster, nunca
-// baixa o mp4.
+// Vídeo do hero — só em computador com boa conexão. Fica só no pôster (imagem estática) para
+// quem pede menos movimento (prefers-reduced-motion), está com Data Saver ligado, ou está no
+// "modo leve" (celular, pouca memória ou conexão fraca — classe posta por js/perf-adaptativo.js).
+// Sem autoplay no HTML: nesses casos o mp4 nunca é baixado. Quando pode tocar, o download só
+// começa depois que a página terminou de carregar, para não disputar banda com o conteúdo.
 // ---------------------------------------------------------------
 const videoHero = document.getElementById("video-hero");
 if (videoHero) {
   const prefereReduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const saveData = navigator.connection?.saveData;
-  const podeAutoplay = !prefereReduzido && !saveData;
+  const modoLeve = document.documentElement.classList.contains("modo-leve");
+  const podeAutoplay = !prefereReduzido && !saveData && !modoLeve;
 
   if (podeAutoplay) {
     // Lido por js/acessibilidade.js: o botão "Pausar animações" só retoma o vídeo se o autoplay
     // era permitido para este visitante.
     videoHero.dataset.autoplayPermitido = "1";
-    videoHero.preload = "auto";
-    if (!movimentoPausado()) videoHero.play().catch(() => {});
+    const iniciarVideo = () => {
+      videoHero.preload = "auto";
+      if (!movimentoPausado()) videoHero.play().catch(() => {});
+    };
+    if (document.readyState === "complete") iniciarVideo();
+    else window.addEventListener("load", iniciarVideo, { once: true });
   }
   document.addEventListener("visibilitychange", () => {
     if (!podeAutoplay) return;

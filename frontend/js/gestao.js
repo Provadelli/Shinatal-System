@@ -1,7 +1,7 @@
 // Shinatal — painel de gestão (DP / RH / Admin).
 import { db, firebaseConfig, ativarAppCheck } from "./firebase-init.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { initializeAuth, inMemoryPersistence, createUserWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, serverTimestamp,
   onSnapshot, query, orderBy, limit, where, writeBatch
@@ -1106,7 +1106,9 @@ document.getElementById("form-novo-colaborador").addEventListener("submit", asyn
 
   const appSecundario = initializeApp(firebaseConfig, `operador-${Date.now()}`);
   ativarAppCheck(appSecundario);
-  const authSecundario = getAuth(appSecundario);
+  // Sessão só em memória: o login do convidado nunca é gravado no navegador do operador, e sem
+  // popupRedirectResolver (o site não usa login com popup — ver firebase-init.js).
+  const authSecundario = initializeAuth(appSecundario, { persistence: inMemoryPersistence });
   try {
     // Senha aleatória de uso único — ninguém (nem o operador) chega a conhecê-la. O colaborador
     // confirma o e-mail (link enviado abaixo) e depois define a própria senha em "Esqueci minha

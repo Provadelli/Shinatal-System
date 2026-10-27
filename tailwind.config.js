@@ -18,7 +18,7 @@ module.exports = {
         "tertiary-fixed-dim": "#D9BE7E",
         "on-background": "#23201B",
         "tertiary-container": "#EBDDB8",
-        "tertiary": "#8A6A2F",
+        "tertiary": "#7A5C22", // = --shinatal-ouro-texto; #8A6A2F dava 4,33:1 sobre o creme (WCAG 1.4.3 pede 4,5)
         "on-secondary-fixed-variant": "#554730",
         "surface-tint": "#0E3B2E",
         "on-tertiary-fixed-variant": "#6B5321",

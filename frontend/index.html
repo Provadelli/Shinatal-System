@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Shinatal — Programa de Premiação Shine Rio</title>
 <meta name="description" content="Shinatal: o programa de premiação de fim de ano da Shine Rio. Faça login, cadastre-se ou conheça o programa." />
-<link rel="icon" href="assets/favicon-shinatal.png" />
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<!-- Pôster do vídeo do topo: é o maior elemento da primeira tela (LCP), então baixa primeiro. -->
+<link rel="preload" as="image" href="assets/hero-poster-v2.webp" fetchpriority="high" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=add_a_photo,add_business,admin_panel_settings,apartment,arrow_back,arrow_forward,badge,block,celebration,check_circle,chevron_left,chevron_right,close,contract,contract_delete,dashboard,delete,delete_sweep,diversity_3,edit,edit_calendar,edit_note,emoji_events,error,event,event_available,event_busy,expand_more,gavel,groups,handshake,history,history_edu,home,inbox,info,insights,lock,lock_reset,login,logout,mail,mail_lock,mark_email_read,menu_book,military_tech,pause,pause_circle,person,person_add,person_remove,play_arrow,play_circle,privacy_tip,progress_activity,rate_review,redeem,savings,schedule,search,search_off,shield_person,star,trending_up,undo,visibility,visibility_off,warning,work,workspace_premium&display=block" rel="stylesheet" />
 <link rel="stylesheet" href="css/tailwind.css" />
 <link rel="stylesheet" href="css/styles.css" />
 <script type="module" src="js/perf-adaptativo.js"></script>
@@ -49,7 +54,7 @@
 <nav aria-label="Principal" class="header-flutuante header-transparente hidden md:flex">
   <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 shrink-0">
-      <span class="flex flex-col leading-none gap-0.5">
+      <span class="flex flex-col items-start leading-none gap-0.5">
         <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-8 w-auto" />
         <span class="font-body text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
@@ -85,7 +90,7 @@
 <header class="header-flutuante header-transparente md:hidden">
   <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 shrink-0">
-      <span class="flex flex-col leading-none gap-0.5">
+      <span class="flex flex-col items-start leading-none gap-0.5">
         <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-7 w-auto" />
         <span class="font-body text-[9px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
       </span>
@@ -110,7 +115,7 @@
   <span id="sentinela-header-scroll" aria-hidden="true" class="block h-px w-full"></span>
   <section class="secao-hero-video flex items-center">
     <video id="video-hero" data-video-fundo poster="assets/hero-poster-v2.webp" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1">
-      <source src="assets/background-video.mp4" type="video/mp4" />
+      <source src="assets/background-video-v2.mp4" type="video/mp4" />
     </video>
     <button type="button" data-pausar-movimento aria-pressed="false" aria-label="Pausar animações da página" class="botao-movimento">
       <span class="material-symbols-outlined text-xl" aria-hidden="true">pause</span>
@@ -288,11 +293,11 @@
           </div>
         </div>
         <div class="faixa-fotos-grupo" aria-hidden="true">
-          <div class="faixa-fotos-item"><img src="assets/foto1-800.webp" alt="" loading="lazy" /></div>
-          <div class="faixa-fotos-item"><img src="assets/foto2-640.webp" alt="" loading="lazy" /></div>
-          <div class="faixa-fotos-item"><img src="assets/foto3-640.webp" alt="" loading="lazy" /></div>
-          <div class="faixa-fotos-item"><img src="assets/foto4-640.webp" alt="" loading="lazy" /></div>
-          <div class="faixa-fotos-item"><img src="assets/foto5-640.webp" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto1-800.webp" srcset="assets/foto1-400.webp 400w, assets/foto1-800.webp 800w, assets/foto1-1200.webp 960w" sizes="300px" width="960" height="1280" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto2-640.webp" srcset="assets/foto2-320.webp 320w, assets/foto2-640.webp 640w, assets/foto2-960.webp 960w" sizes="300px" width="960" height="1280" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto3-640.webp" srcset="assets/foto3-320.webp 320w, assets/foto3-640.webp 640w, assets/foto3-960.webp 960w" sizes="300px" width="960" height="1280" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto4-640.webp" srcset="assets/foto4-320.webp 320w, assets/foto4-640.webp 640w, assets/foto4-960.webp 960w" sizes="300px" width="960" height="720" alt="" loading="lazy" /></div>
+          <div class="faixa-fotos-item"><img src="assets/foto5-640.webp" srcset="assets/foto5-320.webp 320w, assets/foto5-640.webp 640w, assets/foto5-960.webp 960w" sizes="300px" width="720" height="1280" alt="" loading="lazy" /></div>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@
 //
 // Rodar (a partir desta pasta):  npm install && npm test
 // Variáveis opcionais:  CHROME_PATH=<caminho do chrome>   SEM_LIGHTHOUSE=1 (só axe, mais rápido)
+// Performance (celular em todas as páginas, desktop nas públicas) sai no relatório, mas não reprova.
 //
 // A Content-Security-Policy de produção (firebase.json) também é servida aqui — só com os
 // emuladores acrescentados ao connect-src —, e qualquer bloqueio dela conta como falha: assim a
@@ -22,6 +23,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { cpSync, rmSync, readFileSync, writeFileSync, existsSync, mkdirSync, createReadStream, statSync } from "node:fs";
 import { createRequire } from "node:module";
+import { createGzip } from "node:zlib";
 import puppeteer from "puppeteer-core";
 
 const require = createRequire(import.meta.url);
@@ -99,8 +101,12 @@ function servir() {
     }
     const cabecalhos = { "Content-Type": MIME[path.extname(arquivo)] || "application/octet-stream" };
     if (arquivo.endsWith(".html")) cabecalhos["Content-Security-Policy"] = CSP_LOCAL;
+    // Texto comprimido como no Firebase Hosting — senão o Lighthouse mede um site mais pesado que o real.
+    const comprimir = /\.(html|js|css|json|txt)$/.test(arquivo) && /\bgzip\b/.test(req.headers["accept-encoding"] || "");
+    if (comprimir) cabecalhos["Content-Encoding"] = "gzip";
     res.writeHead(status, cabecalhos);
-    createReadStream(arquivo).pipe(res);
+    const leitura = createReadStream(arquivo);
+    (comprimir ? leitura.pipe(createGzip()) : leitura).pipe(res);
   }).listen(PORTA, "127.0.0.1");
 }
 
@@ -225,7 +231,7 @@ async function assentar(pagina) {
   await pausa(1100);
 }
 
-const relatorio = { axe: [], teclado: [], lighthouse: [] };
+const relatorio = { axe: [], teclado: [], lighthouse: [], performance: [], icones: [] };
 
 /** Com CAPTURAS=1, salva a tela atual em relatorio/capturas/<rotulo>.png (conferência visual). */
 async function capturar(pagina, rotulo) {
@@ -251,6 +257,17 @@ async function axe(pagina, rotulo) {
     return { violacoes: resumir(res.violations), incompletos: resumir(res.incomplete), aprovados: res.passes.length };
   }, TAGS_AXE);
   relatorio.axe.push({ estado: rotulo, ...r });
+  // A fonte de ícones vem só com os ícones listados (scripts/fonte-icones.mjs). Um ícone fora da
+  // lista aparece como o nome escrito ("visibility_off"), bem mais largo que o próprio tamanho.
+  const semDesenho = await pagina.evaluate(async () => {
+    await document.fonts.ready;
+    return [...document.querySelectorAll(".material-symbols-outlined")]
+      .filter((el) => el.getClientRects().length && el.textContent.trim().length > 2)
+      .filter((el) => el.scrollWidth > parseFloat(getComputedStyle(el).fontSize) * 1.6)
+      .map((el) => el.textContent.trim());
+  });
+  for (const nome of new Set(semDesenho)) relatorio.icones.push({ estado: rotulo, nome });
+  if (semDesenho.length) console.log(`  icon FALHA  ${rotulo} — sem desenho: ${[...new Set(semDesenho)].join(", ")} (rode npm run icones)`);
   await capturar(pagina, rotulo);
   const n = r.violacoes.reduce((s, v) => s + v.nos, 0);
   console.log(`  axe  ${n === 0 ? "ok " : "FALHA"}  ${rotulo}${n ? `  — ${r.violacoes.map((v) => `${v.id}(${v.nos})`).join(", ")}` : ""}`);
@@ -311,15 +328,58 @@ async function auditarModal(pagina, rotulo, seletorGatilho, idModal) {
   conferir(`${rotulo}: foco volta para quem abriu`, r.focoVoltou);
 }
 
+/** Métricas de Performance (Core Web Vitals) de um resultado do Lighthouse — só informativo. */
+function metricasPerformance(lhr) {
+  const a = lhr.audits;
+  const ms = (id) => Math.round(a[id]?.numericValue ?? 0);
+  return {
+    nota: Math.round((lhr.categories.performance?.score ?? 0) * 100),
+    fcp: ms("first-contentful-paint"), lcp: ms("largest-contentful-paint"), tbt: ms("total-blocking-time"),
+    si: ms("speed-index"), cls: Number((a["cumulative-layout-shift"]?.numericValue ?? 0).toFixed(3)),
+    peso: Math.round((a["total-byte-weight"]?.numericValue ?? 0) / 1024),
+    oportunidades: Object.values(a)
+      .filter((x) => x.score !== null && x.score < 1 && (x.details?.overallSavingsMs > 100 || x.details?.overallSavingsBytes > 20000))
+      .map((x) => `${x.id} (${Math.round(x.details.overallSavingsMs || 0)} ms, ${Math.round((x.details.overallSavingsBytes || 0) / 1024)} KB)`),
+    // Diagnóstico: de onde vem o tempo de CPU (TBT) e o que se desloca (CLS).
+    scriptsPesados: (a["bootup-time"]?.details?.items || []).slice(0, 4)
+      .map((i) => `${String(i.url).replace(BASE, "").slice(-70)} ${Math.round(i.scripting)} ms`),
+    trabalhoPrincipal: (a["mainthread-work-breakdown"]?.details?.items || []).slice(0, 4)
+      .map((i) => `${i.groupLabel || i.group} ${Math.round(i.duration)} ms`),
+    deslocamentos: (a["layout-shifts"]?.details?.items || a["layout-shift-elements"]?.details?.items || []).slice(0, 3)
+      .map((i) => `${i.node?.selector || i.node?.snippet || "?"} (${Number(i.score ?? 0).toFixed(3)})`),
+    maioresArquivos: (a["network-requests"]?.details?.items || [])
+      .sort((x, y) => (y.transferSize || 0) - (x.transferSize || 0)).slice(0, 4)
+      .map((i) => `${String(i.url).replace(BASE, "").slice(-60)} ${Math.round((i.transferSize || 0) / 1024)} KB`)
+  };
+}
+
+/** Performance em desktop (só páginas públicas) — o run principal já mede o celular. */
+async function rodarLighthouseDesktop(navegador, caminho, rotulo) {
+  if (process.env.SEM_LIGHTHOUSE) return;
+  const { default: lighthouse } = await import("lighthouse");
+  const { default: configDesktop } = await import("lighthouse/core/config/desktop-config.js");
+  const r = await lighthouse(`${BASE}${caminho}`, {
+    port: Number(new URL(navegador.wsEndpoint()).port), output: "json", logLevel: "error",
+    onlyCategories: ["performance"], disableStorageReset: true
+  }, configDesktop);
+  const p = metricasPerformance(r.lhr);
+  relatorio.performance.push({ pagina: rotulo, dispositivo: "desktop", ...p });
+  console.log(`  PERF desktop  ${rotulo} — ${p.nota} (LCP ${p.lcp} ms, CLS ${p.cls}, TBT ${p.tbt} ms, ${p.peso} KB)`);
+}
+
 async function rodarLighthouse(navegador, caminho, rotulo) {
   if (process.env.SEM_LIGHTHOUSE) return;
   const { default: lighthouse } = await import("lighthouse");
   const resultado = await lighthouse(`${BASE}${caminho}`, {
     port: Number(new URL(navegador.wsEndpoint()).port),
     output: "json", logLevel: "error",
-    onlyCategories: ["accessibility", "best-practices", "seo"],
+    onlyCategories: ["accessibility", "best-practices", "seo", "performance"],
     disableStorageReset: true // mantém a sessão do Firebase Auth (IndexedDB) nas páginas logadas
   });
+  // Performance é só informativa (não reprova): no servidor local os números variam a cada rodada.
+  const perf = metricasPerformance(resultado.lhr);
+  relatorio.performance.push({ pagina: rotulo, dispositivo: "celular", ...perf });
+  console.log(`  PERF celular  ${rotulo} — ${perf.nota} (LCP ${perf.lcp} ms, CLS ${perf.cls}, TBT ${perf.tbt} ms, ${perf.peso} KB)`);
   const { categories, audits } = resultado.lhr;
   const nota = (c) => Math.round((categories[c]?.score ?? 0) * 100);
   const reprovados = categories.accessibility.auditRefs
@@ -329,6 +389,14 @@ async function rodarLighthouse(navegador, caminho, rotulo) {
   // Só informativo (não reprova a auditoria): o que tirou ponto em Boas práticas e SEO.
   const outros = ["best-practices", "seo"].flatMap((c) => categories[c].auditRefs
     .map((ref) => audits[ref.id]).filter((a) => a.score !== null && a.score < 1).map((a) => `${c}: ${a.id}`));
+  if (process.env.DIAGNOSTICO) {
+    for (const id of ["errors-in-console", "inspector-issues", "image-aspect-ratio"]) {
+      const itens = audits[id]?.score === 1 ? [] : (audits[id]?.details?.items || []);
+      for (const i of itens.slice(0, 4)) {
+        console.log(`    [${id}] ${rotulo}: ${String(i.description || i.issueType || i.url || i.node?.snippet || JSON.stringify(i.subItems?.items?.[0] || i)).slice(0, 220)}`);
+      }
+    }
+  }
   relatorio.lighthouse.push({ pagina: rotulo, acessibilidade: nota("accessibility"), boasPraticas: nota("best-practices"), seo: nota("seo"), reprovados, outros });
   console.log(`  LH   ${nota("accessibility") === 100 ? "ok " : "FALHA"}  ${rotulo}  — acessibilidade ${nota("accessibility")}, boas práticas ${nota("best-practices")}, SEO ${nota("seo")}${reprovados.length ? `  [${reprovados.map((a) => a.id).join(", ")}]` : ""}`);
 }
@@ -352,6 +420,9 @@ async function principal() {
   await semear();
   const navegador = await puppeteer.launch({ executablePath: caminhoDoChrome(), headless: true, args: ["--autoplay-policy=no-user-gesture-required"] });
   const pagina = await navegador.newPage();
+  // Sem isto, o resultado depende do Windows/macOS da máquina: com as animações do sistema
+  // desligadas, o Chrome reporta prefers-reduced-motion e o botão "Pausar animações" some.
+  await pagina.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
   pagina.on("pageerror", (e) => console.log(`  [erro de script na página] ${e.message}`));
   pagina.on("console", (m) => {
     if (!/Content Security Policy/i.test(m.text())) return;
@@ -440,6 +511,7 @@ async function principal() {
 
     for (const [caminho, rotulo] of [["/", "home"], ["/login", "login"], ["/cadastro", "cadastro"], ["/recuperar-senha", "recuperar senha"], ["/privacidade", "privacidade"]]) {
       await rodarLighthouse(navegador, caminho, rotulo);
+      await rodarLighthouseDesktop(navegador, caminho, rotulo);
     }
 
     console.log("\n== Colaborador (Ana)");
@@ -539,11 +611,20 @@ async function principal() {
   for (const l of relatorio.lighthouse) console.log(`Lighthouse ${l.pagina}: acessibilidade ${l.acessibilidade} · boas práticas ${l.boasPraticas} · SEO ${l.seo}`);
   const outros = [...new Set(relatorio.lighthouse.flatMap((l) => l.outros))];
   if (outros.length) console.log(`Lighthouse, fora de acessibilidade (informativo): ${outros.join(", ")}`);
+  for (const p of relatorio.performance) {
+    console.log(`Performance ${p.pagina} (${p.dispositivo}): ${p.nota} · LCP ${p.lcp} ms · FCP ${p.fcp} ms · CLS ${p.cls} · TBT ${p.tbt} ms · ${p.peso} KB`);
+    if (p.oportunidades.length) console.log(`    oportunidades: ${p.oportunidades.join(", ")}`);
+    if (process.env.DIAGNOSTICO) {
+      console.log(`    CPU: ${p.trabalhoPrincipal.join(" · ")}\n    scripts: ${p.scriptsPesados.join(" · ")}`);
+      console.log(`    maiores: ${p.maioresArquivos.join(" · ")}${p.deslocamentos.length ? `\n    deslocamentos: ${p.deslocamentos.join(" · ")}` : ""}`);
+    }
+  }
   for (const l of relatorio.lighthouse) for (const a of l.reprovados) console.log(`  ${l.pagina}: ${a.id} — ${a.titulo}\n      ${a.itens.join("\n      ")}`);
 
   mkdirSync(path.join(__dirname, "relatorio"), { recursive: true });
   writeFileSync(path.join(__dirname, "relatorio/ultimo.json"), JSON.stringify({ ...relatorio, csp: bloqueiosCsp }, null, 2));
-  process.exitCode = violacoes.length || tecladoFalhas.length || lhFalhas.length || bloqueiosCsp.length ? 1 : 0;
+  console.log(`ícones: ${relatorio.icones.length ? relatorio.icones.map((i) => `${i.nome} (${i.estado})`).join(", ") + " sem desenho" : "todos desenhados"}`);
+  process.exitCode = violacoes.length || tecladoFalhas.length || lhFalhas.length || bloqueiosCsp.length || relatorio.icones.length ? 1 : 0;
 }
 
 await principal();

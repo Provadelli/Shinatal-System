@@ -9,10 +9,15 @@ Inclusão (Lei 13.146/2015, art. 63).
 ```bash
 cd backend/tests/a11y
 npm install
-npm test                 # axe-core + Lighthouse (uns 5 minutos)
+npm test                 # axe-core + Lighthouse, inclusive Performance (uns 10 minutos)
 SEM_LIGHTHOUSE=1 npm test   # só axe-core e teclado (1 minuto)
 CAPTURAS=1 npm test         # também salva uma captura de cada estado em relatorio/capturas/
+DIAGNOSTICO=1 npm test      # detalha CPU, maiores arquivos, deslocamentos e erros do console
 ```
+
+O teste fixa `prefers-reduced-motion: no-preference`: sem isso, numa máquina com as animações do
+Windows desligadas o botão "Pausar animações" some e a verificação dele falha. O servidor local
+comprime HTML/CSS/JS com gzip, como o Firebase Hosting, para o Lighthouse medir o site real.
 
 O roteiro (`auditar.mjs`) copia o site para uma pasta temporária, aponta-o para os emuladores do
 Firebase (nunca para produção), cria contas e dados de exemplo, faz login e audita com o
@@ -22,8 +27,44 @@ diálogo de confirmação aberto. Além das regras automáticas, ele confere pel
 ferramentas não medem: foco entra no diálogo, Tab não escapa, Esc fecha, foco volta para quem
 abriu, setas trocam de aba, o botão de pausa realmente para o vídeo.
 
-Resultado em 2026-10-02: **axe-core 0 violações** nos 34 estados, **57/57** verificações de
-teclado e **Lighthouse Acessibilidade 100** nas 9 páginas.
+Resultado em 2026-10-27: **axe-core 0 violações** nos 34 estados, **56/56** verificações de
+teclado, **Lighthouse Acessibilidade 100** e **Boas práticas 100** nas 9 páginas, e todos os
+ícones desenhados.
+
+## Performance (Lighthouse, celular)
+
+Medida no servidor local com a simulação padrão do Lighthouse (celular médio em 4G). O número
+varia de uma rodada para outra, então serve para comparar, não como valor exato de produção.
+
+| Página | Antes (02/10) | Depois (27/10) |
+|---|---|---|
+| Home | 77 (desktop 68) | 91 (desktop 100) |
+| Login / Cadastro / Recuperar senha / Privacidade | 75 a 97 | 96 a 99 |
+| Painel do colaborador | 57 | 89 |
+| Meu perfil | 57 | 95 |
+| Painel de gestão | 55 | 95 |
+| Contratos | 70 (CLS 0,25) | 83 (CLS 0,06) |
+
+O que mudou:
+
+- **Fonte de ícones:** pedia o Material Symbols com todos os eixos variáveis (4 MB). Agora vem com
+  um estilo fixo e só os ícones usados (9 KB). A lista sai de `npm run icones`
+  (`scripts/fonte-icones.mjs`), que também reescreve o link em todas as páginas. **Ícone novo no
+  HTML ou no JS: rode `npm run icones`.** A auditoria acusa ícone que ficou sem desenho.
+- **Tela "Carregando":** sumia no evento `load` (esperava fotos e vídeo, até 3 s). Agora some com o
+  HTML/CSS prontos, de 0,3 a 1 s, e na hora com "reduzir movimento".
+- **Vídeo do topo:** recomprimido de 7,5 MB para 0,9 MB (`npm run optimize:video`, 1280 px, H.264,
+  sem áudio; o original fica como fonte e não vai para o deploy). Não é baixado no celular, com pouca memória ou conexão fraca (`modo-leve`).
+  Nesses casos fica a imagem de capa. No computador, só começa depois que a página carregou.
+  A imagem de capa tem `preload` com prioridade alta.
+- **Firebase Auth:** `initializeAuth` sem o resolvedor de popup. O site não usa login com popup, e
+  esse resolvedor baixava `apis.google.com/js/api.js` em toda página, bloqueado pela CSP.
+- **Layout estável:** a logo do cabeçalho não estica mais (proporção errada), as fotos da faixa
+  duplicada têm dimensões, e em Contratos/Gestão o conteúdo ocupa a altura da tela para o rodapé
+  não pular quando os dados chegam.
+- **Contraste:** o dourado `tertiary` passou de `#8A6A2F` (4,33:1 sobre o creme) para `#7A5C22`
+  (5,4:1), o mesmo de `--shinatal-ouro-texto`.
+- **Favicon:** 32 px (0,7 KB) e ícone de atalho do iPhone de 180 px, no lugar do PNG de 512 px (47 KB).
 
 ## O que foi feito
 
@@ -49,6 +90,7 @@ teclado e **Lighthouse Acessibilidade 100** nas 9 páginas.
 ## Regras para quem for mexer no front
 
 - Ícone decorativo: sempre `aria-hidden="true"`. Botão ou link só com ícone: sempre `aria-label`.
+  Ícone que ainda não existia no site: rode `npm run icones` na raiz.
 - Campo novo: `<label for="id">`. Sem rótulo visível (busca, filtro): `aria-label`.
 - Modal novo: `<div id="modal-..." role="dialog" aria-modal="true" aria-labelledby="...">` com as
   classes `hidden`/`flex` de sempre — o teclado é tratado sozinho por `js/acessibilidade.js`.
@@ -73,5 +115,4 @@ foi feito:
 - **Carrossel "Como funciona".** Os cartões vizinhos aparecem esmaecidos de propósito; todos ficam
   legíveis ao serem trazidos ao centro (setas, pontos ou teclado).
 - **Lighthouse, fora de Acessibilidade.** SEO fica entre 58 e 66 de propósito: o portal é interno e
-  o `robots.txt` bloqueia a indexação. Boas práticas marca 96 nas páginas públicas por proporção
-  de uma imagem.
+  o `robots.txt` bloqueia a indexação.

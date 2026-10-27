@@ -12,7 +12,9 @@
 //   3. as restrições da chave no Google Cloud (só Auth/Firestore).
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, getToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js";
 
@@ -55,7 +57,13 @@ export async function tokenAppCheck() {
   }
 }
 
-export const auth = getAuth(app);
+// initializeAuth em vez de getAuth: mesma persistência padrão do getAuth, mas SEM o
+// popupRedirectResolver — o site não usa login com popup/redirect (Google etc.), e esse resolver
+// baixa apis.google.com/js/api.js em toda página, que a CSP bloqueia (erro no console e download
+// à toa). Se um dia entrar login social, passe `popupRedirectResolver: browserPopupRedirectResolver`.
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+});
 export const db = getFirestore(app);
 
 export { firebaseConfig };

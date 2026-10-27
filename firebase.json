@@ -19,13 +19,14 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "assets/background-video.mp4"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
     "headers": [
       {
-        "source": "**/*.@(png|webp|jpg|jpeg|svg|ico)",
+        "source": "**/*.@(png|webp|jpg|jpeg|svg|ico|mp4)",
         "headers": [
           {
             "key": "Cache-Control",

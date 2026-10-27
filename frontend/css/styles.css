@@ -1301,7 +1301,7 @@ caption.sr-only { caption-side: top; }
   justify-content: center;
   gap: 1.75rem;
   background: var(--shinatal-bg);
-  transition: opacity 0.5s ease;
+  transition: opacity 0.28s ease;
 }
 .tela-carregamento.tela-carregamento-oculta {
   opacity: 0;

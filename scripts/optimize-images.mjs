@@ -53,7 +53,23 @@ async function converterResponsiva({ entrada, base, larguras, qualidade }) {
   }
 }
 
+// Favicons pequenos gerados a partir do original de 512 px (47 KB), que continua como fonte:
+// o navegador só precisa de 32 px na aba e 180 px no atalho da tela inicial do iPhone.
+const favicons = [
+  { saida: "favicon-32.png", largura: 32 },
+  { saida: "apple-touch-icon.png", largura: 180 }
+];
+async function gerarFavicons() {
+  const origem = path.join(raizAssets, "favicon-shinatal.png");
+  if (!existsSync(origem)) return console.warn("[optimize-images] pulei os favicons (favicon-shinatal.png não encontrado)");
+  for (const { saida, largura } of favicons) {
+    await sharp(origem).resize({ width: largura }).png({ compressionLevel: 9, palette: true }).toFile(path.join(raizAssets, saida));
+    console.log(`[optimize-images] favicon-shinatal.png -> ${saida} (${largura} px)`);
+  }
+}
+
 for (const item of arquivosUnicos) await converterUnico(item);
 for (const item of fotosResponsivas) await converterResponsiva(item);
+await gerarFavicons();
 
 console.log("[optimize-images] concluído.");
