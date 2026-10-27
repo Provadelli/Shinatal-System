@@ -182,13 +182,18 @@ function formatarMesReferencia({ ano, mes }) {
  * mês NÃO conta e do dia 16 em diante conta. Ex.: 09/02 → 01/03 = 1 mês; 01/03 → 31/08 = 6.
  * Base tanto da duração prevista do contrato quanto dos meses efetivamente decorridos usados no
  * estorno (Seção 2.1/2.2), para que os dois fiquem sempre na mesma régua.
+ *
+ * Exceção — ENCERRAMENTO do contrato (`contarMesFinalCheio = true`): o mês em que o contrato
+ * encerra sempre conta, qualquer que seja o dia. Ex.: 25/05 → encerrado em 01/07 = 2 meses
+ * (jun + jul), e não 1. O início continua com a regra do dia 15.
  * @param {string} dataInicioISO 'aaaa-mm-dd'
  * @param {string} dataReferenciaISO 'aaaa-mm-dd'
+ * @param {boolean} [contarMesFinalCheio] true = o mês da data final conta sempre (encerramento)
  */
-function calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO) {
+function calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO, contarMesFinalCheio = false) {
   const { ano, mes } = calcularMesReferenciaImplantacao(dataInicioISO);
   const ref = new Date(dataReferenciaISO + "T00:00:00");
-  const contaMesFinal = ref.getDate() >= 16 ? 1 : 0;
+  const contaMesFinal = contarMesFinalCheio || ref.getDate() >= 16 ? 1 : 0;
   return (ref.getFullYear() - ano) * 12 + (ref.getMonth() - mes) + contaMesFinal;
 }
 
@@ -259,7 +264,8 @@ function validarCNPJ(valor) {
 /* para menos já nasce proporcional. Se o contrato encerrar antes de   */
 /* atingir esses mesmos meses previstos, o total creditado é estornado */
 /* proporcionalmente aos meses que faltavam (Seção 2.2), com base nos  */
-/* meses REALMENTE decorridos até o encerramento.                      */
+/* meses REALMENTE decorridos até o encerramento — e o mês do          */
+/* encerramento sempre conta, mesmo até o dia 15.                      */
 /* ------------------------------------------------------------------ */
 
 
@@ -403,7 +409,8 @@ function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, d
   if (!dataInicioISO || valorCreditadoAteAData <= 0) return 0;
   const mesesAlvo = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
   if (mesesAlvo <= 0) return 0;
-  const mesesBrutos = Math.max(0, calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO));
+  // Mês do encerramento sempre conta (ver calcularMesesDesdeInicio).
+  const mesesBrutos = Math.max(0, calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO, true));
   const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferenciaISO);
   const mesesPausadosQuadro = quantidadeFuncionariosIniciais > 0 ? funcionarioMesesPausados / quantidadeFuncionariosIniciais : 0;
   const mesesDecorridos = Math.max(0, mesesBrutos - calcularMesesPausados(pausas, dataReferenciaISO) - mesesPausadosQuadro);
@@ -434,9 +441,10 @@ function calcularMesesPausadosEntre(pausas, inicioISO, fimISO) {
 }
 
 /** Meses que um lote ficou no contrato (regra do dia 15 nas duas pontas), sem as pausas do
- * contrato inteiro nesse período, limitados a 12. */
-function calcularMesesPermanencia(entradaISO, saidaISO, pausas) {
-  const brutos = Math.max(0, calcularMesesDesdeInicio(entradaISO, saidaISO));
+ * contrato inteiro nesse período, limitados a 12. Com `contarMesFinalCheio` (encerramento do
+ * contrato), o mês da data final conta sempre. */
+function calcularMesesPermanencia(entradaISO, saidaISO, pausas, contarMesFinalCheio = false) {
+  const brutos = Math.max(0, calcularMesesDesdeInicio(entradaISO, saidaISO, contarMesFinalCheio));
   const efetivos = Math.max(0, brutos - calcularMesesPausadosEntre(pausas, entradaISO, saidaISO));
   return Math.min(efetivos, MESES_ANO);
 }
@@ -452,8 +460,9 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
   const entradasContrato = contrato.entradasContrato || [];
   const qtdIniciais = contrato.quantidadeFuncionariosIniciais || 0;
   // Desconto de quem sai antes de completar 12 meses: R$12,50 × meses que faltaram.
-  const desconto = (entradaISO, saidaISO, qtd) =>
-    valorMes * qtd * (MESES_ANO - calcularMesesPermanencia(entradaISO, saidaISO, pausas));
+  // `encerramento` = true quando a data final é o encerramento do contrato (mês final conta sempre).
+  const desconto = (entradaISO, saidaISO, qtd, encerramento = false) =>
+    valorMes * qtd * (MESES_ANO - calcularMesesPermanencia(entradaISO, saidaISO, pausas, encerramento));
 
   const creditoInicial = CREDITO_POR_CONTRATO * qtdIniciais;
   let acrescido = 0;
@@ -470,7 +479,7 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
     descontado += v;
     movimentos.push({ tipo: "saida", data: s.data, valor: -v });
   }
-  if (qtdIniciaisRestantes > 0) estornoLotes += desconto(contrato.dataInicio, dataReferencia, qtdIniciaisRestantes);
+  if (qtdIniciaisRestantes > 0) estornoLotes += desconto(contrato.dataInicio, dataReferencia, qtdIniciaisRestantes, true);
 
   for (const e of entradasContrato) {
     if (!e.dataEntrada || e.dataEntrada > dataReferencia) continue;
@@ -482,7 +491,7 @@ function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
       descontado += v;
       movimentos.push({ tipo: "saida", data: e.dataSaida, valor: -v });
     } else {
-      estornoLotes += desconto(e.dataEntrada, dataReferencia, qtd);
+      estornoLotes += desconto(e.dataEntrada, dataReferencia, qtd, true);
     }
   }
 
