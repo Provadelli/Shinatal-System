@@ -1,5 +1,8 @@
 node_modules/
 backend/scripts/service-account.json
+# Seed das contas especiais (e-mails e papéis de Admin/DP/RH/Presidente) — só local, nunca no
+# repositório, que é público. Quem precisar dele pede o arquivo ao TI.
+backend/scripts/seed-usuarios.js
 .firebase/
 *.log
 .DS_Store
