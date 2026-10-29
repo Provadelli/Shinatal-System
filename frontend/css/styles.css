@@ -218,12 +218,16 @@ h1, h2, h3, .font-display {
 /* O poster (primeiro quadro do vídeo atual) também é o fundo da seção: se o aparelho não
    conseguir abrir o vídeo, ou enquanto ele não começa, é essa imagem que aparece. */
 .secao-hero-video {
-  background: var(--shinatal-verde-900) url("../assets/hero-poster-v2.webp") center / cover no-repeat;
+  background: var(--shinatal-verde-900) url("../assets/hero-poster-paisagem-v3.webp") center / cover no-repeat;
   position: sticky;
   top: 0;
   isolation: isolate;
   overflow: hidden;
   min-height: calc(100dvh - var(--altura-header, 3.5rem));
+}
+/* Celular em pé: pôster vertical (recorte do miolo, bem mais leve) — casa com hero-retrato-v3.mp4. */
+@media (max-aspect-ratio: 1/1) {
+  .secao-hero-video { background-image: url("../assets/hero-poster-retrato-v3.webp"); }
 }
 #video-hero {
   position: absolute;
@@ -233,6 +237,10 @@ h1, h2, h3, .font-display {
   object-fit: cover;
   z-index: 0;
 }
+/* Sem src até o JS decidir (ver js/pagina-index.js); entra com fade quando o 1º quadro toca —
+   até lá aparece o pôster, que é o fundo da seção. */
+#video-hero { opacity: 0; transition: opacity 0.6s ease; }
+#video-hero.video-pronto { opacity: 1; }
 /* Overlay escuro tingido de verde-900 da marca (em vez de preto neutro) — "levemente
    escurecido", o bastante pra legibilidade do texto branco por cima. */
 .secao-hero-video::after {

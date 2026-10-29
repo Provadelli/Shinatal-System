@@ -1,7 +1,7 @@
 // Auditoria automatizada de acessibilidade do Shinatal — axe-core (o motor do axe DevTools) e
 // Lighthouse, rodando no Chrome instalado contra uma cópia local do site.
 //
-// Nunca toca produção: o site é copiado para uma pasta temporária, com js/firebase-init.js
+// Nunca toca produção: o site é copiado para uma pasta temporária, com js/firebase-config.js
 // apontado para os emuladores de Auth/Firestore (projeto fictício "demo-shinatal") e o Turnstile
 // desligado. As firestore.rules reais valem no emulador, então o que se audita é o app de verdade,
 // logado, com dados de exemplo — inclusive modais, abas e diálogos de confirmação abertos.
@@ -48,14 +48,23 @@ function prepararSite() {
   cpSync(path.join(RAIZ, "frontend"), SITE, { recursive: true });
 
   const init = path.join(SITE, "js/firebase-init.js");
+  const config = path.join(SITE, "js/firebase-config.js");
   const [hostFs, portaFs] = HOST_FIRESTORE.split(":");
-  // A configuração real vem codificada (CONFIG_CODIFICADA); aqui ela é trocada por uma fictícia do
-  // projeto demo, sem reCAPTCHA (App Check desligado), e o script falha se a linha mudar de forma.
+  // A configuração real vem codificada (CONFIG_CODIFICADA, em firebase-config.js); aqui ela é trocada
+  // por uma fictícia do projeto demo, sem reCAPTCHA (App Check desligado), e a API REST que a home
+  // usa passa a apontar para o emulador. O script falha se alguma dessas linhas mudar de forma.
   const LINHA_CONFIG = "const { recaptchaSiteKey, ...firebaseConfig } = decodificar(CONFIG_CODIFICADA);";
-  const fonteInit = readFileSync(init, "utf8");
-  if (!fonteInit.includes(LINHA_CONFIG)) throw new Error("firebase-init.js mudou: não achei a linha da configuração.");
+  const LINHA_REST = 'export const FIRESTORE_REST = "https://firestore.googleapis.com/v1";';
+  const fonteConfig = readFileSync(config, "utf8");
+  if (!fonteConfig.includes(LINHA_CONFIG) || !fonteConfig.includes(LINHA_REST)) {
+    throw new Error("firebase-config.js mudou: não achei a linha da configuração ou da API REST.");
+  }
   const configDemo = { apiKey: "demo-api-key", authDomain: `${PROJETO}.firebaseapp.com`, projectId: PROJETO, appId: "demo-app" };
-  writeFileSync(init, fonteInit.replace(LINHA_CONFIG, `const recaptchaSiteKey = ""; const firebaseConfig = ${JSON.stringify(configDemo)};`) + `
+  writeFileSync(config, fonteConfig
+    .replace(LINHA_CONFIG, `const recaptchaSiteKey = ""; const firebaseConfig = ${JSON.stringify(configDemo)};`)
+    .replace(LINHA_REST, `export const FIRESTORE_REST = "http://${HOST_FIRESTORE}/v1";`));
+  const fonteInit = readFileSync(init, "utf8");
+  writeFileSync(init, fonteInit + `
 import { connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 connectAuthEmulator(auth, "http://${HOST_AUTH}", { disableWarnings: true });
@@ -86,7 +95,8 @@ const bloqueiosCsp = [];
 
 const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
-  ".webp": "image/webp", ".png": "image/png", ".mp4": "video/mp4", ".json": "application/json", ".txt": "text/plain"
+  ".webp": "image/webp", ".png": "image/png", ".mp4": "video/mp4", ".json": "application/json", ".txt": "text/plain",
+  ".woff2": "font/woff2"
 };
 
 /** Servidor estático com as mesmas URLs limpas do Firebase Hosting (/gestao -> gestao.html). */

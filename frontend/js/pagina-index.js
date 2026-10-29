@@ -1,7 +1,8 @@
 // Shinatal — script da página index.html (antes inline; extraído para a CSP poder proibir
 // script inline — ver firebase.json).
-import { db } from "./firebase-init.js";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+// Sem o SDK do Firebase de propósito: a home só lê um documento público, e o SDK (mais o
+// reCAPTCHA do App Check) custava ~600 KB e vários segundos de processamento no celular.
+import { firebaseConfig, FIRESTORE_REST } from "./firebase-config.js";
 import { formatarMoeda, animarNumero, ativarRevelacaoAoRolar, ativarCarrosselEtapas, pausarAnimacaoForaDaTela, sincronizarAlturaHeader } from "./ui-utils.js";
 import { movimentoPausado } from "./acessibilidade.js";
 
@@ -47,29 +48,37 @@ if (sentinelaFaixa && faixaSecao && "IntersectionObserver" in window) {
 }
 
 // ---------------------------------------------------------------
-// Vídeo do hero — só em computador com boa conexão. Fica só no pôster (imagem estática) para
-// quem pede menos movimento (prefers-reduced-motion), está com Data Saver ligado, ou está no
-// "modo leve" (celular, pouca memória ou conexão fraca — classe posta por js/perf-adaptativo.js).
-// Sem autoplay no HTML: nesses casos o mp4 nunca é baixado. Quando pode tocar, o download só
-// começa depois que a página terminou de carregar, para não disputar banda com o conteúdo.
+// Vídeo do hero — toca em qualquer aparelho, em duas versões leves: vertical (celular em pé,
+// ~540 px) e horizontal (computador/tablet deitado, ~1280 px). Fica só no pôster (imagem
+// estática) para quem pede menos movimento (prefers-reduced-motion), está com Data Saver ligado
+// ou numa conexão 2G. O <video> não tem src no HTML: sem JS ou nesses casos, nada é baixado.
+// O download só começa depois que a página carregou e o navegador ficou ocioso, para o vídeo
+// nunca disputar banda nem processamento com o conteúdo da primeira tela.
 // ---------------------------------------------------------------
 const videoHero = document.getElementById("video-hero");
 if (videoHero) {
   const prefereReduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const saveData = navigator.connection?.saveData;
-  const modoLeve = document.documentElement.classList.contains("modo-leve");
-  const podeAutoplay = !prefereReduzido && !saveData && !modoLeve;
+  const conexao = navigator.connection;
+  const conexaoMuitoFraca = conexao && (conexao.saveData || ["slow-2g", "2g"].includes(conexao.effectiveType));
+  const podeAutoplay = !prefereReduzido && !conexaoMuitoFraca;
 
   if (podeAutoplay) {
     // Lido por js/acessibilidade.js: o botão "Pausar animações" só retoma o vídeo se o autoplay
     // era permitido para este visitante.
     videoHero.dataset.autoplayPermitido = "1";
+    const retrato = window.matchMedia("(max-aspect-ratio: 1/1)").matches;
     const iniciarVideo = () => {
+      videoHero.src = retrato ? videoHero.dataset.srcRetrato : videoHero.dataset.srcPaisagem;
       videoHero.preload = "auto";
+      // Só aparece quando já tem quadro para mostrar — até lá fica o pôster (mesmo 1º quadro).
+      videoHero.addEventListener("playing", () => videoHero.classList.add("video-pronto"), { once: true });
       if (!movimentoPausado()) videoHero.play().catch(() => {});
     };
-    if (document.readyState === "complete") iniciarVideo();
-    else window.addEventListener("load", iniciarVideo, { once: true });
+    const quandoOcioso = () => ("requestIdleCallback" in window
+      ? requestIdleCallback(iniciarVideo, { timeout: 3000 })
+      : setTimeout(iniciarVideo, 1500));
+    if (document.readyState === "complete") quandoOcioso();
+    else window.addEventListener("load", quandoOcioso, { once: true });
   }
   document.addEventListener("visibilitychange", () => {
     if (!podeAutoplay) return;
@@ -102,11 +111,12 @@ if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
 }
 
 // ---------------------------------------------------------------
-// Números de destaque — lidos ao vivo de "estatisticas/publico" (documento
-// agregado público, publicado automaticamente por js/gestao.js sempre que um
-// DP/RH/Admin ativa/encerra um contrato, cadastra colaborador ou abre a gestão).
-// Se o documento ainda não existir (primeiro uso, antes de qualquer ação em
-// gestao.html), caímos num valor de exemplo só para a página não ficar vazia.
+// Números de destaque — lidos de "estatisticas/publico" (documento agregado
+// público, publicado automaticamente por js/gestao.js sempre que um DP/RH/Admin
+// ativa/encerra um contrato, cadastra colaborador ou abre a gestão), pela API
+// REST do Firestore, e relidos a cada minuto enquanto a aba está visível.
+// Se o documento não existir ou a leitura falhar (offline), caímos num valor
+// de exemplo só para a página não ficar vazia.
 // ---------------------------------------------------------------
 const VALOR_ARRECADADO_EXEMPLO = 9867;
 const QTD_COLABORADORES_EXEMPLO = 358;
@@ -130,21 +140,40 @@ function exibirNumeros(valor, colaboradores, colaboradoresAnosAnteriores) {
   animarNumero(document.getElementById("num-colaboradores-total"), colaboradores + colaboradoresAnosAnteriores, { formatador: inteiro });
 }
 
+const URL_ESTATISTICAS = `${FIRESTORE_REST}/projects/${firebaseConfig.projectId}/databases/(default)/documents/estatisticas/publico?key=${firebaseConfig.apiKey}`;
+const INTERVALO_ATUALIZACAO_MS = 60_000;
+
+/** Valor numérico de um campo no formato da API REST ({ integerValue: "65" } / { doubleValue: 1.5 }). */
+function numeroDoCampo(campo) {
+  const bruto = campo?.integerValue ?? campo?.doubleValue;
+  const n = Number(bruto);
+  return bruto !== undefined && Number.isFinite(n) ? n : null;
+}
+
+let ultimosNumeros = "";
+async function lerNumeros() {
+  let campos = {};
+  try {
+    const resposta = await fetch(URL_ESTATISTICAS, { cache: "no-store" });
+    if (resposta.ok) campos = (await resposta.json()).fields || {};
+  } catch { /* offline — mantém o exemplo */ }
+  const valores = [
+    numeroDoCampo(campos.arrecadado) ?? VALOR_ARRECADADO_EXEMPLO,
+    numeroDoCampo(campos.colaboradores) ?? QTD_COLABORADORES_EXEMPLO,
+    numeroDoCampo(campos.colaboradoresAnosAnteriores) ?? COLABORADORES_ANOS_ANTERIORES_EXEMPLO
+  ];
+  // Só reanima quando algo mudou — a releitura de minuto em minuto não fica "piscando".
+  const assinatura = valores.join("|");
+  if (assinatura !== ultimosNumeros) {
+    ultimosNumeros = assinatura;
+    exibirNumeros(...valores);
+  }
+}
+
 function carregarNumeros() {
   montarEstruturaColaboradores();
-
-  // Ao vivo: cada contrato que entra/sai republica o documento e a página acompanha sem recarregar.
-  onSnapshot(doc(db, "estatisticas", "publico"), (snap) => {
-    const dados = snap.exists() ? snap.data() : {};
-    exibirNumeros(
-      typeof dados.arrecadado === "number" ? dados.arrecadado : VALOR_ARRECADADO_EXEMPLO,
-      typeof dados.colaboradores === "number" ? dados.colaboradores : QTD_COLABORADORES_EXEMPLO,
-      typeof dados.colaboradoresAnosAnteriores === "number" ? dados.colaboradoresAnosAnteriores : COLABORADORES_ANOS_ANTERIORES_EXEMPLO
-    );
-  }, () => {
-    // Sem permissão ou offline — mantém o exemplo.
-    exibirNumeros(VALOR_ARRECADADO_EXEMPLO, QTD_COLABORADORES_EXEMPLO, COLABORADORES_ANOS_ANTERIORES_EXEMPLO);
-  });
+  lerNumeros();
+  setInterval(() => { if (!document.hidden) lerNumeros(); }, INTERVALO_ATUALIZACAO_MS);
 }
 
 carregarNumeros();
