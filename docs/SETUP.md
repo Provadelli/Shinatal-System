@@ -118,6 +118,9 @@ Depois acesse `http://localhost:5500` (ou a porta indicada).
 
 ## 8. Publicar (Firebase Hosting, opcional e também gratuito)
 
+> O site oficial (`shinatal.shinerio.com`) é publicado automaticamente pela **Vercel** a cada
+> push na `main`. Esta seção só vale para publicar manualmente no Firebase Hosting.
+
 O `firebase.json` (na raiz do repositório) já está configurado com `"public": "frontend"` e a
 página inicial é `index.html` (landing page pública — a tela de login fica em `login.html`).
 Rode o deploy a partir da raiz do repositório:
@@ -233,7 +236,7 @@ clica no link do e-mail ──> 1º login ──> usuarios/{uid} criado a partir
 ### Ordem de publicação ao atualizar um projeto que já está no ar
 
 1. `cd backend/cloudflare-worker && npx wrangler deploy`
-2. Publicar o front-end (merge/push → GitHub Actions → Firebase Hosting, ou `firebase deploy --only hosting`)
+2. Publicar o front-end (push na `main` → deploy automático na Vercel)
 3. `firebase deploy --only firestore:rules` — **por último**
 4. `npm run limpar-nao-verificados` (revise a simulação) e depois com `-- --apply`, para tirar do
    painel quem já estava cadastrado sem confirmar o e-mail.

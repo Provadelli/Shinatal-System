@@ -9,7 +9,8 @@
   **editar** classes Tailwind/`tailwind.config.js` ou otimizar imagens: instala o Tailwind CLI e
   o `sharp`, e já regenera o CSS (via `postinstall`). Depois de editar, rode `npm run build:css`
   (ou `npm run watch:css` para recompilar a cada salvamento) e commite o CSS atualizado junto —
-  o CI também regenera antes do deploy, como uma segunda camada de segurança.
+  a Vercel também regenera no deploy (o `npm install` dela dispara o `postinstall`), como uma
+  segunda camada de segurança.
 - As páginas usam `<script type="module">`, então precisam ser servidas por HTTP (não abra
   os `.html` direto com `file://`).
 - Firebase Web SDK é carregado via CDN (`gstatic.com`) diretamente nos módulos JS — não há
@@ -31,14 +32,14 @@
 - **Firebase CLI**: `npm install -g firebase-tools`.
 - Uma conta com acesso de **Editor/Owner** no projeto Firebase (`shinetal-cda20`, ver
   `.firebaserc`), para `firebase login` e `firebase deploy`.
-- Deploy automático via GitHub Actions (`.github/workflows/`) precisa dos secrets
-  `FIREBASE_SERVICE_ACCOUNT_SHINETAL_CDA20` e `GITHUB_TOKEN` configurados no repositório.
+- O site é publicado automaticamente pela **Vercel** a cada push na `main` (configuração em
+  `vercel.json`). O deploy automático no Firebase Hosting via GitHub Actions foi desligado.
 
 ## Serviços do Firebase usados (todos no plano gratuito Spark)
 
 - Firebase Authentication (e-mail/senha)
 - Firestore (banco de dados)
-- Firebase Hosting
+- Firebase Hosting (opcional: o site oficial é publicado na Vercel)
 
 Nenhuma Cloud Function, nenhum Firebase Storage e nenhum plano Blaze são necessários — ver
 detalhes e custos em [SETUP.md](SETUP.md#resumo-do-que-é-gratuito-aqui).

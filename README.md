@@ -1,18 +1,18 @@
 # Shinatal
 
 Portal do **Shinatal**, o programa de premiação de fim de ano da Shine Rio Serviços Ltda.
-Site 100% estático (HTML/CSS/JS puro, sem build step) hospedado no Firebase Hosting, com
+Site 100% estático (HTML/CSS/JS puro, sem build step) hospedado na Vercel (`shinatal.shinerio.com`), com
 **Firebase Authentication** e **Firestore** como back-end — sem servidor próprio, sem Cloud
 Functions, sem plano pago do Firebase.
 
 ## Estrutura do repositório
 
 ```
-frontend/    Site publicado no Firebase Hosting: páginas HTML, css/, js/, assets/.
+frontend/    Site publicado na Vercel: páginas HTML, css/, js/, assets/.
 backend/     Regras de segurança do Firestore e scripts administrativos (Admin SDK).
 docs/        Guia de configuração, requisitos e o regulamento interno (PDF).
 design/      Referências visuais (mockups) — não faz parte do site publicado.
-.github/     Workflows de deploy automático (Firebase Hosting via GitHub Actions).
+vercel.json  Configuração do deploy na Vercel (pasta publicada e headers de segurança).
 firebase.json / .firebaserc   Configuração do projeto Firebase (raiz do repositório).
 ```
 
