@@ -1289,15 +1289,27 @@ caption.sr-only { caption-side: top; }
 .pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 
 /* Skeleton de carregamento */
+/* O brilho é um ::after que só se move (transform) — a GPU anima sozinha. Antes animava
+   background-position, que repinta na thread principal a cada quadro (pesava no celular). */
 .skeleton {
-  background: linear-gradient(90deg, #EFE8D6 25%, #F7F2E6 37%, #EFE8D6 63%);
-  background-size: 400% 100%;
-  animation: skeleton-loading 1.4s ease infinite;
+  position: relative;
+  overflow: hidden;
+  background: #EFE8D6;
   border-radius: 0.5rem;
 }
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, #F7F2E6 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: skeleton-loading 1.4s ease infinite;
+}
 @keyframes skeleton-loading {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+  to { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; display: none; }
 }
 
 /* ---------- Tela de carregamento (splash de entrada, todas as páginas) ---------- */
@@ -1339,6 +1351,9 @@ caption.sr-only { caption-side: top; }
   font-size: 1.5rem;
   letter-spacing: 0.02em;
   color: var(--shinatal-verde-escuro);
+  /* Brilho fixo: só opacity/transform animam (na GPU). Animar text-shadow repintava cada letra
+     na thread principal a cada quadro. */
+  text-shadow: 0 0 8px color-mix(in srgb, var(--shinatal-gold) 55%, transparent);
   opacity: 0;
   animation: carregamento-letra 2.2s ease-in-out infinite;
 }
@@ -1371,8 +1386,8 @@ caption.sr-only { caption-side: top; }
 
 @keyframes carregamento-letra {
   0% { opacity: 0; transform: translateY(2px); }
-  12% { opacity: 1; text-shadow: 0 0 8px var(--shinatal-gold); transform: translateY(0) scale(1.08); }
-  35% { opacity: 0.35; text-shadow: none; transform: scale(1); }
+  12% { opacity: 1; transform: translateY(0) scale(1.08); }
+  35% { opacity: 0.35; transform: scale(1); }
   100% { opacity: 0; }
 }
 @keyframes carregamento-glow-mov {
