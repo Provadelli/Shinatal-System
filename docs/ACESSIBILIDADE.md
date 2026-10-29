@@ -48,16 +48,38 @@ varia de uma rodada para outra, então serve para comparar, não como valor exat
 
 O que mudou:
 
-- **Fonte de ícones:** pedia o Material Symbols com todos os eixos variáveis (4 MB). Agora vem com
-  um estilo fixo e só os ícones usados (9 KB). A lista sai de `npm run icones`
-  (`scripts/fonte-icones.mjs`), que também reescreve o link em todas as páginas. **Ícone novo no
-  HTML ou no JS: rode `npm run icones`.** A auditoria acusa ícone que ficou sem desenho.
+- **Fontes no próprio site (29/10):** Inter, Playfair Display e Material Symbols ficam em
+  `frontend/assets/fonts/` (woff2, só o subconjunto latino do texto, 131 KB no total) com os
+  `@font-face` em `css/fontes.css`. Antes vinham do Google Fonts: duas folhas de estilo de outro
+  domínio que travavam a primeira pintura (~1 s no celular). Só a fonte de ícones tem `preload`
+  (9 KB, `font-display: block`); as de texto usam `swap`.
+- **Fonte de ícones:** um estilo fixo e só os ícones usados (9 KB, antes 4 MB). **Ícone novo no
+  HTML ou no JS: rode `npm run icones`** (`scripts/fonte-icones.mjs`): ele refaz a lista, baixa os
+  woff2 de novo (nome com hash, para o cache longo não servir versão velha), regera
+  `css/fontes.css` e atualiza o bloco `<!-- fontes:inicio -->` de todas as páginas. A auditoria
+  acusa ícone que ficou sem desenho.
+- **Home sem o SDK do Firebase (29/10):** os três números públicos (fundo e colaboradores) vêm da
+  API REST do Firestore (`fetch`, relido a cada minuto com a aba visível), com a configuração
+  pública em `js/firebase-config.js`. A home deixou de baixar o Firebase e o reCAPTCHA do App
+  Check: ~600 KB e ~12 s de bloqueio da thread principal no celular (TBT de 12 s para 0,2 s em
+  produção). As outras páginas continuam com o SDK e o App Check.
 - **Tela "Carregando":** sumia no evento `load` (esperava fotos e vídeo, até 3 s). Agora some com o
   HTML/CSS prontos, de 0,3 a 1 s, e na hora com "reduzir movimento".
-- **Vídeo do topo:** recomprimido de 7,5 MB para 0,9 MB (`npm run optimize:video`, 1280 px, H.264,
-  sem áudio; o original fica como fonte e não vai para o deploy). Não é baixado no celular, com pouca memória ou conexão fraca (`modo-leve`).
-  Nesses casos fica a imagem de capa. No computador, só começa depois que a página carregou.
-  A imagem de capa tem `preload` com prioridade alta.
+- **Vídeo do topo (29/10):** volta a tocar em qualquer aparelho. São duas versões geradas por
+  `npm run optimize:video` a partir de `design/video/hero-original.mp4` (fora da pasta publicada):
+  `hero-paisagem-v3.mp4` (1280 px) para computador e tablet deitado, e `hero-retrato-v3.mp4`
+  (recorte central 9:16, 540×960) para celular em pé, ambas H.264 sem áudio. O `<video>` não tem
+  `src` no HTML: o JS escolhe a versão pela orientação da tela e só começa depois do `load`, com o
+  navegador ocioso, entrando com fade. Fica só a imagem de capa com "reduzir movimento", Data Saver
+  ou 2G. O botão "Pausar animações" para o vídeo (WCAG 2.2.2).
+- **Imagem de capa:** duas versões com `preload` por orientação — vertical de 16 KB no celular e
+  horizontal de 38 KB no computador (antes 115 KB para todos). A marca-d'água do Pão de Açúcar caiu
+  de 103 KB para 30 KB (computador) e 15 KB (celular).
+- **Cache (Vercel):** `vercel.json` repete as regras que o Firebase tinha: `assets/` com cache de
+  um ano (`immutable`), CSS/JS com 5 minutos.
+- **App Check (29/10):** a CSP não liberava `www.google.com/recaptcha/` no `connect-src`, e o
+  reCAPTCHA Enterprise falhava (erro no console e 403 na troca do token). Corrigido em
+  `vercel.json` e `firebase.json`.
 - **Firebase Auth:** `initializeAuth` sem o resolvedor de popup. O site não usa login com popup, e
   esse resolvedor baixava `apis.google.com/js/api.js` em toda página, bloqueado pela CSP.
 - **Layout estável:** a logo do cabeçalho não estica mais (proporção errada), as fotos da faixa

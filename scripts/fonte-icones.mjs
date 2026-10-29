@@ -112,9 +112,11 @@ css += ".material-symbols-outlined{font-family:'Material Symbols Outlined';font-
 writeFileSync(path.join(FRONT, "css", "fontes.css"), css);
 
 /* ---------- 4. Troca os links do Google Fonts nas páginas ---------- */
-// Pré-carrega só o que aparece na primeira tela: Inter (texto), Playfair (títulos) e os ícones.
+// Pré-carrega só a fonte de ícones (9 KB, font-display: block — sem ela os ícones ficam invisíveis).
+// As de texto usam swap: o texto aparece na hora com a fonte do sistema, e pré-carregá-las
+// disputaria banda com o CSS, que é o que libera a primeira pintura no celular.
 const arquivoDe = (familia, estilo = "normal") => [...grupos.values()].find((g) => g.familia === familia && g.estilo === estilo)?.arquivo;
-const preloads = [arquivoDe("Inter"), arquivoDe("Playfair Display"), arquivoDe("Material Symbols Outlined")].filter(Boolean);
+const preloads = [arquivoDe("Material Symbols Outlined")].filter(Boolean);
 
 const BLOCO = /<!-- fontes:inicio -->[\s\S]*?<!-- fontes:fim -->/;
 const LINKS_GOOGLE = /<link rel="preconnect" href="https:\/\/fonts\.googleapis\.com" \/>\s*<link rel="preconnect" href="https:\/\/fonts\.gstatic\.com" crossorigin \/>\s*<link href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]*"[^>]*\/>(\s*<link href="https:\/\/fonts\.googleapis\.com\/css2\?[^"]*"[^>]*\/>)?/;

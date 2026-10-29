@@ -322,7 +322,9 @@ h1, h2, h3, .font-display {
   aspect-ratio: 3 / 4;
   z-index: -2;
   pointer-events: none;
-  background-image: url("../assets/pao-de-acucar.webp");
+  /* Marca-d'água a 16–24% de opacidade, com sépia e máscara: 700 px e qualidade baixa bastam
+     (30 KB, antes 103 KB). No celular, a versão de 440 px (15 KB). */
+  background-image: url("../assets/pao-de-acucar-700.webp");
   background-size: cover;
   background-position: 30% 45%;
   opacity: 0.24;
@@ -332,7 +334,7 @@ h1, h2, h3, .font-display {
   animation: deriva-pao-acucar 26s ease-in-out infinite;
 }
 @media (max-width: 767px) {
-  #bg-pao-acucar { width: min(85vw, 420px); opacity: 0.16; left: -20%; }
+  #bg-pao-acucar { width: min(85vw, 420px); opacity: 0.16; left: -20%; background-image: url("../assets/pao-de-acucar-440.webp"); }
 }
 
 /* Aba oculta: pausa a deriva (poupa GPU/bateria sem trabalho nenhum) — ver perf-adaptativo.js. */
