@@ -468,15 +468,19 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
 }
 .header-flutuante.header-transparente .nav-link.nav-ativo::after { background: #fff; }
 .header-flutuante.header-transparente .btn-fantasma {
-  border-color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.55);
   color: #fff;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 /* Os atalhos do celular forçam a cor vinho com !important (classe utilitária); sobre o vídeo
    escuro isso dava ~1,5:1. Enquanto o cabeçalho está transparente, ficam brancos. */
 .header-flutuante.header-transparente .btn-fantasma[class*="text-christmas-red"] { color: #fff !important; }
 .header-flutuante.header-transparente .btn-fantasma:hover {
-  background-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.22);
   border-color: #fff;
+  box-shadow: none;
 }
 /* Compensa a altura do header fixo — aplicar no <body> de cada página. --altura-header é medida
    ao vivo por sincronizarAlturaHeader() (ui-utils.js), que cobre o header quebrando em 2 linhas
@@ -914,44 +918,126 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
   .faixa-valores-pista { animation: none !important; }
 }
 
-/* ---------- Rodapé (o mesmo em todas as páginas — ver scripts/layout.mjs) ----------
-   Degradê verde-noite → verde da marca, fio dourado no topo, três colunas (marca, navegação,
-   institucional) e a linha de base com a versão do sistema. Textos com 7:1 ou mais. */
-.rodape {
+/* ---------- Rodapés (fonte única em scripts/partials/, aplicada por npm run layout) ----------
+   Neutros, no creme da paleta, para combinar com qualquer página. Completo (.rodape): só nas
+   páginas públicas de conteúdo — faixa de chamada, quatro colunas, marca-d'água do logo e a linha
+   de base com a versão. Compacto (.rodape-compacto): uma linha, no login e nas páginas internas.
+   Fio dourado no topo dos dois. Textos com 7:1 ou mais sobre o creme. */
+.rodape,
+.rodape-compacto {
   position: relative;
   z-index: 10;
-  background: var(--gradiente-verde);
-  color: rgba(250, 246, 238, 0.82);
-  font-size: 0.875rem;
-  line-height: 1.55;
-  box-shadow: inset 0 1px 0 rgba(176, 141, 47, 0.7);
+  color: var(--shinatal-ink-muted);
+  box-shadow: inset 0 1px 0 rgba(176, 141, 47, 0.55);
 }
-.rodape a { color: inherit; }
+.rodape {
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(900px 360px at 8% 0%, rgba(232, 217, 174, 0.45), transparent 60%),
+    linear-gradient(180deg, #F6F1E4 0%, #EFE7D3 100%);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+/* :where() zera a especificidade: links "crus" herdam a cor do rodapé, sem vencer as cores
+   próprias dos botões (.btn-primario etc.) que também ficam aqui dentro. */
+:where(.rodape, .rodape-compacto) :where(a) { color: inherit; }
+/* Marca-d'água: o logo enorme, quase invisível, ancorado no canto inferior direito. */
+.rodape-marca-dagua {
+  position: absolute;
+  right: -4%;
+  bottom: -18%;
+  width: min(70vw, 760px);
+  aspect-ratio: 320 / 121;
+  z-index: -1;
+  background: url("../assets/logoshinatal-cropped.webp") center / contain no-repeat;
+  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg);
+  opacity: 0.045;
+  pointer-events: none;
+}
+/* Faixa de chamada: frase em Playfair à esquerda, ações à direita, separada por um fio. */
+.rodape-chamada {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 3.5rem 0 2.5rem;
+  border-bottom: 1px solid var(--shinatal-borda);
+}
+@media (min-width: 768px) {
+  .rodape-chamada { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 3rem; padding: 4.5rem 0 3rem; }
+}
+.rodape-chamada-titulo {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--shinatal-verde-escuro);
+  max-width: 18ch;
+  text-wrap: balance;
+}
+.rodape-chamada-texto { margin-top: 0.85rem; max-width: 46ch; color: var(--shinatal-ink-muted); }
+.rodape-chamada-acoes { display: flex; flex-wrap: wrap; gap: 0.75rem; flex-shrink: 0; }
+.rodape-colunas {
+  display: grid;
+  gap: 2.25rem;
+  padding: 2.75rem 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.rodape-coluna-marca { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 1rem; }
+@media (min-width: 900px) {
+  .rodape-colunas { grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 3rem; }
+  .rodape-coluna-marca { grid-column: auto; }
+}
+.rodape-texto { max-width: 30ch; }
 .rodape-titulo {
   font-family: "Inter", sans-serif;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--shinatal-gold-soft);
-  margin-bottom: 0.75rem;
+  color: var(--shinatal-ouro-texto);
+  margin-bottom: 0.85rem;
 }
+.rodape-lista { display: flex; flex-direction: column; gap: 0.35rem; }
 .rodape-link {
   display: inline-block;
-  padding: 0.2rem 0;
-  color: rgba(250, 246, 238, 0.82);
+  padding: 0.15rem 0;
+  color: var(--shinatal-ink);
   background-image: linear-gradient(var(--shinatal-gold), var(--shinatal-gold));
   background-repeat: no-repeat;
   background-position: right bottom;
   background-size: 0 1px;
   transition: color var(--transicao), background-size 0.35s cubic-bezier(0.2, 0, 0, 1);
 }
-.rodape-link:hover { color: #fff; background-position: left bottom; background-size: 100% 1px; }
+.rodape-link:hover { color: var(--shinatal-primary); background-position: left bottom; background-size: 100% 1px; }
 .rodape-base {
-  border-top: 1px solid rgba(250, 246, 238, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.25rem 0 calc(1.5rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--shinatal-borda);
   font-size: 0.8125rem;
-  color: rgba(250, 246, 238, 0.66);
 }
+@media (min-width: 640px) { .rodape-base { flex-direction: row; justify-content: space-between; } }
 .rodape-versao { font-variant-numeric: tabular-nums; }
-/* Ícones sociais: contorno fino; no hover preenchem de dourado claro (sem girar). */
+/* Compacto: uma linha (empilha no celular). */
+.rodape-compacto {
+  background: linear-gradient(180deg, #F8F4EA 0%, #F2ECDD 100%);
+  font-size: 0.8125rem;
+}
+.rodape-compacto-linha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.rodape-compacto-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 1.25rem; }
+@media (min-width: 768px) {
+  .rodape-compacto-linha { flex-direction: row; justify-content: space-between; text-align: left; }
+}
+/* Ícones sociais: contorno fino; no hover preenchem de verde (sem girar). */
 .footer-icone {
   display: inline-flex;
   align-items: center;
@@ -959,13 +1045,13 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 9999px;
-  border: 1px solid rgba(250, 246, 238, 0.3);
-  color: #fff;
+  border: 1px solid var(--shinatal-borda-campo);
+  color: var(--shinatal-primary);
+  background: rgba(255, 255, 255, 0.6);
   flex-shrink: 0;
-  transition: background-color var(--transicao), border-color var(--transicao), color var(--transicao);
+  transition: background-color var(--transicao), border-color var(--transicao), color var(--transicao), transform 0.25s cubic-bezier(0.2, 0, 0, 1);
 }
-a.footer-icone:hover { background: var(--shinatal-gold-soft); border-color: var(--shinatal-gold-soft); color: var(--shinatal-verde-900); }
-/* Logo em creme sobre o verde do rodapé. */
+a.footer-icone:hover { background: var(--shinatal-primary); border-color: var(--shinatal-primary); color: #fff; transform: translateY(-1px); }
 .footer-logo-invertido { filter: brightness(0) invert(96%) sepia(8%) saturate(300%) hue-rotate(5deg); }
 
 /* Logo no vinho da marca (--shinatal-red). */
@@ -1026,59 +1112,126 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
 .ajuda-campo { font-size: 0.8125rem; color: var(--shinatal-ink-muted); margin-top: 0.375rem; }
 
 /* ---------- Botões ----------
-   Suaves: peso médio, cantos arredondados, degradê vinho delicado (a cor dos botões de sempre).
-   No hover o degradê desliza para o tom mais fundo e aparece um brilho difuso por baixo — sem
-   pular nem crescer. Secundário: branco com fio dourado fino que aquece para o creme. */
+   Pílula moderna, reativa ao ponteiro:
+   - um brilho interno acompanha o cursor (--mx/--my, postos por js/ui/efeitos.js);
+   - no hover o botão sobe 1px, ganha um brilho difuso da própria cor por baixo e o ícone desliza;
+   - ao pressionar, encolhe levemente (resposta de toque).
+   Principal: degradê vinho (a cor dos botões de sempre). Secundário: branco com fio dourado.
+   Vidro: para fundos escuros. Com "reduzir movimento", só a cor muda (regra global). */
 .btn-primario,
 .btn-fantasma,
 .btn-perigo,
-.btn-texto {
+.btn-vidro {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 2.5rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: 0.75rem;
-  font-weight: 500;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 9999px;
+  font-weight: 600;
   font-size: 0.9375rem;
-  letter-spacing: 0.005em;
-  line-height: 1.25;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
   border: 1px solid transparent;
+  cursor: pointer;
   transition:
-    background-position 0.35s cubic-bezier(0.2, 0, 0, 1),
-    background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease,
-    box-shadow 0.35s cubic-bezier(0.2, 0, 0, 1);
+    transform 0.25s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.3s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
+/* Brilho que segue o cursor (fica no centro quando não há ponteiro). */
+.btn-primario::before,
+.btn-fantasma::before,
+.btn-perigo::before,
+.btn-vidro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.28), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.btn-fantasma::before { background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(176, 141, 47, 0.22), transparent 70%); }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):hover:not(:disabled)::before { opacity: 1; }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro) > .material-symbols-outlined { transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1); }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):hover:not(:disabled) > .material-symbols-outlined { transform: translateX(2px); }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):hover:not(:disabled) { transform: translateY(-1px); }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):active:not(:disabled) { transform: translateY(0) scale(0.97); transition-duration: 0.08s; }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
+
 .btn-primario {
-  background-image: linear-gradient(180deg, #84303F 0%, #6E2430 50%, #5A1C26 100%);
-  background-size: 100% 200%;
-  background-position: top;
+  background: linear-gradient(135deg, #8A3343 0%, #6E2430 55%, #5A1C26 100%);
   color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(90, 28, 38, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 6px -2px rgba(90, 28, 38, 0.35);
 }
 .btn-primario:hover:not(:disabled) {
-  background-position: bottom;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 20px -8px rgba(110, 36, 48, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 24px -10px rgba(110, 36, 48, 0.7), 0 0 0 4px rgba(110, 36, 48, 0.08);
 }
-.btn-primario:active:not(:disabled) { box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18); }
 .btn-fantasma {
   background: var(--shinatal-surface);
-  border-color: rgba(176, 141, 47, 0.55);
+  border-color: rgba(176, 141, 47, 0.6);
   color: var(--shinatal-verde-escuro);
+  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.06);
 }
 .btn-fantasma:hover:not(:disabled) {
   background: var(--shinatal-creme-dourado);
   border-color: var(--shinatal-gold);
-  box-shadow: 0 6px 16px -8px rgba(122, 92, 34, 0.45);
+  box-shadow: 0 10px 22px -12px rgba(122, 92, 34, 0.6), 0 0 0 4px rgba(176, 141, 47, 0.1);
 }
 /* Ação destrutiva: o mesmo vinho, mais fundo, sempre com texto explícito ("Excluir"). */
-.btn-perigo { background: var(--shinatal-vinho-fundo); color: #fff; }
-.btn-perigo:hover:not(:disabled) { background: #461520; box-shadow: 0 8px 20px -8px rgba(90, 28, 38, 0.6); }
-.btn-texto { min-height: 2.25rem; padding: 0.4rem 0.7rem; background: transparent; color: var(--shinatal-primary); }
-.btn-texto:hover:not(:disabled) { background: rgba(14, 59, 46, 0.06); }
-:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-texto):disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-.btn-compacto { min-height: 2.125rem; padding: 0.35rem 0.85rem; font-size: 0.875rem; border-radius: 0.625rem; }
+.btn-perigo { background: linear-gradient(135deg, #6E2430 0%, #461520 100%); color: #fff; }
+.btn-perigo:hover:not(:disabled) { box-shadow: 0 12px 24px -10px rgba(90, 28, 38, 0.75), 0 0 0 4px rgba(110, 36, 48, 0.1); }
+/* Sobre fundo escuro (vídeo da home, faixas verdes, rodapé): vidro claro com texto branco. */
+.btn-vidro {
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+}
+.btn-vidro:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 12px 24px -10px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(255, 255, 255, 0.08);
+}
+/* Link discreto sobre fundo escuro: dourado claro com sublinhado que se desenha no hover. */
+.link-claro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--shinatal-gold-soft);
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 0 1px;
+  padding-bottom: 2px;
+  transition: background-size 0.35s cubic-bezier(0.2, 0, 0, 1), color var(--transicao);
+}
+.link-claro:hover { color: #fff; background-size: 100% 1px; }
+.link-claro .material-symbols-outlined { transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1); }
+.link-claro:hover .material-symbols-outlined { transform: translateY(2px); }
+.btn-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: var(--shinatal-primary);
+  transition: background-color var(--transicao);
+}
+.btn-texto:hover:not(:disabled) { background: rgba(14, 59, 46, 0.07); }
+.btn-compacto { min-height: 2.25rem; padding: 0.4rem 1rem; font-size: 0.875rem; }
 
 /* Botão só de ícone: alvo de 40px, fundo levíssimo no hover. */
 .btn-icone {

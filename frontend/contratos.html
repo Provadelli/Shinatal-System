@@ -7,7 +7,7 @@
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-38ab1daf73.woff2" crossorigin />
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-8dfbfc8589.woff2" crossorigin />
 <link rel="stylesheet" href="css/fontes.css" />
 <!-- fontes:fim -->
 <link rel="stylesheet" href="css/tailwind.css" />
@@ -118,25 +118,22 @@
   </div>
 </main>
 
-<footer class="footer-shinatal mt-4">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-      <a href="/" class="flex items-center gap-2.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="h-7 w-auto footer-logo-invertido" />
-        <span class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Group</span>
-      </a>
-      <div class="flex items-center gap-2.5">
-        <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos">
-          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-        </a>
-        <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp">
-          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
-        </a>
-      </div>
-      <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Feliz Natal · <a href="/termos" class="underline underline-offset-2 hover:text-primary transition-colors">Termos de Uso</a> · <a href="/privacidade" class="underline underline-offset-2 hover:text-primary transition-colors">Privacidade</a></p>
-    </div>
+<!-- rodape:inicio -->
+<footer class="rodape-compacto">
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop rodape-compacto-linha">
+    <a href="/" class="inline-flex items-center gap-2.5" aria-label="Shinatal — página inicial">
+      <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" class="h-6 w-auto logo-vermelho" loading="lazy" />
+      <span>© 2026 Shine Rio Group</span>
+    </a>
+    <nav aria-label="Institucional" class="rodape-compacto-links">
+      <a href="/termos" class="rodape-link">Termos de Uso</a>
+      <a href="/privacidade" class="rodape-link">Privacidade</a>
+      <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="rodape-link">Fale com a Shine Rio</a>
+    </nav>
+    <p class="rodape-versao">Shinatal v2.0 · atualizado em 29/10/2026</p>
   </div>
 </footer>
+<!-- rodape:fim -->
 
 <!-- ===== Modal: Contrato empresarial (Dados + Funcionários em abas) ===== -->
 <div id="modal-contrato-empresarial" role="dialog" aria-modal="true" aria-labelledby="ce-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
