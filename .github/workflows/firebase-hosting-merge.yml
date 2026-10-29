@@ -10,10 +10,10 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # CSS do Tailwind é pré-compilado aqui (npm ci já dispara o postinstall que roda o build;
       # o passo explícito abaixo fica só pra deixar visível no log quando/como foi gerado).
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
