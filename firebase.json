@@ -22,6 +22,18 @@
       "**/node_modules/**",
       "assets/background-video.mp4"
     ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "https://shinatal.shinerio.com/",
+        "type": 302
+      },
+      {
+        "source": "/:caminho*",
+        "destination": "https://shinatal.shinerio.com/:caminho",
+        "type": 302
+      }
+    ],
     "cleanUrls": true,
     "trailingSlash": false,
     "headers": [

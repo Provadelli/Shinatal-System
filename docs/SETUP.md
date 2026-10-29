@@ -120,6 +120,12 @@ Depois acesse `http://localhost:5500` (ou a porta indicada).
 
 > O site oficial (`shinatal.shinerio.com`) é publicado automaticamente pela **Vercel** a cada
 > push na `main`. Esta seção só vale para publicar manualmente no Firebase Hosting.
+>
+> Hoje o `firebase.json` faz o Hosting do Firebase (`shinetal-cda20.web.app` e
+> `.firebaseapp.com`) **redirecionar tudo** para `shinatal.shinerio.com`. Não desative o Hosting:
+> os links dos e-mails de verificação e de redefinição de senha usam
+> `shinetal-cda20.firebaseapp.com/__/auth/action`, que é servido por ele (o Firebase atende os
+> endereços `/__/` antes dos redirecionamentos, então eles continuam funcionando).
 
 O `firebase.json` (na raiz do repositório) já está configurado com `"public": "frontend"` e a
 página inicial é `index.html` (landing page pública — a tela de login fica em `login.html`).
