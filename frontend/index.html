@@ -12,7 +12,7 @@
 <link rel="preload" as="image" href="assets/hero-poster-retrato-v3.webp" media="(max-aspect-ratio: 1/1)" fetchpriority="high" />
 <link rel="preload" as="image" href="assets/hero-poster-paisagem-v3.webp" media="(min-aspect-ratio: 1001/1000)" fetchpriority="high" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-38ab1daf73.woff2" crossorigin />
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-8dfbfc8589.woff2" crossorigin />
 <link rel="stylesheet" href="css/fontes.css" />
 <!-- fontes:fim -->
 <link rel="stylesheet" href="css/tailwind.css" />
@@ -140,16 +140,18 @@
           </p>
         </div>
 
-        <div class="flex flex-wrap gap-3 pt-2 anim-entrada anim-entrada-4">
-          <a href="/login" class="btn-primario flex items-center gap-2">
-            <span class="material-symbols-outlined text-xl" aria-hidden="true">login</span> Fazer login
-          </a>
-          <a href="/cadastro" class="btn-fantasma !border-white/70 !text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span> Criar cadastro
-          </a>
-          <a href="#como-funciona" class="font-body text-label-sm !text-festive-gold hover:underline inline-flex items-center gap-1 px-2">
+        <div class="flex flex-col items-start gap-4 pt-2 anim-entrada anim-entrada-4">
+          <div class="flex flex-wrap gap-3">
+            <a href="/login" class="btn-primario">
+              <span class="material-symbols-outlined text-xl" aria-hidden="true">login</span> Fazer login
+            </a>
+            <a href="/cadastro" class="btn-vidro">
+              <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span> Criar cadastro
+            </a>
+          </div>
+          <a href="#como-funciona" class="link-claro">
             Como funciona o Shinatal
-            <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
+            <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_downward</span>
           </a>
         </div>
       </div>
@@ -447,57 +449,76 @@
   </section>
 </main>
 
-<footer class="footer-shinatal-completo">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-16">
-    <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr] lg:gap-16">
+<!-- rodape:inicio -->
+<footer class="rodape">
+  <span class="rodape-marca-dagua" aria-hidden="true"></span>
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
 
-      <div class="flex flex-col items-center sm:items-start gap-4 text-center sm:text-left">
-        <a href="/" class="inline-flex items-center gap-2.5" aria-label="Página inicial do Shinatal">
-          <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-9 w-auto footer-logo-invertido" />
+    <div class="rodape-chamada">
+      <div>
+        <p class="rodape-chamada-titulo">Reconhecer quem faz a Shine Rio acontecer.</p>
+        <p class="rodape-chamada-texto">O Shinatal transforma assiduidade, disciplina e dedicação em premiação no fim do ano — com regras claras e cálculo transparente.</p>
+      </div>
+      <div class="rodape-chamada-acoes">
+        <a href="/login" class="btn-primario">Entrar no Shinatal</a>
+        <a href="/#como-funciona" class="btn-fantasma">Como funciona</a>
+      </div>
+    </div>
+
+    <div class="rodape-colunas">
+      <div class="rodape-coluna-marca">
+        <a href="/" class="inline-flex" aria-label="Shinatal — página inicial">
+          <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-10 w-auto logo-vermelho" loading="lazy" />
         </a>
-        <p class="font-body text-body-md text-on-surface-variant max-w-xs">
-          Programa anual de premiação da Shine Rio, celebrando dedicação com o espírito natalino do Rio de Janeiro.
-        </p>
-        <p class="font-body text-on-surface-variant text-[11px] uppercase tracking-widest">Shine Rio Serviços Ltda.</p>
-      </div>
-
-      <div class="text-center sm:text-left">
-        <p class="font-display text-label-md text-primary uppercase tracking-widest mb-4">Navegação</p>
-        <nav aria-label="Rodapé" class="flex flex-col items-center sm:items-start gap-2.5">
-          <a href="/" class="footer-nav-link">Início</a>
-          <a href="#sobre-nos" class="footer-nav-link">Quem somos</a>
-          <a href="#sobre-shinatal" class="footer-nav-link">Sobre o Shinatal</a>
-          <a href="#como-funciona" class="footer-nav-link">Como funciona</a>
-          <a href="#nossos-valores" class="footer-nav-link">Nossos valores</a>
-          <a href="/login" class="footer-nav-link">Login</a>
-          <a href="/cadastro" class="footer-nav-link">Criar cadastro</a>
-          <a href="/privacidade" class="footer-nav-link">Privacidade</a>
-        </nav>
-      </div>
-
-      <div class="text-center sm:text-left">
-        <p class="font-display text-label-md text-primary uppercase tracking-widest mb-4">Fale com a gente</p>
-        <div class="flex flex-col items-center sm:items-start gap-3">
-          <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-link">
-            <span class="footer-icone"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></span>
-            <span class="fio-dourado">@shinerioservicos</span>
+        <p class="rodape-texto">Programa anual de premiação da Shine Rio Serviços Ltda., Rio de Janeiro.</p>
+        <div class="flex items-center gap-2.5">
+          <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos (abre em nova aba)">
+            <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
           </a>
-          <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-link">
-            <span class="footer-icone"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg></span>
-            <span class="fio-dourado">WhatsApp</span>
+          <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp da Shine Rio (abre em nova aba)">
+            <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
           </a>
         </div>
       </div>
+
+      <nav aria-label="Programa">
+        <p class="rodape-titulo">Programa</p>
+        <ul class="rodape-lista">
+          <li><a href="/" class="rodape-link">Início</a></li>
+          <li><a href="/#sobre-nos" class="rodape-link">Quem somos</a></li>
+          <li><a href="/#sobre-shinatal" class="rodape-link">Sobre o Shinatal</a></li>
+          <li><a href="/#como-funciona" class="rodape-link">Como funciona</a></li>
+          <li><a href="/#nossos-valores" class="rodape-link">Nossos valores</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-label="Acesso">
+        <p class="rodape-titulo">Acesso</p>
+        <ul class="rodape-lista">
+          <li><a href="/login" class="rodape-link">Entrar</a></li>
+          <li><a href="/cadastro" class="rodape-link">Criar cadastro</a></li>
+          <li><a href="/recuperar-senha" class="rodape-link">Recuperar senha</a></li>
+          <li><a href="/perfil" class="rodape-link">Meu perfil</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-label="Institucional">
+        <p class="rodape-titulo">Institucional</p>
+        <ul class="rodape-lista">
+          <li><a href="/termos" class="rodape-link">Termos de Uso</a></li>
+          <li><a href="/privacidade" class="rodape-link">Política de Privacidade</a></li>
+          <li><a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="rodape-link">Fale com a Shine Rio</a></li>
+        </ul>
+      </nav>
     </div>
 
-    <div class="mt-12 pt-6 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-      <p class="font-body text-label-sm text-on-surface-variant">© 2026 Shine Rio Group · Todos os direitos reservados. · <a href="/termos" class="underline underline-offset-2 hover:text-primary transition-colors">Termos de Uso</a> · <a href="/privacidade" class="underline underline-offset-2 hover:text-primary transition-colors">Privacidade</a></p>
-      <p class="font-body text-label-sm text-on-surface-variant flex items-center gap-1.5">
-        Feliz Natal e um próspero Ano Novo <span class="material-symbols-outlined text-sm text-festive-gold" aria-hidden="true">celebration</span>
-      </p>
+    <div class="rodape-base">
+      <p>© 2026 Shine Rio Group. Todos os direitos reservados.</p>
+      <p class="rodape-versao">Shinatal v2.0 · atualizado em 29/10/2026</p>
     </div>
   </div>
 </footer>
+<!-- rodape:fim -->
 
 <script type="module" src="js/pagina-index.js"></script>
 </body>

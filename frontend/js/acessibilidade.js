@@ -10,6 +10,10 @@
 //   5. campos inválidos anunciados (3.3.1).
 // Referências: WCAG 2.2 nível AA, ABNT NBR 17225:2025 e eMAG 3.1. Ver docs/ACESSIBILIDADE.md.
 
+// Efeitos de ponteiro (brilho que segue o cursor nos botões) — carregados aqui porque este módulo
+// já está em todas as páginas; o próprio efeitos.js se desliga no toque e com "reduzir movimento".
+import "./ui/efeitos.js";
+
 const FOCAVEIS = [
   "a[href]", "button:not([disabled])", "input:not([disabled]):not([type='hidden'])",
   "select:not([disabled])", "textarea:not([disabled])", "[tabindex]:not([tabindex='-1'])"

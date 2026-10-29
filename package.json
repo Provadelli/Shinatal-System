@@ -12,6 +12,7 @@
     "optimize:images": "node scripts/optimize-images.mjs",
     "optimize:video": "node scripts/otimizar-video.mjs",
     "icones": "node scripts/fonte-icones.mjs",
-    "config:firebase": "node scripts/codificar-config-firebase.mjs"
+    "config:firebase": "node scripts/codificar-config-firebase.mjs",
+    "layout": "node scripts/layout.mjs"
   }
 }
