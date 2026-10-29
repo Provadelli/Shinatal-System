@@ -31,6 +31,21 @@
   --shinatal-ouro-texto: #7A5C22;
   --shinatal-borda-campo: #948A72;
   --shinatal-placeholder: #7A7060;
+
+  /* Acabamento (sem novas cores: só tons das cores da marca) */
+  --shinatal-vinho-claro: #7A2836;
+  --shinatal-vinho-fundo: #5A1C26;
+  --shinatal-creme-dourado: #FBF5E6;
+  --raio-controle: 0.625rem;
+  --raio-painel: 0.875rem;
+  --sombra-painel: 0 1px 2px rgba(35, 32, 27, 0.04), 0 6px 18px rgba(35, 32, 27, 0.05);
+  --sombra-destaque: 0 2px 6px rgba(35, 32, 27, 0.06), 0 14px 32px rgba(35, 32, 27, 0.09);
+  --transicao: 160ms cubic-bezier(0.2, 0, 0, 1);
+  /* Gradientes sutis, sempre entre tons próximos da mesma cor */
+  --gradiente-verde: linear-gradient(135deg, #03170d 0%, #0E3B2E 100%);
+  --gradiente-cota: linear-gradient(160deg, #FFFFFF 0%, #FBF5E6 100%);
+  --gradiente-vinho: linear-gradient(180deg, #7A2836 0%, #5A1C26 100%);
+  --gradiente-creme: linear-gradient(180deg, #FFFFFF 0%, #FAF6EE 100%);
 }
 
 html {
@@ -76,9 +91,12 @@ h1, h2, h3, .font-display {
   color: var(--shinatal-verde-escuro);
 }
 
+/* Valores em dinheiro (cota, fundo): dourado profundo da marca (5,8:1 no creme), em Playfair
+   com algarismos tabulares — nada de halo, que borrava o número. */
 .text-gradiente-valor {
-  color: var(--shinatal-gold);
-  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.4);
+  color: var(--shinatal-ouro-texto);
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 /* Números de colaboradores dentro de #card-fundo — branco no resto da frase, leve
@@ -88,24 +106,78 @@ h1, h2, h3, .font-display {
 .valor-colaboradores-destaque {
   color: #ffffff;
   font-weight: 700;
-  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.5), 0 0 8px rgba(176, 141, 47, 0.4);
+  text-shadow: 0 1px 3px rgba(3, 23, 13, 0.55);
 }
 
-/* ---------- Cards: sólidos, com sombra suave em vez de vidro/blur ---------- */
-.glass-panel {
+/* ---------- Painéis: superfície sólida e legível ----------
+   Branco com fio creme e sombra baixa. .glass-card-active é o painel principal da página (cota,
+   fundo): degradê branco → creme dourado. */
+.glass-panel,
+.painel {
   background: var(--shinatal-surface);
   border: 1px solid var(--shinatal-borda);
-  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.05), 0 8px 20px rgba(35, 32, 27, 0.05);
+  border-radius: var(--raio-painel);
+  box-shadow: var(--sombra-painel);
 }
-
 .glass-card-active {
-  background: var(--shinatal-surface);
+  background: var(--gradiente-cota);
   border: 1px solid var(--shinatal-borda);
-  box-shadow: 0 2px 4px rgba(35, 32, 27, 0.06), 0 12px 28px rgba(35, 32, 27, 0.07);
+  border-radius: var(--raio-painel);
+  box-shadow: var(--sombra-painel);
+}
+/* Destaque: o fio dourado de 2px no topo (assinatura do sistema), sem brilho difuso. */
+.glow-gold,
+.painel-destaque {
+  box-shadow: inset 0 2px 0 var(--shinatal-gold), var(--sombra-painel);
 }
 
-.glow-gold {
-  box-shadow: 0 0 0 1px rgba(176, 141, 47, 0.3), 0 0 20px rgba(176, 141, 47, 0.12);
+/* ---------- Vidro líquido ----------
+   Translúcido com desfoque, borda clara e brilho especular no alto. Só em superfícies que
+   flutuam (cabeçalho, painéis laterais, diálogos, card do fundo na home, painel da marca no
+   login). Dados e tabelas ficam em painéis sólidos. Sem suporte a backdrop-filter, ou com
+   "reduzir transparência" ligado no sistema, vira sólido. A luz que segue o ponteiro em
+   .vidro-interativo é posta por js/ui/efeitos.js. */
+.vidro,
+.vidro-escuro {
+  position: relative;
+  isolation: isolate;
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+.vidro {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(250, 246, 238, 0.7) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 12px 32px rgba(35, 32, 27, 0.1);
+}
+.vidro-escuro {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.09) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 18px 40px rgba(3, 23, 13, 0.28);
+}
+.vidro::before,
+.vidro-escuro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(120% 80% at var(--luz-x, 30%) var(--luz-y, -20%), rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 55%);
+  opacity: 0.6;
+  transition: opacity var(--transicao);
+}
+.vidro-escuro::before { opacity: 0.3; }
+.vidro-interativo:hover::before { opacity: 1; }
+.vidro-escuro.vidro-interativo:hover::before { opacity: 0.5; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidro { background: #fff; }
+  .vidro-escuro { background: rgba(3, 23, 13, 0.82); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .vidro, .vidro-escuro { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .vidro { background: #fff; }
+  .vidro-escuro { background: rgba(3, 23, 13, 0.86); }
+  .vidro::before, .vidro-escuro::before { display: none; }
 }
 
 /* ---------- Emblema do logo (o PNG é uma marca branca, precisa de um fundo sólido escuro) ---------- */
@@ -115,8 +187,7 @@ h1, h2, h3, .font-display {
   justify-content: center;
   flex-shrink: 0;
   background: var(--shinatal-verde-escuro);
-  border-radius: 0.85rem;
-  box-shadow: 0 4px 14px rgba(14, 59, 46, 0.25);
+  border-radius: var(--raio-controle);
 }
 .logo-badge img {
   height: 100%;
@@ -171,10 +242,10 @@ h1, h2, h3, .font-display {
   flex: 0 0 auto;
   width: min(78vw, 300px);
   aspect-ratio: 4 / 5;
-  border-radius: 0.75rem;
+  border-radius: var(--raio-painel);
   overflow: hidden;
-  box-shadow: 0 12px 28px rgba(3, 23, 13, 0.35);
-  transition: transform 0.35s ease, filter 0.35s ease;
+  box-shadow: 0 10px 24px rgba(3, 23, 13, 0.22);
+  transition: transform 0.45s cubic-bezier(0.2, 0, 0, 1);
 }
 .faixa-fotos-item img {
   position: absolute;
@@ -183,10 +254,7 @@ h1, h2, h3, .font-display {
   height: 100%;
   object-fit: cover;
 }
-.faixa-fotos-item:hover {
-  transform: scale(1.04);
-  filter: brightness(1.06);
-}
+.faixa-fotos-item:hover { transform: scale(1.02); }
 .faixa-fotos-sobre:hover .faixa-fotos-pista {
   animation-play-state: paused;
 }
@@ -300,13 +368,8 @@ h1, h2, h3, .font-display {
 
 /* Foto de "Quem somos" — reage ao mouse/toque (zoom + brilho suaves). */
 .foto-quem-somos { overflow: hidden; }
-.foto-quem-somos img {
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
-}
-.foto-quem-somos:hover img {
-  transform: scale(1.05);
-  filter: brightness(1.05) saturate(1.08);
-}
+.foto-quem-somos img { transition: transform 0.6s cubic-bezier(0.2, 0, 0, 1); }
+.foto-quem-somos:hover img { transform: scale(1.02); }
 
 /* Deriva muito lenta (Ken Burns sutil) — desativada com prefers-reduced-motion mais abaixo. */
 @keyframes deriva-pao-acucar {
@@ -365,34 +428,27 @@ html.movimento-pausado #bg-pao-acucar {
   animation-play-state: paused !important;
 }
 
-/* ---------- Header fixo, quadrado e translúcido ---------- */
-/* Fixo no topo (não sticky) para se manter sempre visível; cantos retos ("quadrado"); único
-   elemento do sistema com efeito de transparência — e mínimo (o resto da UI usa cards sólidos).
-   Todas as páginas somam padding-top equivalente (ver .pt-header-fixo) para o conteúdo não
-   ficar coberto. */
+/* ---------- Cabeçalho fixo em vidro ----------
+   Vidro claro sobre o creme, com o fio dourado de 2px no topo — a assinatura do sistema — e um
+   fio fino embaixo. Todas as páginas somam padding-top equivalente (ver .pt-header-fixo).
+   Aparelho fraco (classe "aparelho-fraco", ver perf-adaptativo.js) ou "reduzir transparência":
+   sólido, porque o desfoque é recalculado a cada quadro de rolagem. */
 .header-flutuante {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 50;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: none;
-  border-bottom: 1px solid var(--shinatal-borda);
-  box-shadow: 0 2px 12px rgba(35, 32, 27, 0.05);
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid rgba(176, 141, 47, 0.18);
+  box-shadow: inset 0 2px 0 var(--shinatal-gold), 0 6px 20px rgba(35, 32, 27, 0.05);
 }
-
-/* O custo do backdrop-filter vem majoritariamente de ligar a camada de composição offscreen a
-   cada frame de scroll (não do raio do blur em si) — por isso removemos o efeito inteiro em vez
-   de só reduzir o blur, compensando com opacidade mais alta pra manter a leitura de "header
-   flutuante". Mobile/touch sempre (custo de GPU mais crítico ali); desktop só em modo-leve. */
-@media (max-width: 767px), (pointer: coarse) {
-  .header-flutuante { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 255, 255, 0.98); }
+html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(255, 255, 255, 0.98); }
+@media (prefers-reduced-transparency: reduce) {
+  .header-flutuante { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; }
 }
-html.modo-leve .header-flutuante { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 255, 255, 0.98); }
 
 /* ---------- Header transparente no topo da home (só index.html) ---------- */
 /* Nasce transparente sobre o vídeo do hero; um IntersectionObserver (ver index.html) remove esta
@@ -403,7 +459,7 @@ html.modo-leve .header-flutuante { backdrop-filter: none; -webkit-backdrop-filte
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom-color: transparent;
-  box-shadow: none;
+  box-shadow: inset 0 2px 0 var(--shinatal-gold);
   transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .header-flutuante.header-transparente .nav-link,
@@ -422,17 +478,6 @@ html.modo-leve .header-flutuante { backdrop-filter: none; -webkit-backdrop-filte
   background-color: rgba(255, 255, 255, 0.12);
   border-color: #fff;
 }
-/* html.modo-leve .header-flutuante (acima) tem especificidade maior que .header-flutuante
-   .header-transparente sozinha — sem isto, o header nunca ficaria transparente em modo-leve
-   (mobile/deviceMemory baixo). Repete o estado transparente com especificidade suficiente pra
-   vencer: seguro, porque .header-transparente já zera o backdrop-filter por conta própria — não
-   reintroduz o custo que o modo-leve existe pra evitar. */
-html.modo-leve .header-flutuante.header-transparente {
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 /* Compensa a altura do header fixo — aplicar no <body> de cada página. --altura-header é medida
    ao vivo por sincronizarAlturaHeader() (ui-utils.js), que cobre o header quebrando em 2 linhas
    (nav apertada, zoom do navegador, fonte maior etc.) — os valores fixos abaixo são só o
@@ -451,13 +496,35 @@ html.modo-leve .header-flutuante.header-transparente {
 .nav-link:hover, .nav-link.nav-ativo {
   color: var(--shinatal-primary);
 }
-.nav-link.nav-ativo::after {
+/* Item ativo: o fio dourado sob o texto (o mesmo do topo do cabeçalho). */
+.nav-link.nav-ativo,
+.nav-link[aria-current="page"] {
+  color: var(--shinatal-primary);
+  font-weight: 600;
+}
+.nav-link.nav-ativo::after,
+.nav-link[aria-current="page"]::after {
   content: "";
   position: absolute;
   left: 0; right: 0; bottom: -8px;
   height: 2px;
-  background: var(--shinatal-primary);
+  border-radius: 2px;
+  background: var(--shinatal-gold);
+}
+/* Contador (solicitações pendentes) ao lado do texto de um item de navegação. */
+.nav-contador {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  margin-left: 0.35rem;
   border-radius: 9999px;
+  background: var(--shinatal-red);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Menu do celular (home) ----------
@@ -491,39 +558,42 @@ html.modo-leve .header-flutuante.header-transparente {
 
 /* ---------- Selo de papel (Administrador/DP/RH) no header do painel ---------- */
 .badge-papel {
-  background: var(--shinatal-verde-escuro);
-  color: #ffffff;
-  box-shadow: 0 2px 10px rgba(14, 59, 46, 0.24);
-  letter-spacing: 0.04em;
+  background: var(--gradiente-verde);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-/* ---------- Abas dentro do modal de Contrato Empresarial ---------- */
-.tab-contrato {
+/* ---------- Abas dentro de uma seção (contrato, perfil) ----------
+   Texto com o fio dourado sob a aba ativa — o mesmo gesto do cabeçalho e da navegação. */
+.tab-contrato,
+.aba {
+  position: relative;
   color: var(--shinatal-ink-muted);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition: color var(--transicao), border-color var(--transicao);
 }
-.tab-contrato:hover:not(:disabled) {
+.tab-contrato:hover:not(:disabled),
+.aba:hover:not(:disabled) { color: var(--shinatal-primary); }
+.tab-contrato.tab-contrato-ativo,
+.aba[aria-selected="true"] {
   color: var(--shinatal-primary);
-}
-.tab-contrato.tab-contrato-ativo {
-  color: var(--shinatal-primary);
-  border-color: var(--shinatal-primary);
+  border-color: var(--shinatal-gold);
   font-weight: 600;
 }
-.tab-contrato:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.tab-contrato:disabled,
+.aba:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* ---------- Barra de abas do celular (vidro) ---------- */
 .dock-item {
+  position: relative;
   color: var(--shinatal-ink-muted);
-  transition: all 0.15s ease;
+  transition: color var(--transicao), background-color var(--transicao);
 }
-.dock-item.nav-ativo {
+.dock-item.nav-ativo,
+.dock-item[aria-current="page"] {
   color: var(--shinatal-primary);
-  background: var(--shinatal-gold-soft);
+  background: rgba(232, 217, 174, 0.55);
 }
 
 /* ---------- Selo "Programa de Premiação" ---------- */
@@ -538,8 +608,8 @@ html.modo-leve .header-flutuante.header-transparente {
 /* O dourado vivo + sombra só valem sobre o vídeo escuro do hero; no marfim das outras páginas
    (login) o mesmo dourado ficava em 2,9:1. */
 .secao-hero-video .selo-premiacao {
-  color: var(--shinatal-gold);
-  text-shadow: 0 1px 3px rgba(3, 23, 13, 0.55), 0 0 18px rgba(176, 141, 47, 0.35);
+  color: var(--shinatal-gold-soft);
+  text-shadow: 0 1px 3px rgba(3, 23, 13, 0.6);
 }
 .text-ouro-legivel { color: var(--shinatal-ouro-texto); }
 
@@ -679,11 +749,12 @@ html.modo-leve .header-flutuante.header-transparente {
    que o cartão estático. Classe própria (não em .glass-card-active, que é reaproveitada no
    card de login, na foto de "Quem somos" e em modais — não deve levar hover ali). */
 .cartao-info {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  transition: box-shadow var(--transicao), border-color var(--transicao);
 }
+/* Hover: a sombra aprofunda e a borda aquece para o dourado — sem sair do lugar. */
 .cartao-info:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 34px rgba(35, 32, 27, 0.14), 0 4px 10px rgba(35, 32, 27, 0.08);
+  box-shadow: var(--sombra-destaque);
+  border-color: #D9C58E;
 }
 
 /* ---------- Carrossel "Como funciona" — cards com "espiadinha" lateral, fade nas bordas
@@ -761,12 +832,13 @@ html.modo-leve .header-flutuante.header-transparente {
   justify-content: center;
   background: var(--shinatal-surface);
   border: 1px solid var(--shinatal-borda);
-  box-shadow: 0 4px 14px rgba(35, 32, 27, 0.12);
+  color: var(--shinatal-primary);
+  box-shadow: var(--sombra-painel);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: background-color var(--transicao), border-color var(--transicao);
   z-index: 2;
 }
-.carrossel-seta:hover { transform: translateY(-50%) scale(1.08); }
+.carrossel-seta:hover { background: var(--shinatal-gold-soft); border-color: var(--shinatal-gold); }
 /* Dentro da moldura (sobre a área já esmaecida pelo mask-image), não flutuando fora do
    container — evita o enquadramento estranho de antes, onde as setas ficavam soltas nas
    bordas da seção. Loop infinito: as setas nunca ficam disabled. */
@@ -842,92 +914,63 @@ html.modo-leve .header-flutuante.header-transparente {
   .faixa-valores-pista { animation: none !important; }
 }
 
-/* ---------- Footer ---------- */
-/* Marfim da própria paleta (o azul-noite anterior não existia em mais nenhum lugar do sistema):
-   degradê claro com dois focos dourados nos cantos — a mesma luz de .fundo-bege-dourado-suave —
-   e o fio dourado no topo. Texto em tons de tinta, links em verde, logo em vinho. A versão
-   completa (.footer-shinatal-completo, em colunas) fica só na página
-   inicial; as demais usam a compacta de uma linha (.footer-shinatal), com as mesmas cores e
-   os mesmos hovers. */
-.footer-shinatal,
-.footer-shinatal-completo {
+/* ---------- Rodapé (o mesmo em todas as páginas — ver scripts/layout.mjs) ----------
+   Degradê verde-noite → verde da marca, fio dourado no topo, três colunas (marca, navegação,
+   institucional) e a linha de base com a versão do sistema. Textos com 7:1 ou mais. */
+.rodape {
   position: relative;
   z-index: 10;
-  overflow: hidden;
-  background:
-    radial-gradient(760px 320px at 0% 100%, rgba(176, 141, 47, 0.16), transparent 65%),
-    radial-gradient(760px 320px at 100% 0%, rgba(176, 141, 47, 0.12), transparent 65%),
-    linear-gradient(180deg, #F6F1E4 0%, #ECE3CC 100%);
-  color: #4F473A;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  background: var(--gradiente-verde);
+  color: rgba(250, 246, 238, 0.82);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  box-shadow: inset 0 1px 0 rgba(176, 141, 47, 0.7);
 }
-.footer-shinatal::before,
-.footer-shinatal-completo::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--shinatal-gold) 50%, transparent);
-}
-.footer-shinatal .text-on-surface-variant,
-.footer-shinatal-completo .text-on-surface-variant {
-  color: #4F473A;
-}
-/* A classe manteve o nome (está no HTML de todas as páginas), mas no fundo claro a logo deixa
-   de ser invertida para branco e passa ao vinho da marca — mesmo filtro de .logo-vermelho. */
-.footer-logo-invertido {
-  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Mesma logo (traço sólido sobre fundo transparente), agora recolorida para o vermelho natalino
-   --shinatal-red (#6E2430) — valores calculados numericamente para reproduzir a cor exata. */
-/* Vermelho mais vivo/chamativo (mira --shinatal-red-festivo, não o --shinatal-red original
-   mais discreto) + leve brilho — valores de filter ajustados visualmente, não por fórmula. */
-/* "Shinatal" — vinho (--shinatal-red, cor original), com leve sombra pra destaque/
-   profundidade sem ficar brilhante. "Bem-vindo ao" continua branco (texto normal do h1). */
-.logo-vermelho {
-  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%)
-    drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
-}
-.footer-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: var(--shinatal-primary);
+.rodape a { color: inherit; }
+.rodape-titulo {
+  font-family: "Inter", sans-serif;
+  font-size: 0.8125rem;
   font-weight: 600;
-  font-size: 0.85rem;
-  transition: color 0.2s ease;
+  color: var(--shinatal-gold-soft);
+  margin-bottom: 0.75rem;
 }
-.footer-nav-link {
-  width: fit-content;
-  color: #4F473A;
-  font-size: 0.85rem;
-  transition: color 0.2s ease;
+.rodape-link {
+  display: inline-block;
+  padding: 0.2rem 0;
+  color: rgba(250, 246, 238, 0.82);
+  background-image: linear-gradient(var(--shinatal-gold), var(--shinatal-gold));
+  background-repeat: no-repeat;
+  background-position: right bottom;
+  background-size: 0 1px;
+  transition: color var(--transicao), background-size 0.35s cubic-bezier(0.2, 0, 0, 1);
 }
-.footer-nav-link:hover { color: var(--shinatal-primary); }
-/* Círculo de ícone — usado tanto solto (footer reduzido) quanto dentro de .footer-link (footer
-   completo, onde o hover é disparado pelo link-pai). No hover enche de verde e o ícone gira. */
+.rodape-link:hover { color: #fff; background-position: left bottom; background-size: 100% 1px; }
+.rodape-base {
+  border-top: 1px solid rgba(250, 246, 238, 0.14);
+  font-size: 0.8125rem;
+  color: rgba(250, 246, 238, 0.66);
+}
+.rodape-versao { font-variant-numeric: tabular-nums; }
+/* Ícones sociais: contorno fino; no hover preenchem de dourado claro (sem girar). */
 .footer-icone {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid #857B64;
-  color: var(--shinatal-primary);
+  border: 1px solid rgba(250, 246, 238, 0.3);
+  color: #fff;
   flex-shrink: 0;
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color var(--transicao), border-color var(--transicao), color var(--transicao);
 }
-a.footer-icone:hover,
-.footer-link:hover .footer-icone {
-  background: var(--shinatal-primary);
-  border-color: var(--shinatal-primary);
-  color: var(--shinatal-bg);
-  transform: rotate(8deg) scale(1.08);
+a.footer-icone:hover { background: var(--shinatal-gold-soft); border-color: var(--shinatal-gold-soft); color: var(--shinatal-verde-900); }
+/* Logo em creme sobre o verde do rodapé. */
+.footer-logo-invertido { filter: brightness(0) invert(96%) sepia(8%) saturate(300%) hue-rotate(5deg); }
+
+/* Logo no vinho da marca (--shinatal-red). */
+.logo-vermelho {
+  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%);
 }
 
 /* ---------- Formulários ---------- */
@@ -935,14 +978,15 @@ a.footer-icone:hover,
   width: 100%;
   background: var(--shinatal-surface);
   border: 1px solid var(--shinatal-borda-campo);
-  border-radius: 0.75rem;
+  border-radius: var(--raio-controle);
   padding: 0.65rem 1rem 0.65rem 2.5rem;
   font-size: 16px;
+  line-height: 1.5;
   color: var(--shinatal-ink);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color var(--transicao), box-shadow var(--transicao);
 }
 .input-shinatal:hover:not(:disabled):not(:focus) { border-color: var(--shinatal-ink-muted); }
-/* Foco: borda verde + anel dourado opaco. O anel anterior (verde a 12%) quase não aparecia. */
+/* Foco: borda verde + anel dourado claro. */
 .input-shinatal:focus {
   outline: 2px solid transparent; /* visível no modo de alto contraste do sistema */
   border-color: var(--shinatal-primary);
@@ -971,173 +1015,133 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
   opacity: 0.85;
 }
 
+/* Rótulo em frase normal (a caixa alta deixava os formulários com cara de template). */
 .label-shinatal {
   display: block;
-  font-size: 12px;
+  font-size: 0.8125rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--shinatal-ink-muted);
-  margin-bottom: 0.35rem;
-  text-transform: uppercase;
+  color: var(--shinatal-ink);
+  margin-bottom: 0.375rem;
 }
+.ajuda-campo { font-size: 0.8125rem; color: var(--shinatal-ink-muted); margin-top: 0.375rem; }
 
-/* ---------- Botões ---------- */
-.btn-primario {
-  background: var(--shinatal-red);
-  color: #fff;
-  font-weight: 600;
+/* ---------- Botões ----------
+   Suaves: peso médio, cantos arredondados, degradê vinho delicado (a cor dos botões de sempre).
+   No hover o degradê desliza para o tom mais fundo e aparece um brilho difuso por baixo — sem
+   pular nem crescer. Secundário: branco com fio dourado fino que aquece para o creme. */
+.btn-primario,
+.btn-fantasma,
+.btn-perigo,
+.btn-texto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 1.15rem;
   border-radius: 0.75rem;
-  padding: 0.75rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: 0.005em;
+  line-height: 1.25;
   border: 1px solid transparent;
-  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.08);
-  transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    background-position 0.35s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease,
+    box-shadow 0.35s cubic-bezier(0.2, 0, 0, 1);
 }
-.btn-primario:hover {
-  background: #551b23;
-  border-color: var(--shinatal-gold);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(35, 32, 27, 0.14);
+.btn-primario {
+  background-image: linear-gradient(180deg, #84303F 0%, #6E2430 50%, #5A1C26 100%);
+  background-size: 100% 200%;
+  background-position: top;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(90, 28, 38, 0.14);
 }
-.btn-primario:active { transform: translateY(0) scale(0.98); }
-.btn-primario:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
-
+.btn-primario:hover:not(:disabled) {
+  background-position: bottom;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 20px -8px rgba(110, 36, 48, 0.55);
+}
+.btn-primario:active:not(:disabled) { box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18); }
 .btn-fantasma {
-  background: transparent;
-  border: 1.5px solid var(--shinatal-gold);
+  background: var(--shinatal-surface);
+  border-color: rgba(176, 141, 47, 0.55);
   color: var(--shinatal-verde-escuro);
-  font-weight: 600;
-  border-radius: 0.75rem;
-  padding: 0.7rem 1.25rem;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
 }
-.btn-fantasma:hover {
-  background-color: var(--shinatal-gold-soft);
+.btn-fantasma:hover:not(:disabled) {
+  background: var(--shinatal-creme-dourado);
   border-color: var(--shinatal-gold);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgba(122, 92, 34, 0.45);
 }
-.btn-fantasma:active { transform: translateY(0) scale(0.98); }
+/* Ação destrutiva: o mesmo vinho, mais fundo, sempre com texto explícito ("Excluir"). */
+.btn-perigo { background: var(--shinatal-vinho-fundo); color: #fff; }
+.btn-perigo:hover:not(:disabled) { background: #461520; box-shadow: 0 8px 20px -8px rgba(90, 28, 38, 0.6); }
+.btn-texto { min-height: 2.25rem; padding: 0.4rem 0.7rem; background: transparent; color: var(--shinatal-primary); }
+.btn-texto:hover:not(:disabled) { background: rgba(14, 59, 46, 0.06); }
+:is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-texto):disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.btn-compacto { min-height: 2.125rem; padding: 0.35rem 0.85rem; font-size: 0.875rem; border-radius: 0.625rem; }
+
+/* Botão só de ícone: alvo de 40px, fundo levíssimo no hover. */
+.btn-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: var(--raio-controle);
+  color: var(--shinatal-ink-muted);
+  transition: background-color var(--transicao), color var(--transicao);
+}
+.btn-icone:hover:not(:disabled) { background: rgba(14, 59, 46, 0.07); color: var(--shinatal-primary); }
+.btn-icone.perigo:hover:not(:disabled) { background: rgba(110, 36, 48, 0.08); color: var(--shinatal-red); }
+.btn-icone .material-symbols-outlined { font-size: 1.25rem; }
 
 /* ---------- Hover: o "fio dourado" ----------
-   Um só gesto repetido no sistema inteiro, em vez de um efeito por componente: um fio dourado
-   que se desenha da esquerda para a direita e recolhe para a direita ao sair. É o mesmo dourado
-   do filete de foco, então passar o mouse e navegar por teclado falam a mesma língua.
-   Só em aparelhos com mouse (hover: hover); com prefers-reduced-motion a regra global zera as
-   durações e sobra só a mudança de estado, sem movimento. */
+   Um só gesto no sistema inteiro: um fio dourado que se desenha sob links e abas. Botões, ícones e
+   painéis só mudam de cor ou de sombra (definidos junto de cada componente). Só em aparelhos com
+   mouse; com prefers-reduced-motion a regra global zera as durações. */
 @media (hover: hover) {
-  /* Links: o fio corre sob o texto. */
   .nav-link::before {
     content: "";
     position: absolute;
     left: 0; right: 0; bottom: -8px;
     height: 2px;
-    border-radius: 9999px;
+    border-radius: 2px;
     background: var(--shinatal-gold);
     transform: scaleX(0);
     transform-origin: right;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1);
   }
   .nav-link:hover::before { transform: scaleX(1); transform-origin: left; }
-  .nav-link.nav-ativo::before { display: none; } /* o item ativo já tem o traço verde */
+  .nav-link.nav-ativo::before, .nav-link[aria-current="page"]::before { display: none; }
 
-  .fio-dourado, .footer-nav-link, .tab-contrato {
+  .fio-dourado, .footer-nav-link {
     background-image: linear-gradient(var(--shinatal-gold), var(--shinatal-gold));
     background-repeat: no-repeat;
     background-position: right bottom;
-    background-size: 0 2px;
-    transition: background-size 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+    background-size: 0 1px;
+    padding-bottom: 2px;
+    transition: background-size 0.35s cubic-bezier(0.2, 0, 0, 1), color var(--transicao);
   }
-  .footer-nav-link { padding-bottom: 3px; }
-  .fio-dourado { padding-bottom: 2px; }
-  a:hover > .fio-dourado, .fio-dourado:hover, .footer-nav-link:hover,
-  .tab-contrato:hover:not(:disabled):not(.tab-contrato-ativo) {
-    background-position: left bottom;
-    background-size: 100% 2px;
-  }
+  a:hover > .fio-dourado, .fio-dourado:hover, .footer-nav-link:hover { background-position: left bottom; background-size: 100% 1px; }
 
-  /* Botão principal: um reflexo dourado atravessa o botão uma vez. */
-  .btn-primario { position: relative; overflow: hidden; }
-  .btn-primario::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(105deg, transparent 36%, rgba(232, 217, 174, 0.5) 50%, transparent 64%);
-    transform: translateX(-130%);
-    pointer-events: none;
-  }
-  .btn-primario:hover:not(:disabled)::after {
-    transform: translateX(130%);
-    transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* Botão secundário: o dourado claro sobe de baixo, como um copo enchendo. */
-  .btn-fantasma {
-    background-image: linear-gradient(var(--shinatal-gold-soft), var(--shinatal-gold-soft));
-    background-repeat: no-repeat;
-    background-position: center bottom;
-    background-size: 100% 0;
-    transition: background-size 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
-  }
-  .btn-fantasma:hover { background-color: transparent; background-size: 100% 100%; }
-  .header-flutuante.header-transparente .btn-fantasma { background-image: linear-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.16)); }
-
-  /* Cartões e painéis: a borda aquece para o dourado e a sombra aprofunda — sem sair do lugar. */
-  .glass-panel, .glass-card-active {
-    transition: border-color 0.35s ease, box-shadow 0.35s ease;
-  }
-  .glass-panel:hover, .glass-card-active:hover { border-color: #D2BE86; }
-  /* (.glow-gold já tem o próprio brilho dourado — só a borda muda nesses.) */
-  .glass-panel:not(.glow-gold):hover, .glass-card-active:not(.glow-gold):hover {
-    box-shadow: 0 2px 4px rgba(35, 32, 27, 0.06), 0 16px 34px rgba(110, 86, 20, 0.11);
-  }
-  /* Painéis de modal e de confirmação não reagem: são o próprio plano de trabalho. */
-  [role="dialog"] .glass-card-active:hover, .painel-confirmacao:hover { border-color: var(--shinatal-borda); }
-
-  /* Ações rápidas (gestão): o fio se desenha no topo do cartão e o ícone sobe. */
+  /* Ações rápidas (gestão): o fio se desenha no topo do cartão; o cartão aquece para o creme. */
   .acao-rapida { position: relative; overflow: hidden; }
   .acao-rapida::after {
     content: "";
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 3px;
+    height: 2px;
     background: var(--shinatal-gold);
     transform: scaleX(0);
     transform-origin: right;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1);
   }
   .acao-rapida:hover::after { transform: scaleX(1); transform-origin: left; }
-  .acao-rapida .material-symbols-outlined,
-  .cartao-info .material-symbols-outlined { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-  .acao-rapida:hover .material-symbols-outlined { transform: translateY(-3px) scale(1.1); }
-  .cartao-info:hover .material-symbols-outlined { transform: rotate(-8deg) scale(1.12); }
 
-  /* Linhas de tabela: o fio aparece na lateral da linha sob o cursor. */
-  tbody tr > td:first-child { transition: box-shadow 0.25s ease; }
-  tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--shinatal-gold); }
-
-  /* Botões só de ícone: um disco dourado cresce do centro e o ícone inclina. */
-  :is(button, a):has(> .material-symbols-outlined:only-child):not([data-fechar-modal]):not(.btn-primario):not(.btn-fantasma):not(.carrossel-seta) {
-    border-radius: 9999px;
-    background-image: radial-gradient(circle, rgba(176, 141, 47, 0.2) 0 68%, transparent 70%);
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 0 0;
-    transition: background-size 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
-  }
-  :is(button, a):has(> .material-symbols-outlined:only-child):not([data-fechar-modal]):not(.btn-primario):not(.btn-fantasma):not(.carrossel-seta):hover {
-    background-size: 150% 150%;
-  }
-  :is(button, a):has(> .material-symbols-outlined:only-child) > .material-symbols-outlined {
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  :is(button, a):has(> .material-symbols-outlined:only-child):hover > .material-symbols-outlined {
-    transform: rotate(-8deg) scale(1.12);
-  }
-  [data-fechar-modal]:hover > .material-symbols-outlined { transform: rotate(90deg); }
-
-  /* Logos: a do header inclina, a do footer também. */
-  .header-flutuante a .logo-vermelho { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-  .header-flutuante a:hover .logo-vermelho,
-  a:hover > .footer-logo-invertido { transform: rotate(-3deg) scale(1.05); }
+  /* Linhas de tabela: fundo creme levíssimo e o fio dourado na lateral da linha sob o cursor. */
+  tbody tr:hover { background: rgba(232, 217, 174, 0.16); }
+  tbody tr > td:first-child { transition: box-shadow var(--transicao); }
+  tbody tr:hover > td:first-child { box-shadow: inset 2px 0 0 var(--shinatal-gold); }
 }
 
 /* ---------- Scrollbar discreta ---------- */
@@ -1223,30 +1227,80 @@ p, li { text-wrap: pretty; }
   font-variant-numeric: lining-nums tabular-nums;
 }
 
-/* ---------- Modais ----------
-   Entrada curta (o painel assenta, o fundo esmaece) — movimento que responde a uma ação do
-   usuário; some com prefers-reduced-motion pela regra global. */
+/* ---------- Diálogos e painéis laterais ----------
+   Diálogo (confirmação, avisos): centralizado, em vidro claro. Painel lateral (formulários —
+   overlay com [data-painel-lateral]): desliza da direita, ocupa a altura toda e, no celular, a
+   tela toda. O fundo escurece com um véu verde-noite levemente desfocado. Entrada curta, que
+   responde a uma ação do usuário; some com prefers-reduced-motion pela regra global. Ficam acima
+   do cabeçalho (z-index 60) para nada fora do painel receber clique por engano. */
 @keyframes modal-fundo { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-painel {
   from { opacity: 0; transform: translateY(10px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-[role="dialog"].flex, [role="alertdialog"] { animation: modal-fundo 0.18s ease-out both; }
-[role="dialog"].flex > div, .painel-confirmacao {
-  animation: modal-painel 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 24px 60px rgba(3, 23, 13, 0.22), 0 4px 12px rgba(3, 23, 13, 0.08);
+@keyframes painel-lateral-entrada {
+  from { transform: translateX(28px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
-/* Botão de fechar: área de toque de 36 px e estado de hover próprio (antes era só o ícone). */
+[role="dialog"][id^="modal-"] { z-index: 60; }
+[role="dialog"].flex, [role="alertdialog"] { animation: modal-fundo 0.18s ease-out both; }
+[data-fundo] {
+  background: rgba(3, 23, 13, 0.42);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+[role="dialog"].flex:not([data-painel-lateral]) > div, .painel-confirmacao {
+  animation: modal-painel 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 24px 60px rgba(3, 23, 13, 0.22), 0 4px 12px rgba(3, 23, 13, 0.08);
+}
+[data-painel-lateral].flex { justify-content: flex-end; align-items: stretch; padding: 0; }
+.painel-lateral {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 32rem;
+  height: 100%;
+  background: var(--shinatal-surface);
+  border-left: 1px solid var(--shinatal-borda);
+  box-shadow: -24px 0 60px rgba(3, 23, 13, 0.18);
+  animation: painel-lateral-entrada 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.painel-lateral-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--shinatal-borda);
+  background: var(--gradiente-creme);
+  box-shadow: inset 0 2px 0 var(--shinatal-gold);
+  flex-shrink: 0;
+}
+.painel-lateral-corpo { flex: 1; overflow-y: auto; padding: 1.5rem; }
+.painel-lateral-rodape {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem calc(1rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--shinatal-borda);
+  background: var(--shinatal-bg);
+  flex-shrink: 0;
+}
+@media (max-width: 639px) {
+  .painel-lateral { max-width: none; border-left: none; }
+  .painel-lateral-rodape > * { flex: 1; }
+}
+/* Botão de fechar: área de toque de 40px e hover próprio (sem girar). */
 [data-fechar-modal] {
   display: inline-grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   flex-shrink: 0;
-  border-radius: 9999px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  border-radius: var(--raio-controle);
+  transition: background-color var(--transicao), color var(--transicao);
 }
-[data-fechar-modal]:hover { background: rgba(110, 36, 48, 0.08); }
+[data-fechar-modal]:hover { background: rgba(110, 36, 48, 0.08); color: var(--shinatal-red); }
 
 /* ---------- Tabela do diretório ---------- */
 tbody tr { transition: background-color 0.15s ease; }
@@ -1399,3 +1453,310 @@ caption.sr-only { caption-side: top; }
   15% { opacity: 1; }
   65% { opacity: 0; }
 }
+
+/* ==================================================================
+   Componentes do sistema (páginas logadas)
+   ================================================================== */
+
+/* ---------- Cabeçalho da página ----------
+   Faixa em degradê verde-noite → verde, com migalha, título em Playfair e ações. O fio dourado
+   embaixo liga com o do cabeçalho fixo. Texto creme/branco: 12:1 ou mais. */
+.cabecalho-pagina {
+  position: relative;
+  background: var(--gradiente-verde);
+  color: #fff;
+  box-shadow: inset 0 -1px 0 rgba(176, 141, 47, 0.55);
+  overflow: hidden;
+}
+/* Textura discreta: trama de pontos a 6%, dá matéria à faixa sem competir com o texto. */
+.cabecalho-pagina::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(250, 246, 238, 0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
+  pointer-events: none;
+}
+.cabecalho-pagina > * { position: relative; }
+.migalha { font-size: 0.8125rem; color: rgba(250, 246, 238, 0.72); }
+.migalha a { color: rgba(250, 246, 238, 0.86); }
+.migalha a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.migalha-separador { margin: 0 0.4rem; color: rgba(232, 217, 174, 0.7); }
+.cabecalho-pagina h1 { color: #fff; }
+.cabecalho-pagina-descricao { color: rgba(250, 246, 238, 0.8); }
+.cabecalho-pagina .btn-fantasma { background: rgba(255, 255, 255, 0.08); border-color: rgba(232, 217, 174, 0.55); color: #fff; }
+.cabecalho-pagina .btn-fantasma:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); border-color: var(--shinatal-gold-soft); }
+.cabecalho-pagina :where(a, button):focus-visible { outline-color: var(--shinatal-gold-soft); }
+
+/* ---------- Navegação entre seções (abaixo da faixa) ----------
+   Barra branca com as seções da página; o item ativo ganha o fio dourado. Rola na horizontal no
+   celular, com o item ativo sempre visível (js/ui/rotas.js). */
+.nav-secoes {
+  background: var(--shinatal-surface);
+  border-bottom: 1px solid var(--shinatal-borda);
+}
+.nav-secoes-lista {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-secoes-lista::-webkit-scrollbar { display: none; }
+.nav-secao {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  padding: 0.9rem 0.85rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--shinatal-ink-muted);
+  transition: color var(--transicao), background-color var(--transicao);
+}
+.nav-secao .material-symbols-outlined { font-size: 1.15rem; }
+.nav-secao:hover { color: var(--shinatal-primary); background: rgba(232, 217, 174, 0.18); }
+.nav-secao[aria-current="page"] { color: var(--shinatal-primary); font-weight: 600; }
+.nav-secao[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0.6rem; right: 0.6rem; bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--shinatal-gold);
+}
+
+/* ---------- Seções (uma "página" dentro da página, por rota #hash) ---------- */
+[data-secao][hidden] { display: none !important; }
+@keyframes secao-entrada {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.secao-entrando { animation: secao-entrada 0.22s cubic-bezier(0.2, 0, 0, 1) both; }
+.titulo-secao {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 1.3;
+  color: var(--shinatal-ink);
+}
+.rotulo-secao { font-size: 0.8125rem; font-weight: 600; color: var(--shinatal-ink-muted); }
+.descricao-secao { font-size: 0.9375rem; color: var(--shinatal-ink-muted); }
+
+/* ---------- Indicadores (número + rótulo) ---------- */
+.stat {
+  background: var(--shinatal-surface);
+  border: 1px solid var(--shinatal-borda);
+  border-radius: var(--raio-painel);
+  box-shadow: var(--sombra-painel);
+  padding: 1rem 1.25rem;
+}
+.stat-rotulo { font-size: 0.8125rem; color: var(--shinatal-ink-muted); }
+.stat-valor {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  color: var(--shinatal-ink);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.stat-detalhe { font-size: 0.8125rem; color: var(--shinatal-ink-muted); margin-top: 0.25rem; }
+
+/* ---------- Tabela de dados ----------
+   Cabeçalho creme, linhas com fio fino, números tabulares. Abaixo de 768px cada linha vira um
+   bloco empilhado "rótulo: valor" (o rótulo vem de data-rotulo na célula). */
+.tabela { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.tabela thead th {
+  text-align: left;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--shinatal-ink-muted);
+  background: var(--shinatal-bg);
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--shinatal-borda);
+  white-space: nowrap;
+}
+.tabela td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--shinatal-borda); vertical-align: middle; }
+.tabela tbody tr:last-child td { border-bottom: none; }
+.tabela .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabela .centro { text-align: center; }
+@media (max-width: 767px) {
+  .tabela-empilhada thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tabela-empilhada tbody tr { display: block; padding: 0.75rem 1rem; border-bottom: 1px solid var(--shinatal-borda); }
+  .tabela-empilhada tbody tr:last-child { border-bottom: none; }
+  .tabela-empilhada td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.3rem 0; border: none; text-align: right; }
+  .tabela-empilhada td::before { content: attr(data-rotulo); font-size: 0.8125rem; font-weight: 600; color: var(--shinatal-ink-muted); text-align: left; }
+  .tabela-empilhada td.celula-principal { display: block; text-align: left; padding-bottom: 0.5rem; }
+  .tabela-empilhada td.celula-principal::before,
+  .tabela-empilhada td.celula-acoes::before { display: none; }
+  .tabela-empilhada td.celula-acoes { justify-content: flex-end; padding-top: 0.5rem; }
+  tbody tr:hover > td:first-child { box-shadow: none; }
+}
+
+/* ---------- Selos de status (ponto + texto) ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.badge::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 9999px; background: currentColor; flex-shrink: 0; }
+.badge-sucesso { background: #E7F0EA; color: #1F5A43; border-color: #CFE0D5; }
+.badge-atencao { background: #FBF1DA; color: #6E5418; border-color: #EEDDB2; }
+.badge-perigo { background: #F7E6E8; color: #6E2430; border-color: #EDCDD1; }
+.badge-neutro { background: #F3EEE2; color: #4F473A; border-color: #E4DCC8; }
+.badge-info { background: #E9EEF0; color: #2F4A55; border-color: #D3DDE1; }
+.badge-sem-ponto::before { display: none; }
+
+/* ---------- Estado vazio / erro ---------- */
+.estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1.5rem;
+  color: var(--shinatal-ink-muted);
+}
+.estado-vazio .material-symbols-outlined {
+  font-size: 1.75rem;
+  color: var(--shinatal-ouro-texto);
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--shinatal-creme-dourado);
+  border: 1px solid #EEDDB2;
+}
+.estado-vazio-titulo { font-weight: 600; color: var(--shinatal-ink); }
+
+/* ---------- Seletor segmentado (radiogroup: conduta) ---------- */
+.segmentado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--shinatal-bg);
+  border: 1px solid var(--shinatal-borda);
+  border-radius: var(--raio-controle);
+}
+.segmentado-opcao {
+  padding: 0.4rem 0.75rem;
+  border-radius: calc(var(--raio-controle) - 0.2rem);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--shinatal-ink-muted);
+  transition: background-color var(--transicao), color var(--transicao), box-shadow var(--transicao);
+}
+.segmentado-opcao:hover:not(:disabled) { color: var(--shinatal-primary); background: rgba(255, 255, 255, 0.7); }
+.segmentado-opcao[aria-checked="true"] {
+  background: #fff;
+  color: var(--shinatal-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(35, 32, 27, 0.1), inset 0 -2px 0 var(--shinatal-gold);
+}
+
+/* ---------- Barra de abas do celular (vidro, fixa embaixo) ---------- */
+.barra-abas-celular {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  z-index: 40;
+  border-radius: 1.25rem;
+}
+.barra-abas-celular .dock-item { min-height: 3rem; border-radius: 0.875rem; }
+
+/* ---------- Linha do tempo da auditoria ---------- */
+.grupo-dia {
+  position: sticky;
+  top: var(--altura-header, 3.5rem);
+  z-index: 2;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--shinatal-ink-muted);
+  background: rgba(250, 246, 238, 0.94);
+  border-bottom: 1px solid var(--shinatal-borda);
+}
+.icone-acao {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--raio-controle);
+  flex-shrink: 0;
+}
+.icone-acao .material-symbols-outlined { font-size: 1.15rem; }
+.detalhe-registro { background: var(--shinatal-bg); border-top: 1px dashed var(--shinatal-borda); }
+
+/* ---------- Avatar ---------- */
+.avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  color: var(--shinatal-primary);
+  background: linear-gradient(160deg, #EAF1EC 0%, #D6E3D9 100%);
+  box-shadow: inset 0 0 0 1px rgba(14, 59, 46, 0.1);
+}
+
+/* ==================================================================
+   Entrada do login, cadastro e recuperação de senha
+   Um único momento orquestrado (~1 s, uma vez): o painel da marca assenta com um ken burns
+   curto, o logo surge, o fio dourado se desenha sob o título e os campos sobem em cascata.
+   Só opacity/transform. Com "reduzir movimento", tudo aparece direto (regra global).
+   ================================================================== */
+@keyframes entrada-marca { from { transform: scale(1.06); } to { transform: scale(1); } }
+@keyframes entrada-surgir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes entrada-logo { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes entrada-fio { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.entrada-logo { animation: entrada-logo 0.6s cubic-bezier(0.2, 0, 0, 1) 0.1s both; }
+.entrada-fio {
+  display: block;
+  height: 2px;
+  width: 3rem;
+  background: var(--shinatal-gold);
+  transform-origin: left;
+  animation: entrada-fio 0.6s cubic-bezier(0.2, 0, 0, 1) 0.35s both;
+}
+.entrada-cascata > * { animation: entrada-surgir 0.55s cubic-bezier(0.2, 0, 0, 1) both; }
+.entrada-cascata > *:nth-child(1) { animation-delay: 0.3s; }
+.entrada-cascata > *:nth-child(2) { animation-delay: 0.36s; }
+.entrada-cascata > *:nth-child(3) { animation-delay: 0.42s; }
+.entrada-cascata > *:nth-child(4) { animation-delay: 0.48s; }
+.entrada-cascata > *:nth-child(5) { animation-delay: 0.54s; }
+.entrada-cascata > *:nth-child(6) { animation-delay: 0.6s; }
+.entrada-cascata > *:nth-child(7) { animation-delay: 0.66s; }
+.entrada-cascata > *:nth-child(n+8) { animation-delay: 0.72s; }
+
+/* Painel da marca (lado esquerdo do login no desktop): pôster da home com véu verde. */
+.acesso-marca {
+  position: relative;
+  overflow: hidden;
+  background: var(--shinatal-verde-900);
+  color: #fff;
+}
+.acesso-marca-imagem {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/hero-poster-retrato-v3.webp") center / cover no-repeat;
+  animation: entrada-marca 1.4s cubic-bezier(0.2, 0, 0, 1) both;
+}
+.acesso-marca::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 23, 13, 0.35) 0%, rgba(3, 23, 13, 0.82) 100%);
+}
+.acesso-marca > :not(.acesso-marca-imagem) { position: relative; z-index: 1; }
