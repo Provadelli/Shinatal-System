@@ -26,3 +26,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SHINETAL_CDA20 }}
           projectId: shinetal-cda20
+          # Versão fixa: a partir da 15.33 o firebase-tools exige serviceusage.services.get e o deploy dá 403.
+          firebaseToolsVersion: 15.32.1
