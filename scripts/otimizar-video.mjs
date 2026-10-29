@@ -7,12 +7,13 @@
 //   - hero-retrato-v3.mp4  — celular em pé: recorte central 9:16, 540x960. Num celular em pé o
 //     vídeo horizontal seria cortado nas laterais de qualquer jeito (object-fit: cover), então
 //     mandar só o miolo economiza mais da metade dos bytes sem perder nada do que aparece.
-// Ambas em H.264 (toca em qualquer navegador e celular), 30 fps, sem áudio, com `+faststart`
-// para começar a tocar antes de baixar inteiro.
+// Ambas em H.264 (toca em qualquer navegador e celular), na taxa de quadros do original, sem áudio,
+// com `+faststart` para começar a tocar antes de baixar inteiro.
 //
 // Roda com `npm run optimize:video`. Lê o original (design/video/hero-original.mp4, que fica fora
-// da pasta publicada: é só a fonte, não vai para o site). O "v3" no nome garante que o cache longo (vercel.json) nunca sirva a
-// versão antiga — se recomprimir de novo, troque para v4 aqui e em index.html.
+// da pasta publicada: é só a fonte, não vai para o site). O "v3" no nome garante que o cache longo
+// (vercel.json) nunca sirva a versão antiga — se recomprimir de novo, troque para v4 aqui, em
+// index.html e em styles.css (pôsteres), senão quem já visitou continua vendo a versão velha.
 //
 // O ffmpeg (~77 MB) NÃO é dependência do projeto, para não pesar em todo `npm install`.
 // Instale só quando for usar:  npm i --no-save ffmpeg-static@5.2.0
@@ -37,8 +38,8 @@ if (!existsSync(entrada)) throw new Error(`Não achei ${entrada}`);
 
 const CRF = process.env.CRF || "30";
 const versoes = [
-  { saida: "hero-paisagem-v3.mp4", filtro: "fps=30,scale='min(1280,iw)':-2" },
-  { saida: "hero-retrato-v3.mp4", filtro: "fps=30,crop='min(iw,ih*9/16)':ih,scale=540:-2" }
+  { saida: "hero-paisagem-v3.mp4", filtro: "scale='min(1280,iw)':-2" },
+  { saida: "hero-retrato-v3.mp4", filtro: "crop='min(iw,ih*9/16)':ih,scale=540:-2" }
 ];
 
 const mb = (f) => (statSync(f).size / 1024 / 1024).toFixed(2);
