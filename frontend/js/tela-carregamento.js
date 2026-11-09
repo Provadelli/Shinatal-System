@@ -40,6 +40,13 @@
       setTimeout(function () { el.style.display = "none"; }, reduzido ? 0 : SAIDA_MS);
     }, atraso);
   }
+  // Páginas logadas ([data-esperar-login]): fica até o login ser conferido e o cabeçalho montado
+  // (evento shinatal:pronto, de cabecalho-sistema.js), com teto de 8 s.
+  if (el.hasAttribute("data-esperar-login")) {
+    document.addEventListener("shinatal:pronto", esconder);
+    setTimeout(esconder, 8000);
+    return;
+  }
   if (document.readyState !== "loading") esconder();
   else document.addEventListener("DOMContentLoaded", esconder);
   setTimeout(esconder, MAXIMO_MS); // rede de segurança: nunca fica presa carregando

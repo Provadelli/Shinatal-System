@@ -223,6 +223,8 @@ export function exigirAutenticacao(rolesPermitidos = null) {
       // LGPD: sem o aceite da versão vigente dos Termos/Política, a página não carrega — o
       // diálogo só sai aceitando (registro em usuarios/{uid}.aceiteTermos) ou saindo da conta.
       if (!aceitouVersaoAtual(perfil)) await pedirAceite(perfil, fazerLogout);
+      const { montarCabecalho } = await import("./cabecalho-sistema.js");
+      montarCabecalho(perfil, roleEfetivo, PAGINA_POR_ROLE[roleEfetivo] || "/", fazerLogout);
       resolve(perfil);
     });
   });

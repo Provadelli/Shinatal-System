@@ -36,12 +36,6 @@ const ehPresidente = perfil.role === "presidente";
 // realmente grava direto ou só solicita aprovação é decidido por `ehPresidente`, dentro de
 // cada handler de escrita (ver confirmarEAplicarMovimentacao e o submit do formulário).
 const podeGerenciar = perfil.role === "admin" || ehPresidente;
-document.getElementById("nome-desktop").textContent = (perfil.nome || perfil.email || "").split(" ")[0] || "—";
-document.getElementById("badge-role").innerHTML =
-  `<span class="material-symbols-outlined text-base" aria-hidden="true">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
-const avatarHtml = construirAvatarHTML(perfil);
-document.getElementById("avatar-desktop").innerHTML = avatarHtml;
-preencherAvatarLink(document.getElementById("avatar-mobile"), perfil);
 if (!ehPresidente) {
   document.getElementById("subtitulo-pagina").textContent =
     "Suas alterações aqui (criar, editar, entradas/saídas, excluir) viram uma solicitação — só valem depois que o Presidente aprovar.";
@@ -50,23 +44,6 @@ if (podeGerenciar) {
   const btnNovo = document.getElementById("btn-novo-contrato-emp");
   btnNovo.classList.remove("hidden");
   btnNovo.classList.add("flex");
-}
-
-// Mesmas opções de header do Painel de Gestão (Atividade/Solicitações) — os modais em si só
-// existem em gestao.js; aqui só mostramos os links (com o badge de pendentes ao vivo) e eles
-// levam para /gestao já abrindo o modal certo (ver "abrir=" em gestao.js).
-document.getElementById("nav-log-desktop").classList.toggle("hidden", !podeGerenciar);
-document.getElementById("nav-log-mobile").classList.toggle("hidden", !podeGerenciar);
-document.getElementById("nav-solicitacoes-desktop").classList.toggle("hidden", !ehPresidente);
-document.getElementById("nav-solicitacoes-mobile").classList.toggle("hidden", !ehPresidente);
-if (ehPresidente) {
-  onSnapshot(query(collection(db, "solicitacoes"), where("status", "==", "pendente")), (snap) => {
-    const qtd = snap.size;
-    [document.getElementById("badge-solicitacoes-desktop"), document.getElementById("badge-solicitacoes-mobile")].forEach((b) => {
-      b.textContent = String(qtd);
-      b.classList.toggle("hidden", qtd === 0);
-    });
-  });
 }
 
 const state = { usuarios: [], contratosBase: [], contratosEmpresariais: [] };
@@ -1483,5 +1460,3 @@ document.addEventListener("click", (e) => {
   }
 });
 
-document.getElementById("btn-sair-desktop").addEventListener("click", fazerLogout);
-document.getElementById("btn-sair-mobile").addEventListener("click", fazerLogout);

@@ -348,7 +348,7 @@ function ativarRevelacaoAoRolar(seletor = "[data-reveal]") {
  * assim que saem da viewport, e retoma ao voltar — pensado pras faixas decorativas em loop
  * infinito (marquees de texto/fotos/valores), que sem isso continuam animando indefinidamente
  * mesmo depois que o usuário rola bem além delas, gastando CPU/GPU à toa numa sessão de scroll
- * longa. Reaproveita o nome de classe já usado em #bg-pao-acucar (perf-adaptativo.js), só que
+ * longa. Usa a classe "anim-pausada", só que
  * aqui a pausa é por visibilidade na tela, não por aba oculta.
  */
 function pausarAnimacaoForaDaTela(seletor) {

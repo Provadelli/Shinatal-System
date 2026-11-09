@@ -1,6 +1,6 @@
 // Shinatal — modo leve adaptativo.
 // Marca <html> com a classe "modo-leve" em mobile ou quando há sinal de dispositivo/conexão
-// fraca, e pausa a deriva do fundo (#bg-pao-acucar) quando a aba fica oculta. Toda a decisão
+// fraca (menos desfoque e menos animação). Toda a decisão
 // visual fica no CSS (mesmo padrão já usado por prefers-reduced-motion em styles.css) — este
 // módulo só decide e aplica a classe.
 const raiz = document.documentElement;

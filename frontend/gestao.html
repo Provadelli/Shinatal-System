@@ -4,97 +4,104 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Shinatal — Painel de gestão</title>
-<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
-<link rel="stylesheet" href="css/fontes.css" />
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
+<link rel="stylesheet" href="/css/fontes.css" />
 <!-- fontes:fim -->
-<link rel="stylesheet" href="css/tailwind.css" />
-<link rel="stylesheet" href="css/styles.css" />
-<script type="module" src="js/perf-adaptativo.js"></script>
-<script type="module" src="js/acessibilidade.js"></script>
+<link rel="stylesheet" href="/css/tailwind.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script type="module" src="/js/perf-adaptativo.js"></script>
+<script type="module" src="/js/acessibilidade.js"></script>
 </head>
-<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+<body class="fundo-sistema min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
 
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
-<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
-  <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+<div id="tela-carregamento" data-esperar-login class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
   <div id="tela-carregamento-texto" class="tela-carregamento-texto">
     <span class="tela-carregamento-glow" aria-hidden="true"></span>
   </div>
 </div>
-<script src="js/tela-carregamento.js"></script>
+<script src="/js/tela-carregamento.js"></script>
 
-<div id="bg-pao-acucar" aria-hidden="true"></div>
-
-<!-- ===== Nav superior (desktop) ===== -->
-<nav aria-label="Principal" class="header-flutuante hidden md:flex">
-  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
-    <a href="/gestao" class="flex items-center gap-2 shrink-0">
-      <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — painel de gestão" class="logo-vermelho h-8 w-auto" />
-      <span class="font-body not-italic text-on-surface-variant font-normal text-sm tracking-normal whitespace-nowrap">· Gestão</span>
-    </a>
-    <div class="flex-1 min-w-0 flex flex-wrap gap-x-2 gap-y-1 lg:gap-x-5 items-center justify-center">
-      <a href="/gestao" data-nav="gestao" class="nav-link nav-ativo font-body text-label-md py-1 whitespace-nowrap shrink-0" aria-current="page">Painel</a>
-      <a id="nav-contratos-desktop" href="/contratos" data-nav="contratos" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Contratos</a>
-      <button id="nav-log-desktop" data-abrir-modal="modal-log" class="hidden nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Atividade</button>
-      <button id="nav-solicitacoes-desktop" data-abrir-modal="modal-solicitacoes" class="hidden nav-link font-body text-label-md py-1 relative whitespace-nowrap shrink-0">
-        Solicitações
-        <span id="badge-solicitacoes-desktop" class="hidden absolute -top-2 -right-3 min-w-[1.3em] h-[1.3em] px-1 rounded-full bg-christmas-red text-white text-[10px] font-bold flex items-center justify-center">0</span>
-      </button>
-      <button id="nav-conduta-desktop" data-abrir-modal="modal-conduta" class="nav-link font-body text-label-md py-1 whitespace-nowrap shrink-0">Conduta</button>
-    </div>
-    <div class="flex items-center gap-3 lg:gap-4 shrink-0">
-      <span id="badge-role" class="hidden lg:inline-flex items-center gap-2 badge-papel px-4 py-1.5 rounded-full font-body text-label-sm font-semibold whitespace-nowrap">
-        <span class="material-symbols-outlined text-base" aria-hidden="true">shield_person</span> —
+<!-- cabecalho:inicio -->
+<header class="header-flutuante header-home header-sistema" data-cabecalho-sistema>
+  <div class="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/" data-logo-painel class="flex items-center gap-2.5 shrink-0" aria-label="Shinatal, ir para o meu painel">
+      <span class="flex flex-col items-start leading-none gap-1">
+        <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="" class="logo-vermelho h-7 lg:h-8 w-auto" fetchpriority="high" />
+        <span data-subtitulo-painel class="font-mono text-[8px] lg:text-[9px] uppercase tracking-[0.22em] text-on-surface-variant">Shine Rio Group</span>
       </span>
-      <a id="btn-perfil-desktop" href="/perfil" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-        <div id="avatar-desktop" class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-sm overflow-hidden">?</div>
-        <span id="nome-desktop" class="font-body text-label-md text-on-surface whitespace-nowrap">—</span>
+    </a>
+
+    <nav aria-label="Principal" class="hidden lg:flex flex-1 min-w-0 items-center justify-center gap-x-6 xl:gap-x-8">
+      <a href="/dashboard" data-item="dashboard" data-papeis="colaborador" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Painel</a>
+      <a href="/gestao" data-item="gestao" aria-current="page" data-papeis="admin dp rh presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Painel</a>
+      <a href="/faltas" data-item="faltas" data-papeis="colaborador" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Faltas</a>
+      <a href="/advertencias" data-item="advertencias" data-papeis="colaborador" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Advertências</a>
+      <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Contratos</a>
+      <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Atividade</a>
+      <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
+      <a href="/conduta" data-item="conduta" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Conduta</a>
+      <a href="/regulamento" data-item="regulamento" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Regulamento</a>
+    </nav>
+
+    <div class="flex items-center gap-2 lg:gap-3 shrink-0">
+      <span data-papel-rotulo class="hidden xl:inline-flex badge badge-neutro badge-sem-ponto font-mono !text-[10px] uppercase tracking-[0.14em]"></span>
+      <a href="/perfil" data-item="perfil" class="perfil-atalho" aria-label="Meu perfil">
+        <span data-avatar class="avatar w-9 h-9 text-sm" aria-hidden="true">?</span>
+        <span data-nome class="hidden lg:inline font-body text-label-md text-on-surface whitespace-nowrap max-w-[9rem] truncate"></span>
       </a>
-      <button id="btn-sair-desktop" title="Sair" aria-label="Sair" class="text-on-surface-variant hover:text-christmas-red transition-colors">
+      <button type="button" data-sair class="btn-icone hidden lg:inline-grid" aria-label="Sair da conta" title="Sair">
         <span class="material-symbols-outlined" aria-hidden="true">logout</span>
       </button>
+      <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-sistema" class="botao-menu lg:hidden">
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+        <span data-menu-rotulo>Menu</span>
+      </button>
     </div>
   </div>
-</nav>
 
-<header class="header-flutuante md:hidden px-margin-mobile min-h-12 flex items-center justify-between">
-  <a href="/gestao" class="flex items-center gap-2">
-    <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — painel de gestão" class="logo-vermelho h-6 w-auto shrink-0" />
-    <span class="hidden min-[360px]:inline font-body not-italic text-on-surface-variant font-normal text-sm whitespace-nowrap">· Gestão</span>
-  </a>
-  <div class="flex items-center gap-2.5 shrink-0">
-    <a id="nav-contratos-mobile" href="/contratos" title="Contratos Empresariais" aria-label="Contratos Empresariais" class="text-on-surface-variant hover:text-primary transition-colors">
-      <span class="material-symbols-outlined" aria-hidden="true">apartment</span>
-    </a>
-    <a id="avatar-mobile" href="/perfil" title="Perfil" aria-label="Perfil" class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-display font-bold text-xs overflow-hidden shrink-0">?</a>
-    <button id="nav-log-mobile" data-abrir-modal="modal-log" title="Atividade" aria-label="Atividade" class="hidden text-on-surface-variant hover:text-primary transition-colors">
-      <span class="material-symbols-outlined" aria-hidden="true">history</span>
-    </button>
-    <button id="nav-solicitacoes-mobile" data-abrir-modal="modal-solicitacoes" title="Solicitações" class="hidden text-on-surface-variant hover:text-primary transition-colors relative">
-      <span class="material-symbols-outlined" aria-hidden="true">inbox</span>
-      <span class="sr-only">Solicitações pendentes:</span>
-      <span id="badge-solicitacoes-mobile" class="hidden absolute -top-1 -right-1 min-w-[1.1em] h-[1.1em] px-1 rounded-full bg-christmas-red text-white text-[9px] font-bold flex items-center justify-center">0</span>
-    </button>
-    <button id="nav-conduta-mobile" data-abrir-modal="modal-conduta" title="Conduta" aria-label="Conduta" class="text-on-surface-variant hover:text-primary transition-colors">
-      <span class="material-symbols-outlined" aria-hidden="true">diversity_3</span>
-    </button>
-    <button id="btn-sair-mobile" type="button" aria-label="Sair" class="text-on-surface-variant"><span class="material-symbols-outlined" aria-hidden="true">logout</span></button>
-  </div>
+  <nav id="menu-sistema" aria-label="Menu do sistema" class="menu-celular menu-sistema lg:hidden" hidden>
+    <a href="/dashboard" data-item="dashboard" data-papeis="colaborador"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span>Painel</a>
+    <a href="/gestao" data-item="gestao" aria-current="page" data-papeis="admin dp rh presidente"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span>Painel</a>
+    <a href="/faltas" data-item="faltas" data-papeis="colaborador"><span class="material-symbols-outlined" aria-hidden="true">event_busy</span>Faltas</a>
+    <a href="/advertencias" data-item="advertencias" data-papeis="colaborador"><span class="material-symbols-outlined" aria-hidden="true">warning</span>Advertências</a>
+    <a href="/contratos" data-item="contratos" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">apartment</span>Contratos</a>
+    <a href="/atividade" data-item="atividade" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">history</span>Atividade</a>
+    <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente"><span class="material-symbols-outlined" aria-hidden="true">inbox</span>Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
+    <a href="/conduta" data-item="conduta"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span>Conduta</a>
+    <a href="/regulamento" data-item="regulamento"><span class="material-symbols-outlined" aria-hidden="true">gavel</span>Regulamento</a>
+    <a href="/perfil" data-item="perfil"><span class="material-symbols-outlined" aria-hidden="true">person</span>Meu perfil</a>
+    <button type="button" data-sair class="menu-sistema-sair"><span class="material-symbols-outlined" aria-hidden="true">logout</span>Sair da conta</button>
+  </nav>
 </header>
 
-<main id="conteudo" class="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8 relative z-10 flex-1 min-h-dvh" tabindex="-1">
+<nav aria-label="Atalhos" class="dock-sistema lg:hidden">
+  <a href="/dashboard" data-item="dashboard" data-papeis="colaborador" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span><span>Painel</span></a>
+  <a href="/gestao" data-item="gestao" aria-current="page" data-papeis="admin dp rh presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span><span>Painel</span></a>
+  <a href="/faltas" data-item="faltas" data-papeis="colaborador" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">event_busy</span><span>Faltas</span></a>
+  <a href="/advertencias" data-item="advertencias" data-papeis="colaborador" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">warning</span><span>Advert.</span></a>
+  <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">apartment</span><span>Contratos</span></a>
+  <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">history</span><span>Atividade</span></a>
+  <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">inbox</span><span>Pedidos</span><span data-contador-solicitacoes class="nav-contador dock-contador" hidden>0</span></a>
+  <a href="/conduta" data-item="conduta" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span><span>Conduta</span></a>
+  <a href="/regulamento" data-item="regulamento" data-papeis="colaborador dp rh" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">gavel</span><span>Regras</span></a>
+</nav>
+<!-- cabecalho:fim -->
 
-  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 anim-entrada">
-    <div class="conteudo-sobre-fundo">
-      <h1 class="font-display text-headline-lg-mobile md:text-headline-lg text-primary">Painel de Gestão</h1>
-      <p class="font-body text-body-md text-on-surface-variant mt-1">Contratos, faltas, advertências e a cota do Shinatal em tempo real.</p>
+<main id="conteudo" class="pagina-interna relative z-10 flex-1" tabindex="-1">
+
+  <header class="titulo-pagina">
+    <div>
+      <p class="rotulo"><span class="rotulo-numero" aria-hidden="true">00</span><span class="fio-natal" aria-hidden="true"></span><span>Gestão</span></p>
+      <h1>Painel de gestão</h1>
+      <p class="titulo-pagina-texto">Contratos, faltas, advertências e a cota do Shinatal em tempo real.</p>
     </div>
-    <button id="btn-novo-colaborador" data-abrir-modal="modal-novo-colaborador" class="hidden btn-primario items-center gap-2 whitespace-nowrap">
-      <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span> Novo colaborador
+    <button id="btn-novo-colaborador" data-abrir-modal="modal-novo-colaborador" class="hidden btn-contorno btn-contorno--vinho"><span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>Novo colaborador
     </button>
   </header>
 
@@ -210,20 +217,6 @@
 </main>
 
 <!-- rodape:inicio -->
-<footer class="rodape-compacto">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop rodape-compacto-linha">
-    <a href="/" class="inline-flex items-center gap-2.5" aria-label="Shinatal, página inicial">
-      <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" class="h-6 w-auto logo-vermelho" loading="lazy" />
-      <span>© 2026 Shine Rio Group</span>
-    </a>
-    <nav aria-label="Institucional" class="rodape-compacto-links">
-      <a href="/termos" class="rodape-link">Termos de Uso</a>
-      <a href="/privacidade" class="rodape-link">Privacidade</a>
-      <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="rodape-link">Fale com a Shine Rio</a>
-    </nav>
-    <p class="rodape-versao">Shinatal v2.1 · atualizado em 09/11/2026</p>
-  </div>
-</footer>
 <!-- rodape:fim -->
 
 <!-- ===== Modal: Perfil ===== -->
@@ -236,49 +229,6 @@
     <div class="p-5 overflow-y-auto">
       <div id="perfil-detalhado">Carregando...</div>
     </div>
-  </div>
-</div>
-
-<!-- ===== Modal: Log de atividade (só Admin) ===== -->
-<div id="modal-log" role="dialog" aria-modal="true" aria-labelledby="modal-log-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
-  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
-      <h2 id="modal-log-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">history</span> Log de atividade</h2>
-      <div class="flex items-center gap-1">
-        <button id="btn-excluir-log" title="Excluir todo o log" aria-label="Excluir todo o log" class="text-christmas-red hover:opacity-70 transition-opacity p-1">
-          <span class="material-symbols-outlined" aria-hidden="true">delete_sweep</span>
-        </button>
-        <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
-      </div>
-    </div>
-    <div class="p-5 overflow-y-auto">
-      <ul id="lista-log" class="space-y-1.5 font-body text-body-md text-on-surface-variant">Carregando...</ul>
-    </div>
-  </div>
-</div>
-
-<!-- ===== Modal: Solicitações (só Presidente) ===== -->
-<div id="modal-solicitacoes" role="dialog" aria-modal="true" aria-labelledby="modal-solicitacoes-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
-  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
-      <h2 id="modal-solicitacoes-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">inbox</span> Solicitações pendentes</h2>
-      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
-    </div>
-    <div class="p-5 overflow-y-auto">
-      <ul id="lista-solicitacoes" class="space-y-3 font-body text-body-md text-on-surface-variant">Carregando...</ul>
-    </div>
-  </div>
-</div>
-
-<!-- ===== Modal: Conduta (avaliação entre colegas) ===== -->
-<div id="modal-conduta" role="dialog" aria-modal="true" aria-labelledby="modal-conduta-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm">
-  <div class="glass-card-active !bg-white/95 rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
-    <div class="flex justify-between items-center p-5 border-b border-outline-variant/30 shrink-0">
-      <h2 id="modal-conduta-titulo" class="font-display text-headline-md text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary" aria-hidden="true">diversity_3</span> Avaliação de Conduta (entre colegas)</h2>
-      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant hover:text-christmas-red"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
-    </div>
-    <div id="conduta-toggle-area" class="hidden shrink-0 px-5 pt-4"></div>
-    <div id="conteudo-conduta" class="p-5 overflow-y-auto space-y-2 font-body text-body-md text-on-surface-variant">Carregando...</div>
   </div>
 </div>
 
@@ -498,6 +448,6 @@
   </div>
 </div>
 
-<script type="module" src="js/gestao.js"></script>
+<script type="module" src="/js/gestao.js"></script>
 </body>
 </html>

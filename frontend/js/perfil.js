@@ -20,10 +20,6 @@ const perfil = await exigirAutenticacao(null);
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
 
-// "Voltar ao painel" leva ao painel certo do papel de quem está logado.
-document.querySelectorAll("[data-link-voltar]").forEach((a) => {
-  a.href = PAGINA_POR_ROLE[perfil.role] || "/login";
-});
 
 renderizarPerfilBasico(perfil);
 
@@ -225,5 +221,3 @@ document.getElementById("btn-trocar-senha").addEventListener("click", async (e) 
   }
 });
 
-document.getElementById("btn-sair-desktop").addEventListener("click", fazerLogout);
-document.getElementById("btn-sair-mobile").addEventListener("click", fazerLogout);
