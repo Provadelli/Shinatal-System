@@ -2490,3 +2490,12 @@ html:not([data-papel]) [data-papeis] { display: none !important; }
   [role="dialog"][id^="modal-"].flex:not([data-painel-lateral]) { align-items: flex-end; padding: 0; }
   [role="dialog"][id^="modal-"].flex:not([data-painel-lateral]) > div { max-width: none; border-radius: 1.1rem 1.1rem 0 0; max-height: 92dvh; }
 }
+
+/* Menu e barra de atalhos são só do celular e do tablet: styles.css carrega depois do Tailwind,
+   então o display destas classes venceria o lg:hidden. No computador, ficam escondidos. */
+@media (min-width: 1024px) {
+  .dock-sistema, .menu-sistema, .botao-menu.lg\:hidden { display: none !important; }
+  body:has(.dock-sistema) { padding-bottom: 0; }
+}
+@media (max-width: 1023px) { .header-sistema [data-sair].btn-icone { display: none; } }
+@media (max-width: 1279px) { .header-sistema [data-papel-rotulo] { display: none; } }
