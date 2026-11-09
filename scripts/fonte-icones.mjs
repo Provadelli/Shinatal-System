@@ -1,4 +1,4 @@
-// Shinatal — fontes hospedadas no próprio site (Inter, Playfair Display e Material Symbols).
+// Shinatal — fontes hospedadas no próprio site (Space Grotesk, Inter, JetBrains Mono e Material Symbols).
 //
 // Antes as páginas pediam as fontes ao Google Fonts: duas folhas de estilo de outro domínio que
 // travavam a primeira pintura (~1 s no celular). Agora este script baixa os .woff2 uma vez para
@@ -44,7 +44,8 @@ const lista = [...icones].sort(); // o Google Fonts exige ordem alfabética
 /* ---------- 2. Baixa as fontes do Google Fonts ---------- */
 // User-Agent de navegador atual: sem ele o Google devolve TTF em vez de woff2.
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
-const URL_TEXTO = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap";
+// Space Grotesk (títulos e números), Inter (texto) e JetBrains Mono (rótulos técnicos).
+const URL_TEXTO = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap";
 const URL_ICONES = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=${lista.join(",")}&display=block`;
 
 async function baixarTexto(url) {

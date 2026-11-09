@@ -45,7 +45,13 @@ const TAGS_AXE = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-
 /* ------------------------------------------------------------------ */
 function prepararSite() {
   rmSync(SITE, { recursive: true, force: true });
-  cpSync(path.join(RAIZ, "frontend"), SITE, { recursive: true });
+  // O site publicado é o build (dist/): a página inicial em React + as páginas de frontend/.
+  // Rode `npm run build` na raiz antes. A home só lê o documento público de estatísticas.
+  const BUILD = path.join(RAIZ, "dist");
+  if (!existsSync(path.join(BUILD, "index.html"))) {
+    throw new Error("dist/ não encontrado — rode `npm run build` na raiz do projeto antes da auditoria.");
+  }
+  cpSync(BUILD, SITE, { recursive: true });
 
   const init = path.join(SITE, "js/firebase-init.js");
   const config = path.join(SITE, "js/firebase-config.js");
