@@ -8,7 +8,9 @@ Functions, sem plano pago do Firebase.
 ## Estrutura do repositório
 
 ```
-frontend/    Site publicado na Vercel: páginas HTML, css/, js/, assets/.
+app/         Página inicial em React + TypeScript (Vite, framer-motion, componentes no padrão shadcn).
+frontend/    Demais páginas em HTML, css/, js/, assets/ (copiadas sem mudança para o build).
+dist/        Build publicado na Vercel (npm run build) — gerado, fora do git.
 backend/     Regras de segurança do Firestore e scripts administrativos (Admin SDK).
 docs/        Guia de configuração, requisitos e o regulamento interno (PDF).
 design/      Referências visuais (mockups) — não faz parte do site publicado.

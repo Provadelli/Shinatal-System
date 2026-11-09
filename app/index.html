@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shinatal · Programa de Premiação Shine Rio</title>
+<meta name="description" content="Shinatal: o programa de premiação de fim de ano da Shine Rio. Faça login, cadastre-se ou conheça o programa." />
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<!-- Pôster do vídeo do topo: é o maior elemento da primeira tela (LCP), então baixa primeiro.
+     Só a versão da orientação da tela (mesmas media queries de .secao-hero-video em styles.css). -->
+<link rel="preload" as="image" href="/assets/hero-poster-retrato-v3.webp" media="(max-aspect-ratio: 1/1)" fetchpriority="high" />
+<link rel="preload" as="image" href="/assets/hero-poster-paisagem-v3.webp" media="(min-aspect-ratio: 1001/1000)" fetchpriority="high" />
+<link rel="stylesheet" href="/css/fontes.css" />
+<link rel="stylesheet" href="/css/tailwind.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script type="module" src="/js/perf-adaptativo.js"></script>
+</head>
+<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-clip">
+
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto"></div>
+</div>
+<script src="/js/tela-carregamento.js"></script>
+
+<div id="bg-pao-acucar" aria-hidden="true"></div>
+
+<!-- Página inicial em React (app/src). -->
+<div id="raiz"></div>
+
+<!-- rodape:inicio -->
+<footer class="rodape">
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+
+    <div class="rodape-chamada">
+      <div>
+        <p class="rodape-chamada-titulo">Reconhecer quem faz a Shine Rio acontecer.</p>
+        <p class="rodape-chamada-texto">O Shinatal transforma assiduidade, disciplina e dedicação em premiação no fim do ano, com regras claras e cálculo transparente.</p>
+      </div>
+      <div class="rodape-chamada-acoes">
+        <a href="/login" class="btn-contorno btn-contorno--vinho"><span>Entrar no Shinatal</span><svg class="btn-contorno-seta" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg></a>
+        <a href="/#como-funciona" class="btn-contorno btn-contorno--verde"><span>Como funciona</span></a>
+      </div>
+    </div>
+
+    <div class="rodape-colunas">
+      <div class="rodape-coluna-marca">
+        <a href="/" class="inline-flex" aria-label="Shinatal, página inicial">
+          <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal" class="h-9 w-auto logo-vermelho" loading="lazy" />
+        </a>
+        <p class="rodape-texto">Programa anual de premiação da Shine Rio Serviços Ltda., Rio de Janeiro.</p>
+        <div class="flex items-center gap-2.5">
+          <a href="https://instagram.com/shinerioservicos" target="_blank" rel="noopener" class="footer-icone" aria-label="Instagram @shinerioservicos (abre em nova aba)">
+            <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="footer-icone" aria-label="WhatsApp da Shine Rio (abre em nova aba)">
+            <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8.9-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.2-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.3 0-.5 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <nav aria-label="Programa">
+        <p class="rodape-titulo font-mono">Programa</p>
+        <ul class="rodape-lista">
+          <li><a href="/" class="rodape-link">Início</a></li>
+          <li><a href="/#sobre-nos" class="rodape-link">Quem somos</a></li>
+          <li><a href="/#sobre-shinatal" class="rodape-link">Sobre o Shinatal</a></li>
+          <li><a href="/#como-funciona" class="rodape-link">Como funciona</a></li>
+          <li><a href="/#nossos-valores" class="rodape-link">Nossos valores</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-label="Acesso">
+        <p class="rodape-titulo font-mono">Acesso</p>
+        <ul class="rodape-lista">
+          <li><a href="/login" class="rodape-link">Entrar</a></li>
+          <li><a href="/cadastro" class="rodape-link">Criar cadastro</a></li>
+          <li><a href="/recuperar-senha" class="rodape-link">Recuperar senha</a></li>
+          <li><a href="/perfil" class="rodape-link">Meu perfil</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-label="Institucional">
+        <p class="rodape-titulo font-mono">Institucional</p>
+        <ul class="rodape-lista">
+          <li><a href="/termos" class="rodape-link">Termos de Uso</a></li>
+          <li><a href="/privacidade" class="rodape-link">Política de Privacidade</a></li>
+          <li><a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="rodape-link">Fale com a Shine Rio</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="rodape-base">
+      <p>© 2026 Shine Rio Group. Todos os direitos reservados.</p>
+      <p class="rodape-versao font-mono">Shinatal v2.1 · atualizado em 09/11/2026</p>
+    </div>
+  </div>
+</footer>
+<!-- rodape:fim -->
+
+<script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

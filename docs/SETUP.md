@@ -90,31 +90,21 @@ firebase deploy --only firestore:rules
 
 ## 7. Rodar localmente
 
-O CSS do Tailwind já vem pré-compilado e commitado (`frontend/css/tailwind.css`), então só para
-visualizar o site **não precisa instalar nada** — pule direto para o bloco `npx serve` abaixo.
-
-`npm install` na raiz só é necessário se for **editar** classes Tailwind, `tailwind.config.js`,
-ou rodar o script de otimização de imagens:
+A página inicial é React + TypeScript (pasta `app/`, com Vite); as demais páginas continuam em
+HTML na pasta `frontend/`, que o Vite usa como pasta pública e copia sem mudança para o build.
 
 ```bash
-npm install
+npm install        # instala Vite, React, Tailwind CLI e o sharp (e já gera o tailwind.css)
+npm run dev        # servidor de desenvolvimento em http://localhost:5173 (a home atualiza sozinha)
+npm run build      # tailwind.css + checagem de tipos + build em dist/ (é o que a Vercel publica)
+npm run preview    # serve o dist/ para conferir o build
 ```
 
-Isso instala o Tailwind CLI e o `sharp`. Depois de editar, rode `npm run build:css` (ou `npm run
-watch:css` para recompilar a cada salvamento) e **commite o `tailwind.css` atualizado junto** —
-sem isso, quem não rodar `npm install` continua vendo a versão antiga do CSS.
-
-Como as páginas usam `<script type="module">`, é preciso servir os arquivos por HTTP (abrir
-o `index.html` direto com `file://` não funciona por causa da política de módulos ES).
-Sirva a pasta `frontend/` (é ela que vira o site), por exemplo:
-
-```bash
-npx serve frontend
-# ou
-python -m http.server 5500 --directory frontend
-```
-
-Depois acesse `http://localhost:5500` (ou a porta indicada).
+O `tailwind.css` (`frontend/css/`) lê as classes das duas partes do site. Depois de editar
+classes, rode `npm run build:css` (ou deixe `npm run watch:css` aberto junto com o `npm run dev`)
+e **commite o `tailwind.css` atualizado junto**. Outros scripts úteis: `npm run layout` (grava o
+rodapé de `scripts/partials/` em todas as páginas, inclusive `app/index.html`) e `npm run icones`
+(baixa as fontes Space Grotesk, Inter e JetBrains Mono e os ícones usados).
 
 ## 8. Publicar (Firebase Hosting, opcional e também gratuito)
 

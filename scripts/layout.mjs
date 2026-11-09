@@ -1,4 +1,5 @@
-// Shinatal — aplica as partes de layout compartilhadas (hoje: o rodapé) em todas as páginas.
+// Shinatal — aplica as partes de layout compartilhadas (hoje: o rodapé) em todas as páginas,
+// inclusive a página inicial em React (app/index.html).
 //
 // Dois rodapés, como em sistemas profissionais: o COMPLETO (chamada, navegação, contato) só nas
 // páginas públicas de conteúdo; o COMPACTO (uma linha: ©, links institucionais, versão) no login,
@@ -15,7 +16,7 @@ import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const VERSAO = "v2.0";
+const VERSAO = "v2.1";
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FRONT = path.join(RAIZ, "frontend");
 const hoje = new Date();
@@ -36,9 +37,16 @@ const rodapes = { completo: partial("rodape"), compacto: partial("rodape-compact
 const BLOCO = /<!-- rodape:inicio -->[\s\S]*?<!-- rodape:fim -->/;
 const FOOTER_ANTIGO = /<footer\b[\s\S]*?<\/footer>/;
 
+// A página inicial é React (app/index.html): o rodapé entra no HTML dela, fora da raiz do React,
+// e aparece mesmo sem JS.
+const paginas = [
+  ...readdirSync(FRONT).filter((f) => f.endsWith(".html")).map((f) => path.join(FRONT, f)),
+  path.join(RAIZ, "app", "index.html")
+];
+
 let alteradas = 0;
-for (const arquivo of readdirSync(FRONT).filter((f) => f.endsWith(".html"))) {
-  const caminho = path.join(FRONT, arquivo);
+for (const caminho of paginas) {
+  const arquivo = path.basename(caminho);
   const original = readFileSync(caminho, "utf8");
   const crlf = original.includes("\r\n");
   const texto = original.replace(/\r\n/g, "\n");

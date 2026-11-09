@@ -6,36 +6,43 @@
   --shinatal-primary: #0E3B2E;
   --shinatal-verde-escuro: #0E3B2E;
   --shinatal-azul-escuro: #625237;
-  --shinatal-gold: #B08D2F;
+  --shinatal-gold: #C9A048;
   --shinatal-gold-soft: #E8D9AE;
   --shinatal-red: #6E2430;
   --shinatal-verde-900: #03170d;
-  --shinatal-bg: #FAF6EE;
+  /* Paleta "neve e grafite" (entrega final, 11/2026), regra 60-30-10: neve nos fundos, grafite
+     no texto e nas áreas escuras, e as cores do Natal só nos detalhes (complementares divididas:
+     vermelho para a ação principal, pinheiro para ícones e números, dourado para fios e brilho). */
+  --shinatal-grafite: #101412;
+  --natal-vermelho: #B3262F;
+  --natal-pinheiro: #1E5B43;
+  --natal-dourado: #C9A048;
+  --shinatal-bg: #F7F6F2;
   --shinatal-surface: #FFFFFF;
-  --shinatal-borda: #E4DCC8;
-  --shinatal-ink: #23201B;
-  --shinatal-ink-muted: #6B6255;
-  --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #B08D2F 100%);
-  --shinatal-gradiente-valor: linear-gradient(135deg, #8A6A2F 0%, #B08D2F 100%);
+  --shinatal-borda: #E4E1D8;
+  --shinatal-ink: #141614;
+  --shinatal-ink-muted: #5E615C;
+  --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #C9A048 100%);
+  --shinatal-gradiente-valor: linear-gradient(135deg, #8A6A2F 0%, #C9A048 100%);
   /* Só para a faixa decorativa do topo das páginas públicas (ver .barra-shinatal-topo) — preto
      suavizado (não #000 puro) e um vermelho mais vivo que --shinatal-red (vinho escuro demais
      pra ler bem passando sobre fundo preto), mirando ~4.5:1 de contraste. */
   --shinatal-preto: #121212;
   --shinatal-red-festivo: #E1495A;
   /* Tons calculados para contraste (WCAG 2.2 AA) — ver docs/ACESSIBILIDADE.md:
-     - ouro-texto: o dourado da marca (#B08D2F) só chega a 3:1 no claro; para TEXTO pequeno sobre
+     - ouro-texto: o dourado da marca (#C9A048) não chega a 3:1 no claro; para TEXTO pequeno sobre
        fundo claro usa-se esta versão mais funda (5,8:1 no marfim). O dourado vivo continua em
        números grandes, ícones decorativos e sobre fundos escuros.
      - borda-campo: contorno de campos de formulário com 3:1 sobre branco (1.4.11).
      - placeholder: 4,9:1 sobre branco. */
   --shinatal-ouro-texto: #7A5C22;
-  --shinatal-borda-campo: #948A72;
-  --shinatal-placeholder: #7A7060;
+  --shinatal-borda-campo: #8E918A;
+  --shinatal-placeholder: #6E716A;
 
   /* Acabamento (sem novas cores: só tons das cores da marca) */
   --shinatal-vinho-claro: #7A2836;
   --shinatal-vinho-fundo: #5A1C26;
-  --shinatal-creme-dourado: #FBF5E6;
+  --shinatal-creme-dourado: #F7F6F2;
   --raio-controle: 0.625rem;
   --raio-painel: 0.875rem;
   --sombra-painel: 0 1px 2px rgba(35, 32, 27, 0.04), 0 6px 18px rgba(35, 32, 27, 0.05);
@@ -43,9 +50,9 @@
   --transicao: 160ms cubic-bezier(0.2, 0, 0, 1);
   /* Gradientes sutis, sempre entre tons próximos da mesma cor */
   --gradiente-verde: linear-gradient(135deg, #03170d 0%, #0E3B2E 100%);
-  --gradiente-cota: linear-gradient(160deg, #FFFFFF 0%, #FBF5E6 100%);
+  --gradiente-cota: linear-gradient(160deg, #FFFFFF 0%, #F7F6F2 100%);
   --gradiente-vinho: linear-gradient(180deg, #7A2836 0%, #5A1C26 100%);
-  --gradiente-creme: linear-gradient(180deg, #FFFFFF 0%, #FAF6EE 100%);
+  --gradiente-creme: linear-gradient(180deg, #FFFFFF 0%, #F7F6F2 100%);
 }
 
 html {
@@ -75,15 +82,21 @@ body {
 }
 
 h1, h2, h3, .font-display {
-  font-family: "Playfair Display", serif;
+  font-family: "Space Grotesk", "Inter", sans-serif;
   font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Rótulos técnicos, números de seção e versões. */
+.font-mono {
+  font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 /* Fonte de assinatura para a marca no header — diferencial premium frente ao restante da UI. */
 .font-premium {
-  font-family: "Playfair Display", serif;
-  font-style: italic;
-  letter-spacing: 0.01em;
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 /* ---------- Marca e números de destaque: cor sólida, sem gradient-clip ---------- */
@@ -91,7 +104,7 @@ h1, h2, h3, .font-display {
   color: var(--shinatal-verde-escuro);
 }
 
-/* Valores em dinheiro (cota, fundo): dourado profundo da marca (5,8:1 no creme), em Playfair
+/* Valores em dinheiro (cota, fundo): dourado profundo da marca (5,8:1 no creme), em Space Grotesk
    com algarismos tabulares — nada de halo, que borrava o número. */
 .text-gradiente-valor {
   color: var(--shinatal-ouro-texto);
@@ -145,7 +158,7 @@ h1, h2, h3, .font-display {
   backdrop-filter: blur(18px) saturate(160%);
 }
 .vidro {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(250, 246, 238, 0.7) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(247, 246, 242, 0.7) 100%);
   border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 12px 32px rgba(35, 32, 27, 0.1);
 }
@@ -199,14 +212,93 @@ h1, h2, h3, .font-display {
 /* ---------- Fundo: marfim claro, com a foto do Pão de Açúcar como marca d'água discreta ---------- */
 .gradient-natalino {
   background:
-    radial-gradient(1100px 650px at 12% -10%, rgba(176, 141, 47, 0.06), transparent 60%),
+    radial-gradient(1100px 650px at 12% -10%, rgba(201, 160, 72, 0.06), transparent 60%),
     var(--shinatal-bg);
   min-height: 100dvh;
 }
 
-/* ---------- Seção verde/dourado: vitrine visual (home) ---------- */
-.fundo-verde-dourado {
-  background: linear-gradient(135deg, var(--shinatal-verde-escuro) 0%, var(--shinatal-verde-900) 60%, var(--shinatal-gold) 145%);
+/* ---------- Fundos da home: neve em todas as seções ----------
+   Base neve, seções separadas por fios finos (o verde fica só em "Sobre"); textura técnica em
+   "Quem somos" e malha de pontos em "Como funciona". Escuros só o vídeo do topo e o rodapé. */
+.secao-neve {
+  position: relative;
+  isolation: isolate;
+  background: var(--shinatal-bg);
+  border-top: 1px solid var(--shinatal-borda);
+}
+/* "Sobre o Shinatal": a única faixa de cor no meio da página, verde sólido da marca, sem
+   textura por cima. Branco e dourado-claro sobre ela passam de 9:1. */
+.secao-verde {
+  position: relative;
+  isolation: isolate;
+  background: var(--shinatal-verde-escuro);
+}
+
+/* Malha de pontos (bege de "Como funciona"), mais densa no alto e sumindo para baixo. */
+.grade-pontos {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(14, 59, 46, 0.16) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+  pointer-events: none;
+}
+
+/* Variante para fundos claros (creme/bege): linhas verdes bem sutis. */
+.grade-tecnica.grade-tecnica--clara {
+  background-image:
+    linear-gradient(rgba(14, 59, 46, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(14, 59, 46, 0.055) 1px, transparent 1px);
+}
+/* Sobre o vídeo do topo: acima do escurecimento, abaixo do conteúdo, concentrada no centro. */
+.grade-tecnica.grade-tecnica--hero {
+  z-index: 1;
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 45%, #000 0%, transparent 80%);
+  mask-image: radial-gradient(70% 70% at 50% 45%, #000 0%, transparent 80%);
+}
+
+
+/* Título do topo: um brilho dourado passa pelo "Bem-vindo ao" em ciclos de 6 s, depois que as palavras
+   sobem (ver TituloHero em app/src/components/secoes/Hero.tsx). Branco antes e depois; o
+   dourado tem mais de 9:1 sobre o vídeo escurecido. */
+.titulo-brilho { color: #fff; }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .titulo-brilho {
+    background: linear-gradient(100deg, #fff 0%, #fff 40%, #F6E3B2 46%, #E9C77C 50%, #F6E3B2 54%, #fff 60%, #fff 100%);
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titulo-brilho 6s cubic-bezier(0.45, 0, 0.25, 1) 1.5s infinite both;
+  }
+}
+@keyframes titulo-brilho {
+  0% { background-position: 100% 0; }
+  40%, 100% { background-position: 0% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .titulo-brilho { animation: none; }
+}
+@media (forced-colors: active) {
+  .titulo-brilho { -webkit-text-fill-color: CanvasText; background: none; }
+}
+/* Grade técnica de linhas finas, que some em direção às bordas (faixas escuras da home). */
+.grade-tecnica {
+  border-radius: inherit;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(232, 217, 174, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 217, 174, 0.06) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 75%);
+  pointer-events: none;
 }
 
 /* ---------- Carrossel infinito de fotos ("Sobre o Shinatal") ---------- */
@@ -266,16 +358,10 @@ h1, h2, h3, .font-display {
   .faixa-fotos-pista { animation: none !important; }
 }
 
-/* ---------- Seção bege com iluminação dourada suave ("Como funciona" + "Nossos valores", unificadas) ---------- */
-/* Iluminação dourada nas quatro extremidades — mais presente que o glow sutil anterior de
-   só dois cantos, dá vida ao fundo bege das seções "Como funciona"/"Nossos valores". */
+/* ---------- Faixa bege ("Como funciona", home) ----------
+   Bege liso (sem luz radial); a textura vem da malha de pontos (.grade-pontos). */
 .fundo-bege-dourado-suave {
-  background:
-    radial-gradient(900px 520px at 0% 0%, rgba(176, 141, 47, 0.28), transparent 60%),
-    radial-gradient(900px 520px at 100% 0%, rgba(176, 141, 47, 0.24), transparent 60%),
-    radial-gradient(900px 520px at 0% 100%, rgba(176, 141, 47, 0.22), transparent 60%),
-    radial-gradient(900px 520px at 100% 100%, rgba(176, 141, 47, 0.26), transparent 60%),
-    #F0E9D8;
+  background: #ECEAE4;
 }
 
 /* ---------- Hero com vídeo de fundo (home) ---------- */
@@ -325,24 +411,46 @@ h1, h2, h3, .font-display {
    classe é reaproveitada em outros lugares que precisam continuar opacos: card de
    login, foto de "Quem somos", cards de "Como funciona"/"Valores"). O blur soma com
    o overlay escurecido do hero (acima) pra manter o texto legível. */
+/* Vidro líquido (no estilo da Apple), bem transparente: véu branco muito leve sobre o vídeo, com
+   desfoque curto e brilho leve, para o vídeo aparecer nítido e clareado por trás;
+   reflexo diagonal na superfície; aro de luz em degradê na borda (::before, mais forte no canto
+   superior esquerdo e no inferior direito); luz interna no alto e sombra macia por fora.
+   No celular o desfoque é menor: o card fica sobre o vídeo e o vidro é redesenhado a cada quadro. */
 #card-fundo {
-  background: rgba(255, 255, 255, 0.27);
-  border-color: rgba(255, 255, 255, 0.4);
-  /* Raio de blur reduzido de propósito: o card fica por cima do vídeo em reprodução contínua,
-     então o navegador reamostra a região borrada a cada quadro — um blur menor custa bem menos
-     GPU por frame sem perder o efeito de vidro fosco. */
-  backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0.03) 62%, rgba(255, 255, 255, 0.1) 100%);
+  border-color: transparent;
+  -webkit-backdrop-filter: blur(6px) saturate(160%) brightness(1.25);
+  backdrop-filter: blur(6px) saturate(160%) brightness(1.25);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 28px 40px -30px rgba(255, 255, 255, 0.55),
+    0 24px 60px -22px rgba(3, 23, 13, 0.45);
+}
+#card-fundo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1.25px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.25) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.25) 75%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
 }
 @media (max-width: 767px), (pointer: coarse) {
   #card-fundo {
-    backdrop-filter: blur(11px) saturate(125%);
-    -webkit-backdrop-filter: blur(11px) saturate(125%);
+    -webkit-backdrop-filter: blur(5px) saturate(150%) brightness(1.2);
+    backdrop-filter: blur(5px) saturate(150%) brightness(1.2);
   }
 }
-/* Card translúcido: textos pensados pra fundo branco opaco ficavam apagados contra o vídeo
-   borrado atrás. Cor mais escura + halo claro (sem offset perceptível) garante legibilidade
-   independente do frame do vídeo por trás. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #card-fundo { background: rgba(60, 74, 68, 0.78); }
+}
+/* Textos do card: branco com sombra escura bem curta, legível em qualquer quadro do vídeo. */
 #card-fundo #fundo-rotulo-texto,
 #card-fundo #qtd-colaboradores-ano,
 #card-fundo #qtd-colaboradores-total {
@@ -350,8 +458,33 @@ h1, h2, h3, .font-display {
   text-shadow: 0 1px 4px rgba(3, 23, 13, 0.55), 0 0 14px rgba(3, 23, 13, 0.25);
 }
 #card-fundo p.text-outline {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.78);
   text-shadow: 0 1px 4px rgba(3, 23, 13, 0.45);
+}
+#card-fundo .text-primary { color: #FFFFFF; filter: drop-shadow(0 1px 2px rgba(3, 23, 13, 0.6)); }
+#card-fundo .text-festive-gold { color: #F0CF7A; text-shadow: 0 1px 3px rgba(3, 23, 13, 0.7); filter: drop-shadow(0 1px 2px rgba(3, 23, 13, 0.6)); }
+/* Número do Fundo: dourado de verdade, em degradê linear (champanhe → ouro → ouro velho →
+   champanhe) recortado no texto, com uma sombra escura curta para destacar do vidro. É texto
+   grande (negrito, ≥ 24px). A cor sólida de reserva serve sem suporte a background-clip. */
+#card-fundo .text-gradiente-valor {
+  color: #E9C77C;
+  letter-spacing: -0.03em;
+  text-shadow: 0 1px 4px rgba(3, 23, 13, 0.55);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  #card-fundo .text-gradiente-valor {
+    background: linear-gradient(100deg, #FBE7B0 0%, #F0CF7A 28%, #E2B860 52%, #C9A048 72%, #F3D58A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 1px 1px rgba(3, 23, 13, 0.85)) drop-shadow(0 0 10px rgba(3, 23, 13, 0.45));
+  }
+  /* O esqueleto de carregamento continua visível dentro do texto recortado. */
+  #card-fundo .text-gradiente-valor .skeleton { -webkit-text-fill-color: initial; }
+}
+@media (forced-colors: active) {
+  #card-fundo .text-gradiente-valor { -webkit-text-fill-color: CanvasText; background: none; }
 }
 
 /* "Quem somos" — sobe por cima do hero sticky ao rolar (ver .secao-hero-video acima).
@@ -421,8 +554,8 @@ html.modo-leve #bg-pao-acucar { animation: none; }
 
 /* Pausa pedida pelo usuário (botão "Pausar animações" da home — WCAG 2.2.2: todo movimento
    automático com mais de 5 s precisa de um jeito de parar). O vídeo é pausado por JS. */
+html.movimento-pausado .titulo-brilho,
 html.movimento-pausado .faixa-fotos-pista,
-html.movimento-pausado .faixa-valores-pista,
 html.movimento-pausado .barra-shinatal-pista,
 html.movimento-pausado #bg-pao-acucar {
   animation-play-state: paused !important;
@@ -442,7 +575,7 @@ html.movimento-pausado #bg-pao-acucar {
   background: rgba(255, 255, 255, 0.78);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   backdrop-filter: blur(16px) saturate(160%);
-  border-bottom: 1px solid rgba(176, 141, 47, 0.18);
+  border-bottom: 1px solid rgba(201, 160, 72, 0.18);
   box-shadow: inset 0 2px 0 var(--shinatal-gold), 0 6px 20px rgba(35, 32, 27, 0.05);
 }
 html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(255, 255, 255, 0.98); }
@@ -462,6 +595,45 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
   box-shadow: inset 0 2px 0 var(--shinatal-gold);
   transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
+/* Home: cabeçalho transparente sobre o vídeo e bege ao rolar, com efeitos dourados — fio dourado em
+   degradê no alto, fio fino na base e sublinhado dourado que se desenha nos links. Os botões
+   têm fundo próprio (ver "Cabeçalho da home" nos botões) e não mudam de cor ao rolar. */
+.header-home {
+  background: rgba(241, 235, 221, 0.94);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid rgba(201, 160, 72, 0.35);
+  box-shadow: 0 10px 28px -16px rgba(122, 92, 34, 0.4);
+}
+.header-home::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(201, 160, 72, 0.35) 0%, #C9A048 30%, #F0CF7A 50%, #C9A048 70%, rgba(201, 160, 72, 0.35) 100%);
+  pointer-events: none;
+}
+.header-home .nav-link { color: var(--shinatal-ink); }
+.header-home .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: linear-gradient(90deg, #C9A048, #F0CF7A);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.header-home .nav-link:hover { color: var(--shinatal-ink); }
+.header-home .nav-link:hover::after,
+.header-home .nav-link:focus-visible::after { transform: scaleX(1); }
+@media (prefers-reduced-transparency: reduce) {
+  .header-home { -webkit-backdrop-filter: none; backdrop-filter: none; background: #F1EBDD; }
+}
+html.aparelho-fraco .header-home { -webkit-backdrop-filter: none; backdrop-filter: none; background: #F1EBDD; }
+html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(16, 20, 18, 0.97); }
 .header-flutuante.header-transparente .nav-link,
 .header-flutuante.header-transparente .text-on-surface-variant {
   color: rgba(255, 255, 255, 0.92);
@@ -548,7 +720,7 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
 .menu-celular[hidden] { display: none; }
 .menu-celular a {
   padding: 0.9rem 0.25rem;
-  font-family: "Playfair Display", serif;
+  font-family: "Space Grotesk", "Inter", sans-serif;
   font-weight: 700;
   font-size: 1.2rem;
   color: var(--shinatal-ink);
@@ -677,8 +849,7 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
   white-space: nowrap;
 }
 .barra-shinatal-marca {
-  font-family: "Playfair Display", serif;
-  font-style: italic;
+  font-family: "Space Grotesk", "Inter", sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
   color: var(--shinatal-red-festivo);
@@ -749,279 +920,107 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
   transform: translateY(0);
 }
 
-/* Cards de "Como funciona"/"Nossos valores" — lift suave no hover, mais premium/minimalista
-   que o cartão estático. Classe própria (não em .glass-card-active, que é reaproveitada no
-   card de login, na foto de "Quem somos" e em modais — não deve levar hover ali). */
-.cartao-info {
-  transition: box-shadow var(--transicao), border-color var(--transicao);
-}
-/* Hover: a sombra aprofunda e a borda aquece para o dourado — sem sair do lugar. */
-.cartao-info:hover {
-  box-shadow: var(--sombra-destaque);
-  border-color: #D9C58E;
-}
-
-/* ---------- Carrossel "Como funciona" — cards com "espiadinha" lateral, fade nas bordas
-   (mask-image, mesma técnica de .faixa-fotos-sobre/.faixa-valores-coluna) e navegação em
-   loop infinito (as setas nunca desabilitam, sempre dão a volta) — sensação de sequência
-   sem fim, mais elegante que um único card cortado bruscamente nas bordas. ---------- */
-.carrossel-etapas {
-  position: relative;
-  max-width: 920px;
-  margin: 0 auto;
-}
-.carrossel-etapas-pista {
-  display: flex;
-  overflow-x: auto;
-  /* mandatory é seguro aqui: a navegação por setas/pontos escreve scrollLeft quadro a quadro
-     via rAF (ver scrollSuavePara em ativarCarrosselEtapas), não scrollTo()/scroll-behavior —
-     só o arrasto manual (touch/mouse) aciona o snap nativo, sem conflito com JS. */
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding: 0.5rem 9%;
-  mask-image: linear-gradient(90deg, transparent 0, black 12%, black 88%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, black 12%, black 88%, transparent 100%);
-}
-.carrossel-etapas-pista::-webkit-scrollbar { display: none; }
-.carrossel-etapas-slide {
-  flex: 0 0 82%;
-  margin: 0 0.6rem;
-  scroll-snap-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 1.25rem;
-  padding: 2.75rem 2rem;
-  min-height: 240px;
-  justify-content: center;
-  opacity: 0.4;
-  transform: scale(0.92);
-  transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.carrossel-etapas-slide.is-ativo {
-  opacity: 1;
-  transform: scale(1);
-}
-@media (min-width: 640px) {
-  .carrossel-etapas-slide { flex-basis: 60%; }
-}
-.carrossel-etapas-icone {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.carrossel-etapas-icone .material-symbols-outlined { font-size: 2rem; }
-.carrossel-etapas-texto {
-  font-family: "Inter", sans-serif;
-  font-size: 1.125rem;
-  line-height: 1.6;
-  max-width: 30rem;
-  color: var(--shinatal-ink);
-}
-.carrossel-seta {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--shinatal-surface);
-  border: 1px solid var(--shinatal-borda);
-  color: var(--shinatal-primary);
-  box-shadow: var(--sombra-painel);
-  cursor: pointer;
-  transition: background-color var(--transicao), border-color var(--transicao);
-  z-index: 2;
-}
-.carrossel-seta:hover { background: var(--shinatal-gold-soft); border-color: var(--shinatal-gold); }
-/* Dentro da moldura (sobre a área já esmaecida pelo mask-image), não flutuando fora do
-   container — evita o enquadramento estranho de antes, onde as setas ficavam soltas nas
-   bordas da seção. Loop infinito: as setas nunca ficam disabled. */
-.carrossel-seta-prev { left: 0.25rem; }
-.carrossel-seta-next { right: 0.25rem; }
-@media (min-width: 768px) {
-  .carrossel-seta-prev { left: 1rem; }
-  .carrossel-seta-next { right: 1rem; }
-}
-.carrossel-etapas-indicadores {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-}
-/* O botão tem 24×24 px de área de toque (WCAG 2.5.8); o ponto visível é o ::before, que mantém
-   o desenho delicado de antes. Cores com 3:1 sobre o bege (antes 1,1:1 — invisível). */
-.carrossel-ponto {
-  display: grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 9999px;
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: width 0.25s ease;
-}
-.carrossel-ponto::before {
-  content: "";
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: #8A7F68;
-  transition: width 0.25s ease, background-color 0.25s ease;
-}
-.carrossel-ponto.is-ativo { width: 2.25rem; }
-.carrossel-ponto.is-ativo::before {
-  width: 1.5rem;
-  background: var(--shinatal-ouro-texto);
-}
-
-/* ---------- Carrossel vertical "Nossos valores" (loop infinito, fade perto do título) ---------- */
-.faixa-valores-coluna {
-  position: relative;
-  height: 420px;
-  overflow: hidden;
-  mask-image: linear-gradient(180deg, transparent 0, black 18%, black 88%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, black 18%, black 88%, transparent 100%);
-}
-.faixa-valores-pista {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  animation: faixa-valores-loop 30s linear infinite;
-  will-change: transform;
-}
-.faixa-valores-pista-lenta { animation-duration: 36s; }
-/* Pausa quando a faixa sai da viewport (ver pausarAnimacaoForaDaTela em ui-utils.js). */
-.faixa-valores-pista.anim-pausada { animation-play-state: paused; }
-.faixa-valores-grupo {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.faixa-valores-coluna:hover .faixa-valores-pista { animation-play-state: paused; }
-@keyframes faixa-valores-loop {
-  from { transform: translateY(0); }
-  to { transform: translateY(-50%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .faixa-valores-pista { animation: none !important; }
-}
-
 /* ---------- Rodapés (fonte única em scripts/partials/, aplicada por npm run layout) ----------
-   Neutros, no creme da paleta, para combinar com qualquer página. Completo (.rodape): só nas
-   páginas públicas de conteúdo — faixa de chamada, quatro colunas, marca-d'água do logo e a linha
-   de base com a versão. Compacto (.rodape-compacto): uma linha, no login e nas páginas internas.
-   Fio dourado no topo dos dois. Textos com 7:1 ou mais sobre o creme. */
+   Completo (.rodape): bege, com efeitos dourados (fio em degradê no alto, fios finos dourados entre
+   as faixas, títulos em dourado profundo, sublinhado dourado nos links e ícones que acendem em
+   dourado) — páginas públicas (início, termos, privacidade). Compacto (.rodape-compacto): uma
+   linha neve, no login e nas páginas internas. Textos do completo: 5:1 ou mais sobre o bege. */
 .rodape,
 .rodape-compacto {
   position: relative;
   z-index: 10;
-  color: var(--shinatal-ink-muted);
-  box-shadow: inset 0 1px 0 rgba(176, 141, 47, 0.55);
 }
 .rodape {
   overflow: hidden;
   isolation: isolate;
-  background:
-    radial-gradient(900px 360px at 8% 0%, rgba(232, 217, 174, 0.45), transparent 60%),
-    linear-gradient(180deg, #F6F1E4 0%, #EFE7D3 100%);
+  color: var(--shinatal-ink-muted);
+  background: #F1EBDD;
   font-size: 0.9375rem;
   line-height: 1.6;
 }
-/* :where() zera a especificidade: links "crus" herdam a cor do rodapé, sem vencer as cores
-   próprias dos botões (.btn-primario etc.) que também ficam aqui dentro. */
-:where(.rodape, .rodape-compacto) :where(a) { color: inherit; }
-/* Marca-d'água: o logo enorme, quase invisível, ancorado no canto inferior direito. */
-.rodape-marca-dagua {
+.rodape::before {
+  content: "";
   position: absolute;
-  right: -4%;
-  bottom: -18%;
-  width: min(70vw, 760px);
-  aspect-ratio: 320 / 121;
-  z-index: -1;
-  background: url("../assets/logoshinatal-cropped.webp") center / contain no-repeat;
-  filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg);
-  opacity: 0.045;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(201, 160, 72, 0.35) 0%, #C9A048 30%, #F0CF7A 50%, #C9A048 70%, rgba(201, 160, 72, 0.35) 100%);
   pointer-events: none;
 }
-/* Faixa de chamada: frase em Playfair à esquerda, ações à direita, separada por um fio. */
+/* :where() zera a especificidade: links "crus" herdam a cor do rodapé, sem vencer as cores
+   próprias dos botões que também ficam aqui dentro. */
+:where(.rodape, .rodape-compacto) :where(a) { color: inherit; }
+/* Faixa de chamada: frase em Space Grotesk à esquerda, ações à direita, separada por um fio. */
 .rodape-chamada {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 3.5rem 0 2.5rem;
-  border-bottom: 1px solid var(--shinatal-borda);
+  gap: 1.75rem;
+  padding: 4rem 0 2.75rem;
+  border-bottom: 1px solid rgba(201, 160, 72, 0.35);
 }
 @media (min-width: 768px) {
-  .rodape-chamada { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 3rem; padding: 4.5rem 0 3rem; }
+  .rodape-chamada { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 3rem; padding: 5.5rem 0 3.5rem; }
 }
 .rodape-chamada-titulo {
-  font-family: "Playfair Display", serif;
-  font-weight: 700;
-  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
-  line-height: 1.12;
-  letter-spacing: -0.015em;
-  color: var(--shinatal-verde-escuro);
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.875rem, 1.2rem + 2.4vw, 3rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--shinatal-ink);
   max-width: 18ch;
   text-wrap: balance;
 }
-.rodape-chamada-texto { margin-top: 0.85rem; max-width: 46ch; color: var(--shinatal-ink-muted); }
+.rodape-chamada-texto { margin-top: 1rem; max-width: 46ch; color: var(--shinatal-ink-muted); }
 .rodape-chamada-acoes { display: flex; flex-wrap: wrap; gap: 0.75rem; flex-shrink: 0; }
 .rodape-colunas {
   display: grid;
   gap: 2.25rem;
-  padding: 2.75rem 0;
+  padding: 3rem 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.rodape-coluna-marca { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 1rem; }
+.rodape-coluna-marca { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 1.1rem; }
 @media (min-width: 900px) {
   .rodape-colunas { grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 3rem; }
   .rodape-coluna-marca { grid-column: auto; }
 }
 .rodape-texto { max-width: 30ch; }
 .rodape-titulo {
-  font-family: "Inter", sans-serif;
-  font-size: 0.8125rem;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
   font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--shinatal-ouro-texto);
-  margin-bottom: 0.85rem;
+  margin-bottom: 1rem;
 }
 .rodape-lista { display: flex; flex-direction: column; gap: 0.35rem; }
 .rodape-link {
   display: inline-block;
   padding: 0.15rem 0;
   color: var(--shinatal-ink);
-  background-image: linear-gradient(var(--shinatal-gold), var(--shinatal-gold));
+  background-image: linear-gradient(90deg, #C9A048, #F0CF7A);
   background-repeat: no-repeat;
   background-position: right bottom;
   background-size: 0 1px;
-  transition: color var(--transicao), background-size 0.35s cubic-bezier(0.2, 0, 0, 1);
+  transition: color var(--transicao), background-size 0.45s cubic-bezier(0.16, 0.84, 0.32, 1);
 }
-.rodape-link:hover { color: var(--shinatal-primary); background-position: left bottom; background-size: 100% 1px; }
+.rodape-link:hover { color: var(--shinatal-ink); background-position: left bottom; background-size: 100% 1px; }
 .rodape-base {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 1.25rem 0 calc(1.5rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--shinatal-borda);
+  padding: 1.5rem 0 calc(1.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(201, 160, 72, 0.35);
   font-size: 0.8125rem;
+  color: var(--shinatal-ink-muted);
 }
 @media (min-width: 640px) { .rodape-base { flex-direction: row; justify-content: space-between; } }
-.rodape-versao { font-variant-numeric: tabular-nums; }
-/* Compacto: uma linha (empilha no celular). */
+.rodape-versao { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+/* Compacto: uma linha neve (empilha no celular), fio dourado no topo. */
 .rodape-compacto {
-  background: linear-gradient(180deg, #F8F4EA 0%, #F2ECDD 100%);
+  color: var(--shinatal-ink-muted);
+  background: linear-gradient(180deg, #F5F4EF 0%, #EEECE6 100%);
+  box-shadow: inset 0 1px 0 rgba(201, 160, 72, 0.55);
   font-size: 0.8125rem;
 }
 .rodape-compacto-linha {
@@ -1037,28 +1036,32 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
 @media (min-width: 768px) {
   .rodape-compacto-linha { flex-direction: row; justify-content: space-between; text-align: left; }
 }
-/* Ícones sociais: contorno fino; no hover preenchem de verde (sem girar). */
+/* Ícones sociais: contorno dourado fino; no hover se enchem de dourado e brilham. */
 .footer-icone {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 9999px;
-  border: 1px solid var(--shinatal-borda-campo);
-  color: var(--shinatal-primary);
-  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(201, 160, 72, 0.6);
+  color: var(--shinatal-ouro-texto);
+  background: rgba(255, 255, 255, 0.55);
   flex-shrink: 0;
-  transition: background-color var(--transicao), border-color var(--transicao), color var(--transicao), transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color var(--transicao), border-color var(--transicao), color var(--transicao), box-shadow 0.35s ease;
 }
-a.footer-icone:hover { background: var(--shinatal-primary); border-color: var(--shinatal-primary); color: #fff; transform: translateY(-1px); }
+a.footer-icone:hover {
+  background: linear-gradient(135deg, #F6E3B2, #C9A048);
+  border-color: #C9A048;
+  color: var(--shinatal-grafite);
+  box-shadow: 0 0 22px -4px rgba(201, 160, 72, 0.6);
+}
 .footer-logo-invertido { filter: brightness(0) invert(96%) sepia(8%) saturate(300%) hue-rotate(5deg); }
 
 /* Logo no vinho da marca (--shinatal-red). */
 .logo-vermelho {
   filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%);
 }
-
 /* ---------- Formulários ---------- */
 .input-shinatal {
   width: 100%;
@@ -1158,7 +1161,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
   transition: opacity 0.3s ease;
   pointer-events: none;
 }
-.btn-fantasma::before { background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(176, 141, 47, 0.22), transparent 70%); }
+.btn-fantasma::before { background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgba(201, 160, 72, 0.22), transparent 70%); }
 :is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):hover:not(:disabled)::before { opacity: 1; }
 :is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro) > .material-symbols-outlined { transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1); }
 :is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):hover:not(:disabled) > .material-symbols-outlined { transform: translateX(2px); }
@@ -1167,23 +1170,23 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
 :is(.btn-primario, .btn-fantasma, .btn-perigo, .btn-vidro):disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
 
 .btn-primario {
-  background: linear-gradient(135deg, #8A3343 0%, #6E2430 55%, #5A1C26 100%);
+  background: var(--natal-vermelho);
   color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 6px -2px rgba(90, 28, 38, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 6px -2px rgba(142, 29, 39, 0.35);
 }
 .btn-primario:hover:not(:disabled) {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 24px -10px rgba(110, 36, 48, 0.7), 0 0 0 4px rgba(110, 36, 48, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 24px -10px rgba(179, 38, 47, 0.55), 0 0 0 4px rgba(179, 38, 47, 0.1);
 }
 .btn-fantasma {
   background: var(--shinatal-surface);
-  border-color: rgba(176, 141, 47, 0.6);
+  border-color: rgba(201, 160, 72, 0.6);
   color: var(--shinatal-verde-escuro);
   box-shadow: 0 1px 2px rgba(35, 32, 27, 0.06);
 }
 .btn-fantasma:hover:not(:disabled) {
   background: var(--shinatal-creme-dourado);
   border-color: var(--shinatal-gold);
-  box-shadow: 0 10px 22px -12px rgba(122, 92, 34, 0.6), 0 0 0 4px rgba(176, 141, 47, 0.1);
+  box-shadow: 0 10px 22px -12px rgba(122, 92, 34, 0.6), 0 0 0 4px rgba(201, 160, 72, 0.1);
 }
 /* Ação destrutiva: o mesmo vinho, mais fundo, sempre com texto explícito ("Excluir"). */
 .btn-perigo { background: linear-gradient(135deg, #6E2430 0%, #461520 100%); color: #fff; }
@@ -1200,6 +1203,150 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
 .btn-vidro:hover:not(:disabled) {
   border-color: rgba(255, 255, 255, 0.85);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 12px 24px -10px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Botão contornado (página inicial e rodapé público) ----------
+   Vazado: só contorno e texto, fundo transparente. No hover/foco a cor sólida (vinho ou
+   verde-escuro) entra da esquerda e preenche TODA a área do botão, borda incluída — é uma
+   camada ::before com inset negativo que cresce com scaleX (só transform, feito pela GPU) — e o
+   texto fica branco, com brilho na mesma cor.
+   Dois tons: --vinho (ação principal, com seta ↗) e --verde (secundária, verde-escuro).
+   Sobre fundo escuro (vídeo do topo e cabeçalho transparente) só o texto fica branco; o contorno
+   continua vinho/verde-escuro, e o
+   preenchimento do hover continua vinho/verde-escuro.
+   Componente React: app/src/components/ui/botao-contorno.tsx. */
+.btn-contorno {
+  --cor: var(--shinatal-verde-escuro);
+  --cor-borda: var(--shinatal-verde-escuro);
+  --preench: var(--shinatal-verde-escuro);
+  --brilho: rgba(14, 59, 46, 0.45);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0.7rem 1.6rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--cor-borda);
+  color: var(--cor);
+  background: transparent;
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.45s cubic-bezier(0.16, 0.84, 0.32, 1),
+    transform 0.2s ease;
+}
+.btn-contorno::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--preench);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.55s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.btn-contorno:hover,
+.btn-contorno:focus-visible {
+  color: #fff;
+  border-color: var(--preench);
+  box-shadow: 0 10px 28px -10px var(--brilho), 0 0 24px -4px var(--brilho);
+}
+.btn-contorno:hover::before,
+.btn-contorno:focus-visible::before { transform: scaleX(1); }
+.btn-contorno:focus-visible { outline: 2px solid var(--cor-borda); outline-offset: 3px; }
+.btn-contorno:active { transform: scale(0.98); transition-duration: 0.08s; }
+.btn-contorno-icone,
+.btn-contorno-seta {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  transition: transform 0.45s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.btn-contorno-seta { width: 1rem; height: 1rem; margin-right: -0.2rem; }
+.btn-contorno:hover .btn-contorno-seta,
+.btn-contorno:focus-visible .btn-contorno-seta { transform: translate(2px, -2px); }
+.btn-contorno--compacto { min-height: 2.25rem; padding: 0.45rem 1.05rem; font-size: 0.8125rem; gap: 0.4rem; }
+.btn-contorno--compacto .btn-contorno-seta { width: 0.875rem; height: 0.875rem; }
+
+/* Tons (fundo claro: cabeçalho bege, seções neve, rodapé bege) */
+.btn-contorno--vinho {
+  --cor: var(--shinatal-red);
+  --cor-borda: var(--shinatal-red);
+  --preench: var(--shinatal-red);
+  --brilho: rgba(110, 36, 48, 0.45);
+}
+.btn-contorno--verde {
+  --cor: var(--shinatal-verde-escuro);
+  --cor-borda: var(--shinatal-verde-escuro);
+  --preench: var(--shinatal-verde-escuro);
+  --brilho: rgba(14, 59, 46, 0.45);
+}
+/* Fundo escuro: texto branco; o contorno continua vinho e verde-escuro. */
+:is(.secao-hero-video, .header-flutuante.header-transparente) .btn-contorno--vinho {
+  --cor: #fff;
+  --cor-borda: var(--shinatal-red);
+  --brilho: rgba(217, 138, 151, 0.45);
+}
+:is(.secao-hero-video, .header-flutuante.header-transparente) .btn-contorno--verde {
+  --cor: #fff;
+  --cor-borda: var(--shinatal-verde-escuro);
+  --brilho: rgba(127, 192, 164, 0.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-contorno::before { transition: none; }
+  .btn-contorno:hover .btn-contorno-seta { transform: none; }
+}
+@media (forced-colors: active) {
+  .btn-contorno { border: 1px solid ButtonText; }
+  .btn-contorno::before { display: none; }
+}
+
+/* ---------- Página inicial (React) ---------- */
+/* Fio nas três cores do Natal (vermelho, dourado, pinheiro), em partes iguais. Detalhe dos
+   rótulos de seção. */
+.fio-natal {
+  display: block;
+  background: linear-gradient(90deg, var(--natal-vermelho) 0 33.3%, var(--natal-dourado) 33.3% 66.6%, var(--natal-pinheiro) 66.6% 100%);
+}
+/* Links do cabeçalho em mono, maiúsculas espaçadas. */
+.nav-link-tecnico {
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+/* Ícone do botão "Pausar animações": acessibilidade.js troca o aria-pressed. */
+.botao-movimento[aria-pressed="true"] .icone-pausar,
+.botao-movimento:not([aria-pressed="true"]) .icone-retomar { display: none; }
+/* Luz que segue o cursor no card do Fundo (posição posta pelo Hero.tsx em --mx/--my). */
+#card-fundo { --mx: 50%; --my: 30%; }
+#card-fundo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(420px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.45), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+#card-fundo:hover::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  #card-fundo::after { display: none; }
 }
 /* Link discreto sobre fundo escuro: dourado claro com sublinhado que se desenha no hover. */
 .link-claro {
@@ -1486,12 +1633,6 @@ caption.sr-only { caption-side: top; }
 /* Quem pede menos movimento já recebe tudo parado — não há o que pausar. */
 @media (prefers-reduced-motion: reduce) { .botao-movimento { display: none; } }
 
-/* Splash: com movimento reduzido as letras aparecem fixas (a animação terminava em opacity 0). */
-@media (prefers-reduced-motion: reduce) {
-  .tela-carregamento-letra { opacity: 1; animation: none !important; }
-  .tela-carregamento-glow::before { animation: none !important; opacity: 0; }
-}
-
 /* Safe-area para dock inferior em iOS */
 .pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
 
@@ -1501,14 +1642,14 @@ caption.sr-only { caption-side: top; }
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: #EFE8D6;
+  background: #ECEAE4;
   border-radius: 0.5rem;
 }
 .skeleton::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 0%, #F7F2E6 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, #F6F5F1 50%, transparent 100%);
   transform: translateX(-100%);
   animation: skeleton-loading 1.4s ease infinite;
 }
@@ -1519,7 +1660,10 @@ caption.sr-only { caption-side: top; }
   .skeleton::after { animation: none; display: none; }
 }
 
-/* ---------- Tela de carregamento (splash de entrada, todas as páginas) ---------- */
+/* ---------- Tela de carregamento (todas as páginas) ----------
+   Minimalista: creme, grade fina dourada recortada em círculo, logo, um fio de progresso e um
+   rótulo em mono (montados por js/tela-carregamento.js). Sai como uma cortina subindo
+   (clip-path). Só opacity, transform e clip-path animam. */
 .tela-carregamento {
   position: fixed;
   inset: 0;
@@ -1528,83 +1672,73 @@ caption.sr-only { caption-side: top; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.75rem;
+  gap: 1.5rem;
   background: var(--shinatal-bg);
-  transition: opacity 0.28s ease;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.8s cubic-bezier(0.76, 0, 0.24, 1);
 }
-.tela-carregamento.tela-carregamento-oculta {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.tela-carregamento-logo {
-  width: 8.5rem;
-  height: auto;
-  animation: entrada-texto 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.tela-carregamento-texto {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 60px;
-}
-.tela-carregamento-letra {
-  position: relative;
-  display: inline-block;
-  font-family: "Playfair Display", serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 0.02em;
-  color: var(--shinatal-verde-escuro);
-  /* Brilho fixo: só opacity/transform animam (na GPU). Animar text-shadow repintava cada letra
-     na thread principal a cada quadro. */
-  text-shadow: 0 0 8px color-mix(in srgb, var(--shinatal-gold) 55%, transparent);
-  opacity: 0;
-  animation: carregamento-letra 2.2s ease-in-out infinite;
-}
-
-/* Camada de "barras percorridas": uma máscara de listras verticais finas (repeating-linear-
-   gradient) recorta um anel de cor vermelho/verde/dourado que varre da esquerda pra direita e
-   pulsa em opacidade — as cores só ficam visíveis através das frestas das barras. */
-.tela-carregamento-glow {
-  position: absolute;
-  inset: -50px -90px;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-  -webkit-mask-image: repeating-linear-gradient(90deg, transparent 0, transparent 6px, black 7px, black 8px);
-  mask-image: repeating-linear-gradient(90deg, transparent 0, transparent 6px, black 7px, black 8px);
-}
-.tela-carregamento-glow::before {
+.tela-carregamento::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 50% 30%, var(--shinatal-gold) 0%, transparent 40%),
-    radial-gradient(circle at 30% 66%, var(--shinatal-red) 0%, transparent 40%),
-    radial-gradient(circle at 70% 66%, var(--shinatal-verde-escuro) 0%, transparent 40%);
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, black 30%);
-  mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, black 30%);
-  animation: carregamento-glow-mov 2s cubic-bezier(0.6, 0.8, 0.5, 1) infinite alternate,
-             carregamento-glow-fade 4s infinite;
+    linear-gradient(rgba(201, 160, 72, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201, 160, 72, 0.09) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(circle at center, #000 0%, transparent 62%);
+  mask-image: radial-gradient(circle at center, #000 0%, transparent 62%);
+  pointer-events: none;
 }
-
-@keyframes carregamento-letra {
-  0% { opacity: 0; transform: translateY(2px); }
-  12% { opacity: 1; transform: translateY(0) scale(1.08); }
-  35% { opacity: 0.35; transform: scale(1); }
-  100% { opacity: 0; }
+.tela-carregamento.tela-carregamento-oculta {
+  clip-path: inset(0 0 100% 0);
+  pointer-events: none;
 }
-@keyframes carregamento-glow-mov {
-  0% { transform: translateX(-55%); }
-  100% { transform: translateX(55%); }
+.tela-carregamento-logo {
+  position: relative;
+  width: 9rem;
+  height: auto;
+  animation: entrada-texto 0.7s cubic-bezier(0.16, 0.84, 0.32, 1) both;
 }
-@keyframes carregamento-glow-fade {
-  0%, 100% { opacity: 0; }
-  15% { opacity: 1; }
-  65% { opacity: 0; }
+.tela-carregamento-texto {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+.tela-carregamento-fio {
+  position: relative;
+  display: block;
+  width: 8rem;
+  height: 1px;
+  overflow: hidden;
+  background: rgba(201, 160, 72, 0.22);
+}
+.tela-carregamento-fio::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--shinatal-gold), var(--shinatal-red));
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: carregamento-progresso 0.9s cubic-bezier(0.16, 0.84, 0.32, 1) 0.1s forwards;
+}
+.tela-carregamento-rotulo {
+  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--shinatal-ouro-texto);
+  opacity: 0;
+  animation: entrada-texto 0.6s cubic-bezier(0.16, 0.84, 0.32, 1) 0.2s forwards;
+}
+@keyframes carregamento-progresso { to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .tela-carregamento { transition: none; }
+  .tela-carregamento-fio::after { animation: none; transform: scaleX(1); }
+  .tela-carregamento-rotulo { animation: none; opacity: 1; }
 }
 
 /* ==================================================================
@@ -1612,13 +1746,13 @@ caption.sr-only { caption-side: top; }
    ================================================================== */
 
 /* ---------- Cabeçalho da página ----------
-   Faixa em degradê verde-noite → verde, com migalha, título em Playfair e ações. O fio dourado
+   Faixa em degradê verde-noite → verde, com migalha, título em Space Grotesk e ações. O fio dourado
    embaixo liga com o do cabeçalho fixo. Texto creme/branco: 12:1 ou mais. */
 .cabecalho-pagina {
   position: relative;
   background: var(--gradiente-verde);
   color: #fff;
-  box-shadow: inset 0 -1px 0 rgba(176, 141, 47, 0.55);
+  box-shadow: inset 0 -1px 0 rgba(201, 160, 72, 0.55);
   overflow: hidden;
 }
 /* Textura discreta: trama de pontos a 6%, dá matéria à faixa sem competir com o texto. */
@@ -1626,17 +1760,17 @@ caption.sr-only { caption-side: top; }
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(250, 246, 238, 0.06) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(247, 246, 242, 0.06) 1px, transparent 1px);
   background-size: 18px 18px;
   pointer-events: none;
 }
 .cabecalho-pagina > * { position: relative; }
-.migalha { font-size: 0.8125rem; color: rgba(250, 246, 238, 0.72); }
-.migalha a { color: rgba(250, 246, 238, 0.86); }
+.migalha { font-size: 0.8125rem; color: rgba(247, 246, 242, 0.72); }
+.migalha a { color: rgba(247, 246, 242, 0.86); }
 .migalha a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .migalha-separador { margin: 0 0.4rem; color: rgba(232, 217, 174, 0.7); }
 .cabecalho-pagina h1 { color: #fff; }
-.cabecalho-pagina-descricao { color: rgba(250, 246, 238, 0.8); }
+.cabecalho-pagina-descricao { color: rgba(247, 246, 242, 0.8); }
 .cabecalho-pagina .btn-fantasma { background: rgba(255, 255, 255, 0.08); border-color: rgba(232, 217, 174, 0.55); color: #fff; }
 .cabecalho-pagina .btn-fantasma:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); border-color: var(--shinatal-gold-soft); }
 .cabecalho-pagina :where(a, button):focus-visible { outline-color: var(--shinatal-gold-soft); }
@@ -1687,7 +1821,7 @@ caption.sr-only { caption-side: top; }
 }
 .secao-entrando { animation: secao-entrada 0.22s cubic-bezier(0.2, 0, 0, 1) both; }
 .titulo-secao {
-  font-family: "Playfair Display", serif;
+  font-family: "Space Grotesk", "Inter", sans-serif;
   font-weight: 700;
   font-size: 1.375rem;
   line-height: 1.3;
@@ -1706,7 +1840,7 @@ caption.sr-only { caption-side: top; }
 }
 .stat-rotulo { font-size: 0.8125rem; color: var(--shinatal-ink-muted); }
 .stat-valor {
-  font-family: "Playfair Display", serif;
+  font-family: "Space Grotesk", "Inter", sans-serif;
   font-weight: 700;
   font-size: 1.75rem;
   line-height: 1.2;
@@ -1763,7 +1897,7 @@ caption.sr-only { caption-side: top; }
 .badge-sucesso { background: #E7F0EA; color: #1F5A43; border-color: #CFE0D5; }
 .badge-atencao { background: #FBF1DA; color: #6E5418; border-color: #EEDDB2; }
 .badge-perigo { background: #F7E6E8; color: #6E2430; border-color: #EDCDD1; }
-.badge-neutro { background: #F3EEE2; color: #4F473A; border-color: #E4DCC8; }
+.badge-neutro { background: #F1F0EB; color: #4F473A; border-color: #E4E1D8; }
 .badge-info { background: #E9EEF0; color: #2F4A55; border-color: #D3DDE1; }
 .badge-sem-ponto::before { display: none; }
 
@@ -1836,7 +1970,7 @@ caption.sr-only { caption-side: top; }
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--shinatal-ink-muted);
-  background: rgba(250, 246, 238, 0.94);
+  background: rgba(247, 246, 242, 0.94);
   border-bottom: 1px solid var(--shinatal-borda);
 }
 .icone-acao {
@@ -1857,7 +1991,7 @@ caption.sr-only { caption-side: top; }
   border-radius: 9999px;
   overflow: hidden;
   flex-shrink: 0;
-  font-family: "Playfair Display", serif;
+  font-family: "Space Grotesk", "Inter", sans-serif;
   font-weight: 700;
   color: var(--shinatal-primary);
   background: linear-gradient(160deg, #EAF1EC 0%, #D6E3D9 100%);
