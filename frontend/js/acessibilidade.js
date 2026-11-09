@@ -228,14 +228,17 @@ function iniciarMenus() {
   document.querySelectorAll("[data-menu-alternar]").forEach((botao) => {
     const painel = document.getElementById(botao.getAttribute("aria-controls"));
     if (!painel) return;
-    const rotuloFechado = botao.textContent.trim();
+    const rotulo = botao.querySelector("[data-menu-rotulo]");
+    const icone = botao.querySelector(".material-symbols-outlined");
+    const rotuloFechado = (rotulo || botao).textContent.trim();
     const definir = (aberto) => {
       painel.hidden = !aberto;
       botao.setAttribute("aria-expanded", String(aberto));
-      botao.textContent = aberto ? "Fechar" : rotuloFechado;
+      (rotulo || botao).textContent = aberto ? "Fechar" : rotuloFechado;
+      if (icone) icone.textContent = aberto ? "close" : "menu";
     };
     botao.addEventListener("click", () => definir(painel.hidden));
-    painel.addEventListener("click", (e) => { if (e.target.closest("a")) definir(false); });
+    painel.addEventListener("click", (e) => { if (e.target.closest("a, button")) definir(false); });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !painel.hidden) { definir(false); botao.focus(); }
     });

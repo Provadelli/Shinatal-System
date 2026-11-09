@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:css && tsc --noEmit && vite build",
+    "build": "npm run layout && npm run build:css && tsc --noEmit && vite build",
     "preview": "vite preview",
     "build:css": "tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --minify",
     "watch:css": "tailwindcss -i ./frontend/css/tailwind-input.css -o ./frontend/css/tailwind.css --watch",

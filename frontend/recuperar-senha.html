@@ -4,130 +4,132 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Shinatal — Recuperar senha</title>
-<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
-<link rel="stylesheet" href="css/fontes.css" />
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
+<link rel="stylesheet" href="/css/fontes.css" />
 <!-- fontes:fim -->
-<link rel="stylesheet" href="css/tailwind.css" />
+<link rel="stylesheet" href="/css/tailwind.css" />
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<link rel="stylesheet" href="css/styles.css" />
-<script type="module" src="js/perf-adaptativo.js"></script>
-<script type="module" src="js/acessibilidade.js"></script>
+<link rel="stylesheet" href="/css/styles.css" />
+<script type="module" src="/js/perf-adaptativo.js"></script>
+<script type="module" src="/js/acessibilidade.js"></script>
 </head>
-<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+<body class="fundo-sistema min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
 
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
-<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
-  <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
-  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
-    <span class="tela-carregamento-glow" aria-hidden="true"></span>
-  </div>
-</div>
-<script src="js/tela-carregamento.js"></script>
-
-<div id="bg-pao-acucar" aria-hidden="true"></div>
-
-<header class="header-flutuante">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop min-h-12 md:min-h-14 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5">
-      <span class="flex flex-col items-start leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-7 md:h-8 w-auto" />
-        <span class="font-body text-[9px] md:text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
+<!-- cabecalho:inicio -->
+<nav aria-label="Principal" class="header-flutuante header-home hidden md:flex">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-2.5 shrink-0">
+      <span class="flex flex-col items-start leading-none gap-1">
+        <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal, página inicial" class="logo-vermelho h-8 w-auto" fetchpriority="high" />
+        <span class="font-mono text-[9px] uppercase tracking-[0.22em] text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
-    <a href="/login" class="btn-fantasma !border-0 !py-2 !px-3 flex items-center gap-1.5 text-sm">
-      <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
-      <span class="sr-only sm:not-sr-only">Login</span>
-    </a>
+
+    <div class="flex-1 min-w-0 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 lg:gap-x-9">
+      <a href="/#sobre-nos" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Quem somos</a>
+      <a href="/#sobre-shinatal" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Sobre</a>
+      <a href="/#como-funciona" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Como funciona</a>
+      <a href="/#nossos-valores" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Valores</a>
+    </div>
+
+    <div class="flex items-center gap-2.5 shrink-0">
+      <a href="/login" class="btn-contorno btn-contorno--verde btn-contorno--compacto">Login</a>
+      <a href="/cadastro" class="btn-contorno btn-contorno--vinho btn-contorno--compacto">Cadastro<svg class="btn-contorno-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+    </div>
   </div>
+</nav>
+
+<header class="header-flutuante header-home md:hidden">
+  <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-3">
+    <a href="/" class="flex items-center gap-2.5 shrink-0">
+      <span class="flex flex-col items-start leading-none gap-1">
+        <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal, página inicial" class="logo-vermelho h-7 w-auto" fetchpriority="high" />
+        <span class="font-mono text-[8px] uppercase tracking-[0.22em] text-on-surface-variant">Shine Rio Group</span>
+      </span>
+    </a>
+
+    <div class="flex items-center gap-1.5 shrink-0">
+      <a href="/login" class="btn-contorno btn-contorno--verde btn-contorno--compacto">Entrar</a>
+      <a href="/cadastro" class="btn-contorno btn-contorno--vinho btn-contorno--compacto">Cadastro<svg class="btn-contorno-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+      <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-celular" class="btn-fantasma !border-0 !py-1.5 !px-2.5 text-sm">Menu</button>
+    </div>
+  </div>
+  <nav id="menu-celular" aria-label="Principal" class="menu-celular" hidden>
+    <a href="/#sobre-nos">Quem somos</a>
+    <a href="/#sobre-shinatal">Sobre</a>
+    <a href="/#como-funciona">Como funciona</a>
+    <a href="/#nossos-valores">Valores</a>
+  </nav>
 </header>
+<!-- cabecalho:fim -->
 
-<div class="flex-1 w-full flex items-center justify-center py-8 px-margin-mobile md:px-margin-desktop">
-<main id="conteudo" class="w-full max-w-md relative z-10" tabindex="-1">
-  <div class="relative w-full">
-    <div class="barra-shinatal-topo anim-barra-shinatal" aria-hidden="true">
-      <div class="barra-shinatal-pista">
-        <ul class="barra-shinatal-grupo">
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Página inicial</li>
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Login</li>
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Cadastro</li>
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Privacidade</li>
-        </ul>
-        <ul class="barra-shinatal-grupo">
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Página inicial</li>
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Login</li>
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Cadastro</li>
-          <li class="barra-shinatal-marca">Shinatal</li><li class="barra-shinatal-item">Privacidade</li>
-        </ul>
-      </div>
-    </div>
-  <div class="glass-card-active rounded-xl p-6 sm:p-8 relative overflow-hidden anim-subida-cartao">
-    <div class="absolute -top-6 -right-6 w-28 h-28 bg-primary/15 rounded-full blur-2xl pointer-events-none"></div>
+<div class="acesso flex-1 w-full">
+<main id="conteudo" class="acesso-grade relative z-10" tabindex="-1">
 
-    <div class="flex flex-col items-center text-center mb-6 relative">
-      <span class="material-symbols-outlined text-4xl text-christmas-red mb-1" aria-hidden="true">mail_lock</span>
-      <h1 class="font-display text-headline-md text-primary">Recuperar senha</h1>
-      <p class="font-body text-body-md text-on-surface-variant mt-1">
-        Informe seu e-mail institucional. Enviaremos um link para você criar uma nova senha.
+  <aside class="acesso-marca" aria-label="Sobre a recuperação de senha">
+    <div class="acesso-marca-imagem" aria-hidden="true"></div>
+    <div class="grade-tecnica" aria-hidden="true"></div>
+    <div class="space-y-6">
+      <p class="rotulo rotulo--claro"><span class="rotulo-numero" aria-hidden="true">01</span><span class="fio-natal" aria-hidden="true"></span><span>Conta segura</span></p>
+      <p class="acesso-marca-titulo">
+        <span class="acesso-linha"><span class="titulo-brilho">Uma nova senha</span></span>
+        <span class="acesso-linha"><span>em minutos.</span></span>
       </p>
+      <p class="acesso-marca-texto">O link chega no seu e-mail institucional e só funciona uma vez. Ninguém da equipe vê ou define a sua senha.</p>
     </div>
+    <ul class="acesso-marca-lista entrada-cascata">
+      <li><span class="material-symbols-outlined" aria-hidden="true">mail</span>Link enviado para o e-mail cadastrado</li>
+      <li><span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>Você escolhe a nova senha</li>
+      <li><span class="material-symbols-outlined" aria-hidden="true">verified_user</span>Sem senha padrão compartilhada</li>
+    </ul>
+    <div class="acesso-marca-rodape" aria-hidden="true"><span>Shine Rio Group</span><span>Rio de Janeiro</span></div>
+  </aside>
 
-    <form id="form-recuperar" class="space-y-5 relative" novalidate>
+  <section class="acesso-cartao" aria-labelledby="titulo-acesso">
+    <p class="rotulo mb-5"><span class="rotulo-numero" aria-hidden="true">02</span><span class="fio-natal" aria-hidden="true"></span><span>Recuperar senha</span></p>
+    <h1 id="titulo-acesso" class="acesso-titulo">Esqueceu a senha?</h1>
+    <p class="acesso-subtitulo mt-2 mb-8">Informe seu e-mail institucional. Enviaremos um link para você criar uma nova senha.</p>
+
+    <form id="form-recuperar" class="space-y-5 entrada-cascata" novalidate>
       <div>
         <label class="label-shinatal" for="email">E-mail institucional</label>
         <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-xl" aria-hidden="true">mail</span>
+          <span class="material-symbols-outlined campo-icone" aria-hidden="true">mail</span>
           <input class="input-shinatal" id="email" name="email" type="email" autocomplete="username" placeholder="nome@shinerio.com" required />
         </div>
       </div>
 
-      <div id="turnstile-recuperar" class="flex justify-center"></div>
+      <div id="turnstile-recuperar" class="flex justify-center empty:hidden"></div>
 
-      <button type="submit" id="btn-enviar" class="btn-primario w-full flex items-center justify-center gap-2">
+      <button type="submit" id="btn-enviar" class="btn-contorno btn-contorno--vinho w-full">
         <span id="btn-enviar-texto">Enviar link de redefinição</span>
         <span id="btn-enviar-spinner" class="hidden animate-spin material-symbols-outlined text-lg" aria-hidden="true">progress_activity</span>
       </button>
     </form>
 
-    <div id="bloco-sucesso" class="hidden relative flex flex-col items-center text-center gap-3 py-2">
-      <span class="material-symbols-outlined text-5xl text-secondary" aria-hidden="true">mark_email_read</span>
-      <h2 class="font-display text-headline-md text-on-surface">Link enviado!</h2>
-      <p class="font-body text-body-md text-on-surface-variant">
-        Verifique a caixa de entrada (e o spam) do e-mail informado e siga o link para criar
-        uma nova senha.
-      </p>
+    <div id="bloco-sucesso" class="hidden flex-col items-center text-center gap-3 py-4" role="status">
+      <span class="material-symbols-outlined estado-sucesso-icone" aria-hidden="true">mark_email_read</span>
+      <h2 class="font-display text-headline-md text-on-surface">Link enviado</h2>
+      <p class="acesso-subtitulo">Confira a caixa de entrada (e o spam) do e-mail informado e siga o link para criar uma nova senha.</p>
     </div>
 
-    <div class="mt-6 text-center border-t border-outline-variant/30 pt-5 relative">
-      <a href="/login" class="font-body text-label-sm text-primary hover:underline inline-flex items-center gap-1">
-        <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span> Voltar para o login
+    <p class="mt-8 text-center">
+      <a href="/login" class="link-acesso text-label-md inline-flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>Voltar para o login
       </a>
-    </div>
-  </div>
-  </div>
+    </p>
+  </section>
 </main>
 </div>
 
 <!-- rodape:inicio -->
-<footer class="rodape-compacto">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop rodape-compacto-linha">
-    <a href="/" class="inline-flex items-center gap-2.5" aria-label="Shinatal, página inicial">
-      <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" class="h-6 w-auto logo-vermelho" loading="lazy" />
-      <span>© 2026 Shine Rio Group</span>
-    </a>
-    <nav aria-label="Institucional" class="rodape-compacto-links">
-      <a href="/termos" class="rodape-link">Termos de Uso</a>
-      <a href="/privacidade" class="rodape-link">Privacidade</a>
-      <a href="https://wa.me/552135400693" target="_blank" rel="noopener" class="rodape-link">Fale com a Shine Rio</a>
-    </nav>
-    <p class="rodape-versao">Shinatal v2.1 · atualizado em 09/11/2026</p>
-  </div>
-</footer>
 <!-- rodape:fim -->
 
-<script type="module" src="js/pagina-recuperar-senha.js"></script>
+<script type="module" src="/js/pagina-recuperar-senha.js"></script>
 </body>
 </html>

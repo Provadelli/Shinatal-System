@@ -53,5 +53,5 @@ form.addEventListener("submit", async (e) => {
   }
 
   form.classList.add("hidden");
-  document.getElementById("bloco-sucesso").classList.remove("hidden");
+  document.getElementById("bloco-sucesso").classList.replace("hidden", "flex");
 });

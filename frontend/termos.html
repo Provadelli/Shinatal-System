@@ -5,45 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Shinatal — Termos de Uso</title>
 <meta name="description" content="Termos de Uso do Shinatal, o sistema do programa de premiação de fim de ano da Shine Rio." />
-<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
-<link rel="stylesheet" href="css/fontes.css" />
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
+<link rel="stylesheet" href="/css/fontes.css" />
 <!-- fontes:fim -->
-<link rel="stylesheet" href="css/tailwind.css" />
-<link rel="stylesheet" href="css/styles.css" />
-<script type="module" src="js/perf-adaptativo.js"></script>
-<script type="module" src="js/acessibilidade.js"></script>
+<link rel="stylesheet" href="/css/tailwind.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script type="module" src="/js/perf-adaptativo.js"></script>
+<script type="module" src="/js/acessibilidade.js"></script>
 </head>
-<body class="gradient-natalino min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+<body class="fundo-sistema min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
 
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
-<div id="tela-carregamento" class="tela-carregamento" role="status" aria-label="Carregando">
-  <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
-  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
-    <span class="tela-carregamento-glow" aria-hidden="true"></span>
-  </div>
-</div>
-<script src="js/tela-carregamento.js"></script>
-
-<div id="bg-pao-acucar" aria-hidden="true"></div>
-
-<header class="header-flutuante">
-  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop min-h-12 md:min-h-14 flex items-center justify-between gap-4">
-    <a href="/" class="flex items-center gap-2.5">
-      <span class="flex flex-col items-start leading-none gap-0.5">
-        <img src="assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal — página inicial" class="logo-vermelho h-7 md:h-8 w-auto" />
-        <span class="font-body text-[9px] md:text-[10px] uppercase tracking-widest text-on-surface-variant">Shine Rio Group</span>
+<!-- cabecalho:inicio -->
+<nav aria-label="Principal" class="header-flutuante header-home hidden md:flex">
+  <div class="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-2.5 shrink-0">
+      <span class="flex flex-col items-start leading-none gap-1">
+        <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal, página inicial" class="logo-vermelho h-8 w-auto" fetchpriority="high" />
+        <span class="font-mono text-[9px] uppercase tracking-[0.22em] text-on-surface-variant">Shine Rio Group</span>
       </span>
     </a>
-    <a href="/" class="btn-fantasma !border-0 !py-2 !px-3 flex items-center gap-1.5 text-sm">
-      <span class="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
-      <span class="sr-only sm:not-sr-only">Página inicial</span>
-    </a>
+
+    <div class="flex-1 min-w-0 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 lg:gap-x-9">
+      <a href="/#sobre-nos" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Quem somos</a>
+      <a href="/#sobre-shinatal" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Sobre</a>
+      <a href="/#como-funciona" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Como funciona</a>
+      <a href="/#nossos-valores" class="nav-link nav-link-tecnico py-1 whitespace-nowrap shrink-0">Valores</a>
+    </div>
+
+    <div class="flex items-center gap-2.5 shrink-0">
+      <a href="/login" class="btn-contorno btn-contorno--verde btn-contorno--compacto">Login</a>
+      <a href="/cadastro" class="btn-contorno btn-contorno--vinho btn-contorno--compacto">Cadastro<svg class="btn-contorno-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+    </div>
   </div>
+</nav>
+
+<header class="header-flutuante header-home md:hidden">
+  <div class="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-3">
+    <a href="/" class="flex items-center gap-2.5 shrink-0">
+      <span class="flex flex-col items-start leading-none gap-1">
+        <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="Shinatal, página inicial" class="logo-vermelho h-7 w-auto" fetchpriority="high" />
+        <span class="font-mono text-[8px] uppercase tracking-[0.22em] text-on-surface-variant">Shine Rio Group</span>
+      </span>
+    </a>
+
+    <div class="flex items-center gap-1.5 shrink-0">
+      <a href="/login" class="btn-contorno btn-contorno--verde btn-contorno--compacto">Entrar</a>
+      <a href="/cadastro" class="btn-contorno btn-contorno--vinho btn-contorno--compacto">Cadastro<svg class="btn-contorno-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
+      <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-celular" class="btn-fantasma !border-0 !py-1.5 !px-2.5 text-sm">Menu</button>
+    </div>
+  </div>
+  <nav id="menu-celular" aria-label="Principal" class="menu-celular" hidden>
+    <a href="/#sobre-nos">Quem somos</a>
+    <a href="/#sobre-shinatal">Sobre</a>
+    <a href="/#como-funciona">Como funciona</a>
+    <a href="/#nossos-valores">Valores</a>
+  </nav>
 </header>
+<!-- cabecalho:fim -->
 
 <div class="flex-1 w-full py-10 px-margin-mobile md:px-margin-desktop">
 <main id="conteudo" class="w-full max-w-3xl mx-auto relative z-10" tabindex="-1">
@@ -215,12 +238,12 @@
 
     <div class="rodape-base">
       <p>© 2026 Shine Rio Group. Todos os direitos reservados.</p>
-      <p class="rodape-versao font-mono">Shinatal v2.1 · atualizado em 09/11/2026</p>
+      <p class="rodape-versao font-mono">Shinatal v3.0 · atualizado em 09/11/2026</p>
     </div>
   </div>
 </footer>
 <!-- rodape:fim -->
 
-<script type="module" src="js/pagina-estatica.js"></script>
+<script type="module" src="/js/pagina-estatica.js"></script>
 </body>
 </html>

@@ -31,20 +31,9 @@ const PODE_VER_PERFIL = () => ["dp", "rh", "admin", "presidente"].includes(perfi
 const perfil = await exigirAutenticacao(["admin", "dp", "rh", "presidente"]);
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
-document.getElementById("nome-desktop").textContent = (perfil.nome || perfil.email || "").split(" ")[0] || "—";
-document.getElementById("badge-role").innerHTML =
-  `<span class="material-symbols-outlined text-base" aria-hidden="true">shield_person</span> ${ROTULOS_ROLE[perfil.role] || perfil.role}`;
-const avatarHtml = construirAvatarHTML(perfil);
-document.getElementById("avatar-desktop").innerHTML = avatarHtml;
-preencherAvatarLink(document.getElementById("avatar-mobile"), perfil);
 document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
 sincronizarDiretorio(perfil); // não faz nada para o Presidente (não participa da função)
 
-// Declaradas aqui (e não junto do resto da lógica de Conduta, mais abaixo no arquivo) porque
-// `renderTudo()` já é chamado dentro do try/catch logo a seguir — um `let` só entra em vigor a
-// partir da linha em que é declarado, então precisa vir antes do primeiro uso.
-let condutaAtiva = false;
-let condutaMeusVotos = {};
 
 const state = {
   usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {}, estatisticasPublico: {},
@@ -69,12 +58,10 @@ try {
   mostrarToast("Não foi possível carregar todos os dados. Alguns números podem estar desatualizados.", "erro");
 }
 
-// Deep link de /contratos: os botões "Atividade"/"Solicitações" do header de lá levam pra cá
-// com ?abrir=log|solicitacoes, já abrindo o modal certo — evita duplicar essas telas em contratos.js.
+// Links antigos (/gestao?abrir=log|solicitacoes) agora levam às páginas próprias.
 const abrirViaQuery = new URLSearchParams(location.search).get("abrir");
-if (abrirViaQuery === "log" && EH_ADMIN_OU_PRESIDENTE()) abrirModal("modal-log");
-else if (abrirViaQuery === "solicitacoes" && EH_PRESIDENTE()) abrirModal("modal-solicitacoes");
-if (abrirViaQuery) history.replaceState(null, "", "/gestao");
+if (abrirViaQuery === "log") location.replace("/atividade");
+else if (abrirViaQuery === "solicitacoes") location.replace("/solicitacoes");
 
 /* ------------------------------------------------------------------ */
 /* Carregamento                                                        */
@@ -138,7 +125,7 @@ function renderTudo() {
   renderContratosResumo();
   popularSelects();
   filtrarAcoesPorRole();
-  renderModalConduta(); // mantém a aba Conduta em dia sempre que state.usuarios mudar
+
 }
 
 function renderFundoCard() {
@@ -300,18 +287,8 @@ function filtrarAcoesPorRole() {
   const primeiraPermitida = [...document.querySelectorAll("#acao-tipo option")].find((o) => !o.disabled);
   if (primeiraPermitida) document.getElementById("acao-tipo").value = primeiraPermitida.value;
 
-  // Log de atividade — só o Admin (e o Presidente, que enxerga tudo que o Admin enxerga).
+  // "Novo colaborador": só Admin/Presidente.
   const vePrivilegiado = EH_ADMIN_OU_PRESIDENTE();
-  document.getElementById("nav-log-desktop").classList.toggle("hidden", !vePrivilegiado);
-  document.getElementById("nav-log-mobile").classList.toggle("hidden", !vePrivilegiado);
-
-  // Solicitações — aba exclusiva do Presidente.
-  document.getElementById("nav-solicitacoes-desktop").classList.toggle("hidden", !EH_PRESIDENTE());
-  document.getElementById("nav-solicitacoes-mobile").classList.toggle("hidden", !EH_PRESIDENTE());
-
-  // Aba/página Contratos, e "Novo colaborador" — só Admin/Presidente (DP/RH perderam acesso).
-  document.getElementById("nav-contratos-desktop").classList.toggle("hidden", !vePrivilegiado);
-  document.getElementById("nav-contratos-mobile").classList.toggle("hidden", !vePrivilegiado);
   const btnNovoColaborador = document.getElementById("btn-novo-colaborador");
   btnNovoColaborador.classList.toggle("hidden", !vePrivilegiado);
   btnNovoColaborador.classList.toggle("flex", vePrivilegiado);
@@ -579,296 +556,6 @@ async function registrarLog(tipo, descricao, alvoUid = null, alvoNome = null) {
     console.error("[Shinatal] Falha ao registrar log:", erro);
   }
 }
-
-if (EH_ADMIN_OU_PRESIDENTE()) {
-  const qLog = query(collection(db, "logs"), orderBy("criadoEm", "desc"), limit(100));
-  onSnapshot(qLog, debounce((snap) => {
-    const lista = document.getElementById("lista-log");
-    if (!snap.size) {
-      lista.innerHTML = `<li class="text-center py-6">Nenhuma ação registrada ainda.</li>`;
-      return;
-    }
-    lista.innerHTML = snap.docs.map((d) => {
-      const l = d.data();
-      return `
-        <li class="flex justify-between items-start gap-3 border-b border-outline-variant/20 pb-2">
-          <div>
-            <p class="text-on-surface font-medium">${escaparHTML(l.descricao || l.tipo)}</p>
-            <p class="text-label-sm">${escaparHTML(l.operadorNome) || "—"}${l.alvoNome ? " → " + escaparHTML(l.alvoNome) : ""}</p>
-          </div>
-          <span class="text-label-sm whitespace-nowrap">${l.criadoEm ? formatarDataHora(l.criadoEm) : "—"}</span>
-        </li>`;
-    }).join("");
-  }, 150));
-
-  document.getElementById("btn-excluir-log").addEventListener("click", async () => {
-    const ok = await confirmarAcao({
-      titulo: "Excluir todo o log de atividade",
-      mensagem: "Isso apaga PERMANENTEMENTE todo o histórico de ações registradas (faltas, atrasos, advertências, avaliações, papéis, colaboradores). Esta ação não pode ser desfeita.",
-      textoConfirmar: "Excluir tudo",
-      perigo: true
-    });
-    if (!ok) return;
-    try {
-      const snap = await getDocs(collection(db, "logs"));
-      const docs = snap.docs;
-      for (let i = 0; i < docs.length; i += 450) {
-        const lote = writeBatch(db);
-        docs.slice(i, i + 450).forEach((d) => lote.delete(d.ref));
-        await lote.commit();
-      }
-      // Registrado DEPOIS de excluir — vira a primeira entrada do log novo, preservando quem/quando limpou.
-      await registrarLog("log_limpo", `Log de atividade excluído (${docs.length} registro(s) removido(s))`);
-      mostrarToast("Log de atividade excluído.", "sucesso");
-    } catch (erro) {
-      console.error("[Shinatal] Falha ao excluir o log:", erro);
-      mostrarToast("Não foi possível excluir o log.", "erro");
-    }
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Solicitações — fila de aprovação (só o Presidente vê/decide)        */
-/* ------------------------------------------------------------------ */
-
-const ROTULOS_SOLICITACAO = {
-  avaliacao: "Avaliação de desempenho",
-  ativar_contrato: "Ativar contrato",
-  encerrar_contrato: "Encerrar contrato",
-  alterar_status_colaborador: "Alterar status do colaborador",
-  contrato_empresarial_criar: "Novo contrato empresarial",
-  contrato_empresarial_editar: "Alteração em contrato empresarial",
-  contrato_empresarial_excluir: "Exclusão de contrato empresarial"
-};
-
-/** Aplica de verdade uma solicitação aceita — despacha pra coleção certa conforme o tipo.
- * `dadosAcao` já vem pronto (mesmo payload que iria direto num addDoc/updateDoc/deleteDoc). */
-async function aplicarSolicitacao(sol) {
-  const d = sol.dadosAcao;
-  if (sol.tipo === "avaliacao") {
-    await addDoc(collection(db, "avaliacoes"), d);
-  } else if (sol.tipo === "ativar_contrato") {
-    await addDoc(collection(db, "contratos"), d);
-  } else if (sol.tipo === "encerrar_contrato") {
-    await updateDoc(doc(db, "contratos", d.contratoId), d.campos);
-  } else if (sol.tipo === "alterar_status_colaborador") {
-    await updateDoc(doc(db, "usuarios", d.uid), d.campos);
-  } else if (sol.tipo === "contrato_empresarial_criar") {
-    await addDoc(collection(db, "contratosEmpresariais"), d);
-  } else if (sol.tipo === "contrato_empresarial_editar") {
-    await updateDoc(doc(db, "contratosEmpresariais", d.docId), d.campos);
-  } else if (sol.tipo === "contrato_empresarial_excluir") {
-    await deleteDoc(doc(db, "contratosEmpresariais", d.docId));
-  }
-}
-
-/** Resumo compacto (contrato, ação, headcount antes/depois) só para os 3 tipos de solicitação
- * de contrato empresarial — outros tipos já têm descrição textual suficiente. Só usa dados já
- * em memória (dadosAcao + state.contratosEmpresariais), nunca busca nada assíncrono no render. */
-function montarDetalhesSolicitacao(s) {
-  const d = s.dadosAcao || {};
-  if (s.tipo === "contrato_empresarial_criar") {
-    const qtd = calcularResumoContratoEmpresarial(d).qtdAtual;
-    return [
-      { rotulo: "Contrato", valor: d.nomeEmpresa || s.alvoNome || "—" },
-      { rotulo: "Ação", valor: "Novo contrato" },
-      { rotulo: "Valor do contrato", valor: d.valorContrato ? formatarMoeda(d.valorContrato) : "—" },
-      { rotulo: "Funcionários no quadro inicial", valor: String(qtd) }
-    ];
-  }
-  if (s.tipo === "contrato_empresarial_editar") {
-    const atual = state.contratosEmpresariais.find((c) => c.id === d.docId);
-    const linhas = [{ rotulo: "Contrato", valor: s.alvoNome || atual?.nomeEmpresa || "—" }];
-    if (atual) {
-      const antes = calcularResumoContratoEmpresarial(atual).qtdAtual;
-      const depois = calcularResumoContratoEmpresarial({ ...atual, ...(d.campos || {}) }).qtdAtual;
-      linhas.push(depois !== antes
-        ? { rotulo: "Funcionários", valor: `${antes} → ${depois} (${depois > antes ? "+" : ""}${depois - antes})` }
-        : { rotulo: "Total de funcionários", valor: String(depois) });
-    }
-    return linhas;
-  }
-  if (s.tipo === "contrato_empresarial_excluir") {
-    const atual = state.contratosEmpresariais.find((c) => c.id === d.docId);
-    return [
-      { rotulo: "Contrato", valor: s.alvoNome || atual?.nomeEmpresa || "—" },
-      { rotulo: "Ação", valor: "Excluir contrato" },
-      ...(atual ? [{ rotulo: "Funcionários no contrato", valor: String(calcularResumoContratoEmpresarial(atual).qtdAtual) }] : [])
-    ];
-  }
-  return null;
-}
-
-function renderDetalhesSolicitacao(s) {
-  const linhas = montarDetalhesSolicitacao(s);
-  if (!linhas || !linhas.length) return "";
-  return `<div class="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
-    ${linhas.map((l) => `<span class="text-on-surface-variant">${escaparHTML(l.rotulo)}: <strong class="text-on-surface">${escaparHTML(l.valor)}</strong></span>`).join("")}
-  </div>`;
-}
-
-if (EH_PRESIDENTE()) {
-  const qSolPendentes = query(collection(db, "solicitacoes"), where("status", "==", "pendente"), orderBy("criadoEm", "desc"));
-  onSnapshot(qSolPendentes, debounce((snap) => {
-    const qtd = snap.size;
-    [document.getElementById("badge-solicitacoes-desktop"), document.getElementById("badge-solicitacoes-mobile")].forEach((b) => {
-      b.textContent = String(qtd);
-      b.classList.toggle("hidden", qtd === 0);
-    });
-
-    const lista = document.getElementById("lista-solicitacoes");
-    if (!qtd) {
-      lista.innerHTML = `<li class="text-center py-6">Nenhuma solicitação pendente.</li>`;
-      return;
-    }
-    lista.innerHTML = snap.docs.map((d) => {
-      const s = d.data();
-      return `
-        <li class="border border-outline-variant rounded-lg p-4">
-          <p class="font-body font-semibold text-on-surface">${escaparHTML(ROTULOS_SOLICITACAO[s.tipo] || s.tipo)}</p>
-          <p class="font-body text-body-md text-on-surface-variant">${escaparHTML(s.descricao)}</p>
-          ${renderDetalhesSolicitacao(s)}
-          <p class="font-body text-label-sm text-on-surface-variant mt-1">Pedido por ${escaparHTML(s.solicitadoPorNome) || "—"} em ${s.criadoEm ? formatarDataHora(s.criadoEm) : "—"}</p>
-          <div class="flex gap-2 mt-3">
-            <button data-aceitar-solicitacao="${d.id}" class="btn-primario flex-1 !py-2">Aceitar</button>
-            <button data-rejeitar-solicitacao="${d.id}" class="btn-fantasma flex-1 !py-2">Rejeitar</button>
-          </div>
-        </li>`;
-    }).join("");
-  }, 150), (erro) => {
-    // Sem isso, uma falha aqui (ex.: índice composto do Firestore ausente) fica muda — a aba
-    // simplesmente nunca preenche, sem nenhum aviso visível.
-    console.error("[Shinatal] Falha ao carregar solicitações pendentes:", erro);
-    mostrarToast("Não foi possível carregar as solicitações pendentes.", "erro");
-  });
-
-  document.getElementById("lista-solicitacoes").addEventListener("click", async (e) => {
-    const btnAceitar = e.target.closest("[data-aceitar-solicitacao]");
-    const btnRejeitar = e.target.closest("[data-rejeitar-solicitacao]");
-    const btn = btnAceitar || btnRejeitar;
-    if (!btn) return;
-    const id = btn.dataset.aceitarSolicitacao || btn.dataset.rejeitarSolicitacao;
-    btn.disabled = true;
-
-    try {
-      const solSnap = await getDoc(doc(db, "solicitacoes", id));
-      if (!solSnap.exists() || solSnap.data().status !== "pendente") {
-        mostrarToast("Essa solicitação já foi resolvida.", "erro");
-        return;
-      }
-      const sol = solSnap.data();
-
-      if (btnAceitar) {
-        await aplicarSolicitacao(sol);
-        await updateDoc(doc(db, "solicitacoes", id), { status: "aceita", resolvidoPorUid: perfil.uid, resolvidoEm: serverTimestamp() });
-        await registrarLog(sol.tipo, `Solicitação aceita: ${sol.descricao}`, sol.alvoUid, sol.alvoNome);
-        await carregarTudo();
-        await recalcularEPublicarFundo();
-        renderTudo();
-        mostrarToast("Solicitação aceita e aplicada.", "sucesso");
-      } else {
-        await updateDoc(doc(db, "solicitacoes", id), { status: "rejeitada", resolvidoPorUid: perfil.uid, resolvidoEm: serverTimestamp() });
-        mostrarToast("Solicitação rejeitada.", "sucesso");
-      }
-    } catch (erro) {
-      console.error(erro);
-      mostrarToast("Não foi possível concluir. Tente novamente.", "erro");
-      btn.disabled = false;
-    }
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Conduta — avaliação anônima entre colegas (puramente social, não entra na cota nem no fundo). */
-/* Presidente não participa (não vota, não é avaliado), mas é ele (junto com Admin) quem liga/   */
-/* desliga a função para todo mundo.                                                             */
-/* ------------------------------------------------------------------ */
-
-function renderToggleConduta() {
-  const area = document.getElementById("conduta-toggle-area");
-  if (!EH_ADMIN_OU_PRESIDENTE()) {
-    area.classList.add("hidden");
-    area.innerHTML = "";
-    return;
-  }
-  area.classList.remove("hidden");
-  area.innerHTML = `
-    <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-4 py-3 mb-3">
-      <div>
-        <p class="font-body font-semibold text-on-surface">Avaliação de Conduta ${condutaAtiva ? "ativada" : "desativada"}</p>
-        <p class="font-body text-label-sm text-on-surface-variant">Só Admin/Presidente podem ${condutaAtiva ? "desativar" : "ativar"} esta função para todo mundo.</p>
-      </div>
-      <button id="btn-toggle-conduta" class="${condutaAtiva ? "btn-fantasma" : "btn-primario"} !py-2 whitespace-nowrap">${condutaAtiva ? "Desativar" : "Ativar"}</button>
-    </div>`;
-  document.getElementById("btn-toggle-conduta").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    try {
-      await definirFlagConduta(!condutaAtiva, perfil.uid);
-    } catch (erro) {
-      console.error(erro);
-      mostrarToast("Não foi possível atualizar a configuração.", "erro");
-      btn.disabled = false;
-    }
-  });
-}
-
-function renderModalConduta() {
-  renderToggleConduta();
-  const container = document.getElementById("conteudo-conduta");
-  if (!condutaAtiva) {
-    container.innerHTML = EH_ADMIN_OU_PRESIDENTE()
-      ? `<p class="text-center py-6">Ative acima para liberar esta aba aos demais colaboradores.</p>`
-      : `<p class="text-center py-6">Esta página ainda não está disponível.</p>`;
-    return;
-  }
-  if (EH_PRESIDENTE()) {
-    container.innerHTML = `<p class="text-center py-6">Como Presidente, você não participa das avaliações de conduta (não vota e não pode ser avaliado).</p>`;
-    return;
-  }
-  // O painel de gestão já tem a lista completa de colaboradores em memória (state.usuarios, lida
-  // com permissão de dp/rh/admin/presidente) — não precisa do diretório público, que existe só
-  // pro lado do colaborador comum (dashboard.js), que não pode ler usuarios/{uid} de terceiros.
-  const colegas = state.usuarios
-    .filter((u) => u.uid !== perfil.uid && u.role !== "presidente")
-    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
-  if (!colegas.length) {
-    container.innerHTML = `<p class="text-center py-6">Nenhum colega disponível para avaliação no momento.</p>`;
-    return;
-  }
-  container.innerHTML = `
-    <p class="font-body text-label-sm text-on-surface-variant mb-1">Votos anônimos — não afeta a cota nem o fundo do Shinatal.</p>
-    ${colegas.map((u) => `
-      <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
-        <div>
-          <p class="text-on-surface font-medium">${escaparHTML(u.nome) || "—"}</p>
-          <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
-        </div>
-        <select data-votar-conduta="${u.uid}" aria-label="Avaliar ${escaparHTML(u.nome) || "colega"}" class="input-shinatal !pl-3 !py-1.5 w-40">
-          <option value="">Avaliar...</option>
-          ${["excelente", "bom", "regular", "insatisfatorio"].map((c) =>
-            `<option value="${c}" ${condutaMeusVotos[u.uid] === c ? "selected" : ""}>${ROTULOS_CONCEITO[c]}</option>`).join("")}
-        </select>
-      </div>`).join("")}`;
-}
-
-assinarFlagConduta((ativa) => { condutaAtiva = ativa; renderModalConduta(); });
-assinarMeusVotos(perfil.uid, (votos) => { condutaMeusVotos = votos; renderModalConduta(); });
-
-document.getElementById("conteudo-conduta").addEventListener("change", async (e) => {
-  const select = e.target.closest("[data-votar-conduta]");
-  if (!select || !select.value) return;
-  select.disabled = true;
-  try {
-    await votarConduta({ avaliadorUid: perfil.uid, avaliadoUid: select.dataset.votarConduta, conceito: select.value });
-    mostrarToast("Avaliação registrada.", "sucesso");
-  } catch (erro) {
-    console.error(erro);
-    mostrarToast("Não foi possível registrar sua avaliação.", "erro");
-  } finally {
-    select.disabled = false;
-  }
-});
 
 /* Editar colaborador (nome, cargo, jornada, admissão) — a jornada define o % da cota
    (Seção 4.2 do regulamento: 8h=100%, 6h=75%, 4h=50%, já aplicado em calculo-shinatal.js). */
@@ -1222,5 +909,3 @@ document.addEventListener("click", (e) => {
   }
 });
 
-document.getElementById("btn-sair-desktop").addEventListener("click", fazerLogout);
-document.getElementById("btn-sair-mobile").addEventListener("click", fazerLogout);

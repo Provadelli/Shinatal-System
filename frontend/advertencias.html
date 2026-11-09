@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shinatal · Minhas advertências</title>
+<meta name="robots" content="noindex" />
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<!-- fontes:inicio -->
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/material-symbols-outlined-6887288770.woff2" crossorigin />
+<link rel="stylesheet" href="/css/fontes.css" />
+<!-- fontes:fim -->
+<link rel="stylesheet" href="/css/tailwind.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script type="module" src="/js/perf-adaptativo.js"></script>
+<script type="module" src="/js/acessibilidade.js"></script>
+</head>
+<body class="fundo-sistema min-h-dvh text-on-surface font-body relative overflow-x-hidden flex flex-col pt-header-fixo">
+
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+<div id="tela-carregamento" data-esperar-login class="tela-carregamento" role="status" aria-label="Carregando">
+  <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="" aria-hidden="true" class="logo-vermelho tela-carregamento-logo" />
+  <div id="tela-carregamento-texto" class="tela-carregamento-texto">
+    <span class="tela-carregamento-glow" aria-hidden="true"></span>
+  </div>
+</div>
+<script src="/js/tela-carregamento.js"></script>
+
+<!-- cabecalho:inicio -->
+<header class="header-flutuante header-home header-sistema" data-cabecalho-sistema>
+  <div class="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop min-h-14 flex items-center justify-between gap-4">
+    <a href="/" data-logo-painel class="flex items-center gap-2.5 shrink-0" aria-label="Shinatal, ir para o meu painel">
+      <span class="flex flex-col items-start leading-none gap-1">
+        <img src="/assets/logoshinatal-cropped.webp" width="320" height="121" alt="" class="logo-vermelho h-7 lg:h-8 w-auto" fetchpriority="high" />
+        <span data-subtitulo-painel class="font-mono text-[8px] lg:text-[9px] uppercase tracking-[0.22em] text-on-surface-variant">Shine Rio Group</span>
+      </span>
+    </a>
+
+    <nav aria-label="Principal" class="hidden lg:flex flex-1 min-w-0 items-center justify-center gap-x-6 xl:gap-x-8">
+      <a href="/dashboard" data-item="dashboard" data-papeis="colaborador" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Painel</a>
+      <a href="/gestao" data-item="gestao" data-papeis="admin dp rh presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Painel</a>
+      <a href="/faltas" data-item="faltas" data-papeis="colaborador" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Faltas</a>
+      <a href="/advertencias" data-item="advertencias" aria-current="page" data-papeis="colaborador" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Advertências</a>
+      <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Contratos</a>
+      <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Atividade</a>
+      <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
+      <a href="/conduta" data-item="conduta" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Conduta</a>
+      <a href="/regulamento" data-item="regulamento" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Regulamento</a>
+    </nav>
+
+    <div class="flex items-center gap-2 lg:gap-3 shrink-0">
+      <span data-papel-rotulo class="hidden xl:inline-flex badge badge-neutro badge-sem-ponto font-mono !text-[10px] uppercase tracking-[0.14em]"></span>
+      <a href="/perfil" data-item="perfil" class="perfil-atalho" aria-label="Meu perfil">
+        <span data-avatar class="avatar w-9 h-9 text-sm" aria-hidden="true">?</span>
+        <span data-nome class="hidden lg:inline font-body text-label-md text-on-surface whitespace-nowrap max-w-[9rem] truncate"></span>
+      </a>
+      <button type="button" data-sair class="btn-icone hidden lg:inline-grid" aria-label="Sair da conta" title="Sair">
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+      </button>
+      <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-sistema" class="botao-menu lg:hidden">
+        <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+        <span data-menu-rotulo>Menu</span>
+      </button>
+    </div>
+  </div>
+
+  <nav id="menu-sistema" aria-label="Menu do sistema" class="menu-celular menu-sistema lg:hidden" hidden>
+    <a href="/dashboard" data-item="dashboard" data-papeis="colaborador"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span>Painel</a>
+    <a href="/gestao" data-item="gestao" data-papeis="admin dp rh presidente"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span>Painel</a>
+    <a href="/faltas" data-item="faltas" data-papeis="colaborador"><span class="material-symbols-outlined" aria-hidden="true">event_busy</span>Faltas</a>
+    <a href="/advertencias" data-item="advertencias" aria-current="page" data-papeis="colaborador"><span class="material-symbols-outlined" aria-hidden="true">warning</span>Advertências</a>
+    <a href="/contratos" data-item="contratos" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">apartment</span>Contratos</a>
+    <a href="/atividade" data-item="atividade" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">history</span>Atividade</a>
+    <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente"><span class="material-symbols-outlined" aria-hidden="true">inbox</span>Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
+    <a href="/conduta" data-item="conduta"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span>Conduta</a>
+    <a href="/regulamento" data-item="regulamento"><span class="material-symbols-outlined" aria-hidden="true">gavel</span>Regulamento</a>
+    <a href="/perfil" data-item="perfil"><span class="material-symbols-outlined" aria-hidden="true">person</span>Meu perfil</a>
+    <button type="button" data-sair class="menu-sistema-sair"><span class="material-symbols-outlined" aria-hidden="true">logout</span>Sair da conta</button>
+  </nav>
+</header>
+
+<nav aria-label="Atalhos" class="dock-sistema lg:hidden">
+  <a href="/dashboard" data-item="dashboard" data-papeis="colaborador" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span><span>Painel</span></a>
+  <a href="/gestao" data-item="gestao" data-papeis="admin dp rh presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">space_dashboard</span><span>Painel</span></a>
+  <a href="/faltas" data-item="faltas" data-papeis="colaborador" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">event_busy</span><span>Faltas</span></a>
+  <a href="/advertencias" data-item="advertencias" aria-current="page" data-papeis="colaborador" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">warning</span><span>Advert.</span></a>
+  <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">apartment</span><span>Contratos</span></a>
+  <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">history</span><span>Atividade</span></a>
+  <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">inbox</span><span>Pedidos</span><span data-contador-solicitacoes class="nav-contador dock-contador" hidden>0</span></a>
+  <a href="/conduta" data-item="conduta" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span><span>Conduta</span></a>
+  <a href="/regulamento" data-item="regulamento" data-papeis="colaborador dp rh" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">gavel</span><span>Regras</span></a>
+</nav>
+<!-- cabecalho:fim -->
+
+<main id="conteudo" class="pagina-interna pagina-interna--estreita flex-1 relative z-10" tabindex="-1">
+  <header class="titulo-pagina">
+    <div>
+      <p class="rotulo"><span class="rotulo-numero" aria-hidden="true">02</span><span class="fio-natal" aria-hidden="true"></span><span>Colaborador</span></p>
+      <h1>Minhas advertências</h1>
+      <p class="titulo-pagina-texto">Advertências e suspensões reduzem a cota (Seção 9 do regulamento). A 3ª suspensão zera o direito ao prêmio.</p>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="stat"><p class="stat-rotulo">Advertências</p><p id="adv-advertencias" class="stat-valor">–</p></div>
+    <div class="stat"><p class="stat-rotulo">Suspensões</p><p id="adv-suspensoes" class="stat-valor">–</p></div>
+  </div>
+  <section class="cartao" aria-labelledby="lista-advertencias-titulo">
+    <div class="cartao-cabecalho">
+      <h2 id="lista-advertencias-titulo" class="cartao-titulo"><span class="material-symbols-outlined" aria-hidden="true">warning</span>Histórico disciplinar</h2>
+    </div>
+    <ul id="lista-advertencias" class="lista-registros" aria-live="polite">
+      <li class="estado-vazio">Carregando...</li>
+    </ul>
+  </section>
+</main>
+
+<!-- rodape:inicio -->
+<!-- rodape:fim -->
+
+<script type="module" src="/js/paginas/advertencias.js"></script>
+</body>
+</html>

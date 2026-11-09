@@ -3,17 +3,14 @@ import { db } from "./firebase-init.js";
 import {
   collection, query, where, getDocs, doc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { exigirAutenticacao, fazerLogout } from "./auth.js";
+import { exigirAutenticacao } from "./auth.js";
 import {
   formatarMoeda, formatarData, mostrarToast,
   alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
-  construirAvatarHTML, preencherAvatarLink
+
 } from "./ui-utils.js";
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
-import { ROTULOS_CONCEITO } from "./perfil-view.js";
-import {
-  sincronizarDiretorio, assinarFlagConduta, assinarDiretorio, assinarMeusVotos, votarConduta
-} from "./conduta-service.js";
+import { sincronizarDiretorio } from "./conduta-service.js";
 
 // Sem onclick inline no HTML (a CSP proíbe) — os gatilhos são ligados aqui, antes de qualquer await.
 document.querySelectorAll("[data-rolar-para]").forEach((botao) => {
@@ -32,7 +29,6 @@ renderizarPerfil(perfil);
 sincronizarDiretorio(perfil);
 
 const dados = await carregarRegistrosDoColaborador(perfil.uid);
-renderizarListasDeModais(dados);
 
 // Fundo compartilhado (somaPesos + saldoDisponível) mantido pelo painel de gestão.
 // Recalcula a cota ao vivo sempre que o fundo mudar (novo contrato, etc).
@@ -69,12 +65,6 @@ async function buscarPorUid(nomeColecao, uid) {
 }
 
 function renderizarPerfil(p) {
-  const avatarHtml = construirAvatarHTML(p);
-
-  document.getElementById("avatar-desktop").innerHTML = avatarHtml;
-  preencherAvatarLink(document.getElementById("avatar-mobile"), p);
-  document.getElementById("nome-desktop").textContent = (p.nome || "Perfil").split(" ")[0];
-
   document.getElementById("saudacao-nome").textContent = `Bem-vindo(a), ${(p.nome || "").split(" ")[0] || "colaborador(a)"}!`;
   document.getElementById("saudacao-data").textContent =
     new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
@@ -129,117 +119,6 @@ function renderizarCota(resultado) {
   }
 }
 
-function renderizarListasDeModais(dados) {
-  const listaFaltas = document.getElementById("lista-faltas");
-  listaFaltas.innerHTML = dados.faltas.length
-    ? dados.faltas
-        .sort((a, b) => (a.data < b.data ? 1 : -1))
-        .map((f) => `
-          <div class="flex justify-between items-center border-b border-outline-variant/20 pb-2">
-            <div>
-              <p class="text-on-surface font-medium">${formatarData(f.data)}</p>
-              <p class="text-label-sm">${escaparHTML(f.motivo) || "Sem motivo registrado"}</p>
-            </div>
-            <span class="px-2 py-1 rounded-full text-label-sm ${f.justificada ? "bg-secondary-container/40 text-on-secondary-container" : "bg-error-container text-on-error-container"}">
-              ${f.justificada ? "Justificada" : "Injustificada"}
-            </span>
-          </div>`)
-        .join("")
-    : `<p class="text-center py-6">Nenhuma falta registrada. 🎉</p>`;
-
-  const rotulos = { verbal: "Advertência verbal", escrita: "Advertência escrita", suspensao1: "1ª suspensão", suspensao2: "2ª suspensão", suspensao3: "3ª suspensão" };
-  const listaAdvertencias = document.getElementById("lista-advertencias");
-  listaAdvertencias.innerHTML = dados.advertencias.length
-    ? dados.advertencias
-        .sort((a, b) => (a.data < b.data ? 1 : -1))
-        .map((a) => `
-          <div class="border-b border-outline-variant/20 pb-2">
-            <div class="flex justify-between items-center">
-              <p class="text-on-surface font-medium">${escaparHTML(rotulos[a.tipo] || a.tipo)}</p>
-              <span class="text-label-sm">${formatarData(a.data)}</span>
-            </div>
-            <p class="text-label-sm">${escaparHTML(a.motivo) || "Sem motivo registrado"}</p>
-          </div>`)
-        .join("")
-    : `<p class="text-center py-6">Nenhuma advertência registrada. 🎉</p>`;
-}
-
-/* ------------------------------------------------------------------ */
-/* Conduta — avaliação anônima entre colegas (puramente social, não entra na cota nem no fundo) */
-/* ------------------------------------------------------------------ */
-
-let condutaAtiva = false;
-let condutaDiretorio = [];
-let condutaMeusVotos = {};
-
-function renderModalConduta() {
-  const container = document.getElementById("conteudo-conduta");
-  if (!condutaAtiva) {
-    container.innerHTML = `<p class="text-center py-6">Esta página ainda não está disponível.</p>`;
-    return;
-  }
-  const colegas = condutaDiretorio.filter((u) => u.uid !== perfil.uid && u.role !== "presidente");
-  if (!colegas.length) {
-    container.innerHTML = `<p class="text-center py-6">Nenhum colega disponível para avaliação no momento.</p>`;
-    return;
-  }
-  container.innerHTML = `
-    <p class="font-body text-label-sm text-on-surface-variant mb-1">Votos anônimos — não afeta a cota nem o fundo do Shinatal.</p>
-    ${colegas.map((u) => `
-      <div class="flex items-center justify-between gap-3 bg-surface-container rounded-lg px-3 py-2">
-        <div>
-          <p class="text-on-surface font-medium">${escaparHTML(u.primeiroNome || (u.nome || "").split(" ")[0]) || "—"}</p>
-          <p class="text-label-sm">${escaparHTML(u.cargo) || "—"}</p>
-        </div>
-        <select data-votar-conduta="${u.uid}" aria-label="Avaliar ${escaparHTML(u.primeiroNome || (u.nome || "").split(" ")[0]) || "colega"}" class="input-shinatal !pl-3 !py-1.5 w-40">
-          <option value="">Avaliar...</option>
-          ${["excelente", "bom", "regular", "insatisfatorio"].map((c) =>
-            `<option value="${c}" ${condutaMeusVotos[u.uid] === c ? "selected" : ""}>${ROTULOS_CONCEITO[c]}</option>`).join("")}
-        </select>
-      </div>`).join("")}`;
-}
-
-assinarFlagConduta((ativa) => { condutaAtiva = ativa; renderModalConduta(); });
-assinarDiretorio((lista) => { condutaDiretorio = lista; renderModalConduta(); });
-assinarMeusVotos(perfil.uid, (votos) => { condutaMeusVotos = votos; renderModalConduta(); });
-
-document.getElementById("conteudo-conduta").addEventListener("change", async (e) => {
-  const select = e.target.closest("[data-votar-conduta]");
-  if (!select || !select.value) return;
-  const novoConceito = select.value;
-  select.disabled = true;
-  try {
-    await votarConduta({ avaliadorUid: perfil.uid, avaliadoUid: select.dataset.votarConduta, conceito: novoConceito });
-    mostrarToast("Avaliação registrada.", "sucesso");
-  } catch (erro) {
-    console.error(erro);
-    mostrarToast("Não foi possível registrar sua avaliação.", "erro");
-  } finally {
-    select.disabled = false;
-  }
-});
-
-/* ------------------------------------------------------------------ */
-/* Modais e ações                                                      */
-/* ------------------------------------------------------------------ */
-
-document.addEventListener("click", (e) => {
-  const abrir = e.target.closest("[data-abrir-modal]");
-  if (abrir) {
-    document.getElementById(abrir.dataset.abrirModal).classList.remove("hidden");
-    document.getElementById(abrir.dataset.abrirModal).classList.add("flex");
-  }
-  const fechar = e.target.closest("[data-fechar-modal]");
-  if (fechar) {
-    fechar.closest(".fixed.inset-0").classList.add("hidden");
-    fechar.closest(".fixed.inset-0").classList.remove("flex");
-  }
-  if (e.target.classList.contains("bg-inverse-surface/40")) {
-    e.target.classList.add("hidden");
-    e.target.classList.remove("flex");
-  }
-});
-
 /* ------------------------------------------------------------------ */
 /* Simulador de impacto (autolimitado ao próprio colaborador)          */
 /* ------------------------------------------------------------------ */
@@ -272,4 +151,3 @@ function simular() {
 
 ["sim-faltas", "sim-pontos"].forEach((id) => document.getElementById(id).addEventListener("input", simular));
 
-document.getElementById("btn-sair-desktop").addEventListener("click", fazerLogout);
