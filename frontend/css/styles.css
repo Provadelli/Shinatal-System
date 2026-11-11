@@ -785,7 +785,7 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
 
 /* ---------- Entrada de texto ao carregar a página ---------- */
 @keyframes entrada-texto {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0.01; /* não 0: o Chrome ignora opacity 0 no LCP */ transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .anim-entrada {
@@ -802,7 +802,7 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
    junto, grudada no topo dele, e desaparece exatamente quando o cartão termina de assentar —
    como se fosse a "ponta"/pega do cartão subindo, não uma barra de navegação permanente. */
 @keyframes subida-cartao {
-  from { opacity: 0; transform: translateY(56px); }
+  from { opacity: 0.01; /* idem: LCP */ transform: translateY(56px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .anim-subida-cartao {
