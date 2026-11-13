@@ -278,15 +278,17 @@ function iniciarContagemReenvio(botaoId, segundos = 60) {
   if (!botao) return;
   let restante = segundos;
   botao.disabled = true;
-  const textoOriginal = botao.dataset.textoOriginal || botao.textContent;
-  botao.dataset.textoOriginal = textoOriginal;
+  // Guarda o HTML (não só o texto) para devolver o ícone junto; com textContent o nome do ícone
+  // ("mail") voltava como palavra solta ao fim da contagem.
+  const conteudoOriginal = botao.dataset.conteudoOriginal || botao.innerHTML;
+  botao.dataset.conteudoOriginal = conteudoOriginal;
   const intervalo = setInterval(() => {
     restante -= 1;
     botao.textContent = `Reenviar em ${restante}s`;
     if (restante <= 0) {
       clearInterval(intervalo);
       botao.disabled = false;
-      botao.textContent = textoOriginal;
+      botao.innerHTML = conteudoOriginal;
     }
   }, 1000);
 }
