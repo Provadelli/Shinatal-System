@@ -11,6 +11,7 @@ import {
 import { calcularCotaColaborador } from "./calculo-shinatal.js";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
 import { ENCARREGADO, CONTROLADORA, linkEncarregado } from "./lgpd-config.js";
+import { gerarPdfMeusDados } from "./meus-dados-pdf.js";
 import { getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
@@ -173,15 +174,15 @@ document.getElementById("btn-baixar-dados").addEventListener("click", async (e) 
         contagemRecebidaAnonima: contagemRecebida
       }
     });
-    const arquivo = new Blob([JSON.stringify(exportacao, null, 2)], { type: "application/json" });
+    const arquivo = await gerarPdfMeusDados(exportacao);
     const link = document.createElement("a");
     link.href = URL.createObjectURL(arquivo);
-    link.download = `shinatal-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `shinatal-meus-dados-${new Date().toISOString().slice(0, 10)}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    mostrarToast("Arquivo com os seus dados baixado.", "sucesso");
+    mostrarToast("PDF com os seus dados baixado.", "sucesso");
   } catch (erro) {
     console.error("[Shinatal] Falha ao exportar os dados:", erro);
     mostrarToast("Não foi possível gerar o arquivo agora. Tente novamente.", "erro");
@@ -214,7 +215,7 @@ document.getElementById("btn-trocar-senha").addEventListener("click", async (e) 
   if (btn.disabled) return;
   try {
     await enviarLinkRedefinicaoSenha(perfil.email);
-    mostrarToast("Link enviado! Confira seu e-mail institucional.", "sucesso");
+    mostrarToast("Link de redefinição enviado. Verifique seu e-mail institucional.", "sucesso");
     iniciarContagemReenvio("btn-trocar-senha", 60);
   } catch (erro) {
     mostrarToast("Não foi possível enviar o link agora. Tente novamente.", "erro");

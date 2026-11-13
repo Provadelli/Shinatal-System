@@ -27,3 +27,8 @@ dist/
 
 # Arquivo de pasta do Windows/OneDrive.
 desktop.ini
+
+# Modelo de papel timbrado da Shine Rio (original e PDF convertido) — só local. O site usa só a
+# imagem renderizada em frontend/assets/timbrado-shinerio.jpg.
+docs/TIMBRADO*.docx
+docs/TIMBRADO*.pdf
