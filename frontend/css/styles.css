@@ -712,6 +712,14 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
   box-shadow: 0 18px 30px rgba(35, 32, 27, 0.12);
 }
 .menu-celular[hidden] { display: none; }
+/* Celular estreito (< 400 px: 320/360/375): Entrar + Cadastro + Menu não cabem na barra e eram
+   cortados (WCAG 1.4.10). Ali os dois acessos saem da barra e entram no menu. */
+.header-acesso { display: contents; }
+.menu-celular a.menu-acesso { display: none; }
+@media (max-width: 399px) {
+  .header-acesso { display: none; }
+  .menu-celular a.menu-acesso { display: block; }
+}
 .menu-celular a {
   padding: 0.9rem 0.25rem;
   font-family: "Space Grotesk", "Inter", sans-serif;
@@ -2499,3 +2507,7 @@ html:not([data-papel]) [data-papeis] { display: none !important; }
 }
 @media (max-width: 1023px) { .header-sistema [data-sair].btn-icone { display: none; } }
 @media (max-width: 1279px) { .header-sistema [data-papel-rotulo] { display: none; } }
+
+/* Alvos de toque mínimos (WCAG 2.5.8): link solto do formulário e caixa de aceite. */
+a.link-acesso { display: inline-block; padding-block: 4px; min-height: 24px; }
+input[type="checkbox"]#aceiteTermos { width: 1.5rem; height: 1.5rem; }

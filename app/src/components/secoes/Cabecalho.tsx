@@ -56,8 +56,10 @@ export function Cabecalho() {
           </a>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <BotaoContorno href="/login" tom="verde" tamanho="compacto">Entrar</BotaoContorno>
-            <BotaoContorno href="/cadastro" tom="vinho" tamanho="compacto" seta>Cadastro</BotaoContorno>
+            <span className="header-acesso">
+              <BotaoContorno href="/login" tom="verde" tamanho="compacto">Entrar</BotaoContorno>
+              <BotaoContorno href="/cadastro" tom="vinho" tamanho="compacto" seta>Cadastro</BotaoContorno>
+            </span>
             <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-celular" className="btn-fantasma !border-0 !py-1.5 !px-2.5 text-sm">
               Menu
             </button>
@@ -67,6 +69,8 @@ export function Cabecalho() {
           {LINKS.map((link) => (
             <a key={link.href} href={link.href}>{link.rotulo}</a>
           ))}
+          <a href="/login" className="menu-acesso">Entrar</a>
+          <a href="/cadastro" className="menu-acesso">Cadastro</a>
         </nav>
       </motion.header>
     </>
