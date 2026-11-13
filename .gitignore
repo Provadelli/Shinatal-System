@@ -24,3 +24,6 @@ firebase-config.local.json
 
 # Build da página inicial (Vite) — gerado por npm run build, publicado pela Vercel.
 dist/
+
+# Arquivo de pasta do Windows/OneDrive.
+desktop.ini
