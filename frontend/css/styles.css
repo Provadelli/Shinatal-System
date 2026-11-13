@@ -372,8 +372,22 @@ h1, h2, h3, .font-display {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+/* Segurar e arrastar (ver useArrastarFaixa em SobreShinatal.tsx). pan-y: no celular, o gesto
+   vertical continua rolando a página; só o horizontal arrasta a faixa. */
+.faixa-fotos-pista { cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.faixa-fotos-pista.arrastando { cursor: grabbing; }
+.faixa-fotos-pista.arrastando .faixa-fotos-item { transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .faixa-fotos-pista { animation: none !important; }
+  .faixa-fotos-pista { animation: none !important; cursor: auto; touch-action: auto; }
+  /* Sem o loop automático, a faixa vira uma rolagem horizontal comum (mouse, dedo ou teclado). */
+  .faixa-fotos-sobre { overflow-x: auto; }
+}
+
+/* Celular: sem o efeito "tela subindo" (hero sticky + seção cobrindo). A página rola normal,
+   e o card com o valor do Fundo Shinatal fica visível em vez de ser coberto. */
+@media (max-width: 767px) {
+  /* "main" na frente: esta regra vem antes da base (.secao-hero-video, logo abaixo) no arquivo. */
+  main .secao-hero-video { position: relative; }
 }
 
 /* ---------- Faixa bege ("Como funciona", home) ----------

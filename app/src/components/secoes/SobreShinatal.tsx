@@ -1,4 +1,5 @@
 // m (não motion): com LazyMotion no App, o motor de animação carrega à parte, fora do pacote inicial.
+import { useEffect, useRef } from "react";
 import { m as motion } from "framer-motion";
 import { Rotulo } from "@/components/ui/rotulo";
 import { aoEntrarNaTela, cascata, surgir } from "@/lib/movimento";
@@ -19,14 +20,66 @@ function GrupoFotos({ copia = false }: { copia?: boolean }) {
     <div className="faixa-fotos-grupo" aria-hidden={copia || undefined}>
       {FOTOS.map((foto) => (
         <div key={foto.src} className="faixa-fotos-item">
-          <img src={foto.src} srcSet={foto.srcSet} sizes="300px" width={foto.largura} height={foto.altura} alt={copia ? "" : foto.alt} loading="lazy" />
+          <img src={foto.src} srcSet={foto.srcSet} sizes="300px" width={foto.largura} height={foto.altura} alt={copia ? "" : foto.alt} loading="lazy" draggable={false} />
         </div>
       ))}
     </div>
   );
 }
 
+/**
+ * Segurar e arrastar a faixa (mouse ou dedo). A faixa continua rodando sozinha pela animação CSS
+ * (faixa-fotos-loop); ao segurar, essa animação pausa e o arrasto move o currentTime dela — ao
+ * soltar, ela volta a rodar do ponto onde a pessoa deixou. Arrastar para a direita volta fotos.
+ */
+function useArrastarFaixa(ref: React.RefObject<HTMLDivElement>) {
+  useEffect(() => {
+    const pista = ref.current;
+    if (!pista || typeof pista.getAnimations !== "function") return;
+    let inicioX = 0, inicioTempo = 0, arrastando = false;
+    let animacao: Animation | undefined;
+
+    const aoPressionar = (e: PointerEvent) => {
+      animacao = pista.getAnimations()[0];
+      if (!animacao) return; // "reduzir movimento": sem animação, a faixa rola nativamente
+      arrastando = true;
+      inicioX = e.clientX;
+      inicioTempo = Number(animacao.currentTime) || 0;
+      animacao.pause();
+      pista.setPointerCapture(e.pointerId);
+      pista.classList.add("arrastando");
+    };
+    const aoMover = (e: PointerEvent) => {
+      if (!arrastando || !animacao) return;
+      const duracao = Number(animacao.effect?.getComputedTiming().duration) || 1;
+      const metade = pista.scrollWidth / 2; // o loop vai de 0 a -50% (uma cópia da lista)
+      const deslocamento = ((e.clientX - inicioX) / metade) * duracao;
+      animacao.currentTime = (((inicioTempo - deslocamento) % duracao) + duracao) % duracao;
+    };
+    const aoSoltar = (e: PointerEvent) => {
+      if (!arrastando || !animacao) return;
+      arrastando = false;
+      pista.classList.remove("arrastando");
+      if (pista.hasPointerCapture(e.pointerId)) pista.releasePointerCapture(e.pointerId);
+      if (!document.documentElement.classList.contains("movimento-pausado")) animacao.play();
+    };
+
+    pista.addEventListener("pointerdown", aoPressionar);
+    pista.addEventListener("pointermove", aoMover);
+    pista.addEventListener("pointerup", aoSoltar);
+    pista.addEventListener("pointercancel", aoSoltar);
+    return () => {
+      pista.removeEventListener("pointerdown", aoPressionar);
+      pista.removeEventListener("pointermove", aoMover);
+      pista.removeEventListener("pointerup", aoSoltar);
+      pista.removeEventListener("pointercancel", aoSoltar);
+    };
+  }, [ref]);
+}
+
 export function SobreShinatal() {
+  const pistaRef = useRef<HTMLDivElement>(null);
+  useArrastarFaixa(pistaRef);
   return (
     <section id="sobre-shinatal" className="secao-verde overflow-hidden py-16 md:py-24 scroll-mt-24">
       {/* Duas colunas no computador: título à esquerda, texto à direita (uma coluna no celular). */}
@@ -63,7 +116,7 @@ export function SobreShinatal() {
         transition={{ duration: 1.2 }}
         className="faixa-fotos-sobre mt-12"
       >
-        <div className="faixa-fotos-pista">
+        <div ref={pistaRef} className="faixa-fotos-pista">
           <GrupoFotos />
           <GrupoFotos copia />
         </div>
