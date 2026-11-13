@@ -438,6 +438,37 @@ async function visitar(pagina, caminho, rotulo, viewport = DESKTOP) {
   await pagina.goto(`${BASE}${caminho}`, { waitUntil: "networkidle2", timeout: 30000 });
   await assentar(pagina);
   await axe(pagina, rotulo);
+  await verificarReflow(pagina, rotulo, viewport);
+}
+
+/**
+ * WCAG 1.4.10 (Reflow): em 320, 768 e 1366 px, nada pode ficar cortado para fora da tela nem
+ * gerar rolagem horizontal da página. Tabelas largas devem rolar dentro do próprio contêiner.
+ */
+async function verificarReflow(pagina, rotulo, viewportOriginal) {
+  for (const largura of [320, 768, 1366]) {
+    await pagina.setViewport({ width: largura, height: 800, isMobile: largura < 768, hasTouch: largura < 768 });
+    await pausa(500);
+    const r = await pagina.evaluate(() => {
+      const W = document.documentElement.clientWidth;
+      const vaza = [...document.querySelectorAll("body *")].filter((e) => {
+        const c = e.getBoundingClientRect(); const cs = getComputedStyle(e);
+        if (!c.width || cs.visibility === "hidden" || cs.position === "fixed") return false;
+        if (e.closest("[aria-hidden=true],.sr-only,video,[inert]")) return false;
+        // Dentro de um contêiner com rolagem própria (tabela larga), sair da tela é esperado.
+        for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) {
+          const o = getComputedStyle(p).overflowX; if (o === "auto" || o === "scroll" || o === "hidden" || o === "clip") return false;
+        }
+        return c.right > W + 1 || c.left < -1;
+      }).filter((e, i, a) => !a.some((p) => p !== e && p.contains(e)))
+        .slice(0, 3).map((e) => `${e.tagName.toLowerCase()}.${[...e.classList].slice(0, 3).join(".")}`);
+      return { rolagem: document.documentElement.scrollWidth > W + 1, vaza };
+    });
+    const ok = !r.rolagem && !r.vaza.length;
+    relatorio.teclado.push({ verificacao: `${rotulo} @${largura}px: sem conteúdo cortado`, ok, detalhe: JSON.stringify(r) });
+    if (!ok) console.log(`  resp FALHA  ${rotulo} @${largura}px — ${r.rolagem ? "rolagem horizontal; " : ""}${r.vaza.join(", ")}`);
+  }
+  await pagina.setViewport(viewportOriginal);
 }
 
 async function principal() {

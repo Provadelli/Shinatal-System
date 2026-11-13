@@ -24,11 +24,6 @@
   --shinatal-ink-muted: #5E615C;
   --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #C9A048 100%);
   --shinatal-gradiente-valor: linear-gradient(135deg, #8A6A2F 0%, #C9A048 100%);
-  /* Só para a faixa decorativa do topo das páginas públicas (ver .barra-shinatal-topo) — preto
-     suavizado (não #000 puro) e um vermelho mais vivo que --shinatal-red (vinho escuro demais
-     pra ler bem passando sobre fundo preto), mirando ~4.5:1 de contraste. */
-  --shinatal-preto: #121212;
-  --shinatal-red-festivo: #E1495A;
   /* Tons calculados para contraste (WCAG 2.2 AA) — ver docs/ACESSIBILIDADE.md:
      - ouro-texto: o dourado da marca (#C9A048) não chega a 3:1 no claro; para TEXTO pequeno sobre
        fundo claro usa-se esta versão mais funda (5,8:1 no marfim). O dourado vivo continua em
@@ -325,7 +320,7 @@ h1, h2, h3, .font-display {
 }
 
 /* ---------- Carrossel infinito de fotos ("Sobre o Shinatal") ---------- */
-/* Mesma técnica de .barra-shinatal-pista (lista duplicada + translateX 0 → -50% em loop
+/* Técnica de carrossel infinito (lista duplicada + translateX 0 → -50% em loop
    linear), só que mais lenta — imagem pede contemplação, não leitura rápida. */
 .faixa-fotos-sobre {
   overflow: hidden;
@@ -541,8 +536,7 @@ h1, h2, h3, .font-display {
 /* Pausa pedida pelo usuário (botão "Pausar animações" da home — WCAG 2.2.2: todo movimento
    automático com mais de 5 s precisa de um jeito de parar). O vídeo é pausado por JS. */
 html.movimento-pausado .titulo-brilho,
-html.movimento-pausado .faixa-fotos-pista,
-html.movimento-pausado .barra-shinatal-pista {
+html.movimento-pausado .faixa-fotos-pista {
   animation-play-state: paused !important;
 }
 
@@ -806,9 +800,6 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
 .anim-entrada-5 { animation-delay: 0.49s; }
 
 /* ---------- Entrada "subindo" do cartão de conteúdo (páginas públicas) ---------- */
-/* O cartão sobe e assenta; a faixa preta decorativa (.barra-shinatal-topo, logo abaixo) sobe
-   junto, grudada no topo dele, e desaparece exatamente quando o cartão termina de assentar —
-   como se fosse a "ponta"/pega do cartão subindo, não uma barra de navegação permanente. */
 @keyframes subida-cartao {
   from { opacity: 0.01; /* idem: LCP */ transform: translateY(56px); }
   to { opacity: 1; transform: translateY(0); }
@@ -816,99 +807,6 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
 .anim-subida-cartao {
   animation: subida-cartao 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: 0.1s;
-}
-
-/* ---------- Faixa decorativa "Shinatal" (só durante a entrada, páginas públicas) ---------- */
-/* Posicionada absoluta, grudada no topo do cartão (não ocupa espaço no fluxo) — assim, quando
-   .anim-barra-shinatal termina em opacity:0, não sobra nenhum vão vazio no layout. */
-.barra-shinatal-topo {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: 2rem;
-  overflow: hidden;
-  background: var(--shinatal-preto);
-  border-radius: 1.25rem 1.25rem 0 0;
-  display: flex;
-  align-items: center;
-  pointer-events: none; /* decorativo — nunca intercepta clique, mesmo antes de sumir */
-}
-.barra-shinatal-pista {
-  display: flex;
-  width: max-content;
-  animation: barra-shinatal-loop 9s linear infinite;
-  will-change: transform;
-}
-/* Pausa quando a faixa sai da viewport (ver pausarAnimacaoForaDaTela em ui-utils.js). */
-.barra-shinatal-pista.anim-pausada { animation-play-state: paused; }
-.barra-shinatal-grupo {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding-right: 1.5rem;
-  list-style: none;
-  white-space: nowrap;
-}
-.barra-shinatal-marca {
-  font-family: "Space Grotesk", "Inter", sans-serif;
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--shinatal-red-festivo);
-}
-.barra-shinatal-item {
-  font-family: "Inter", sans-serif;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
-}
-@keyframes barra-shinatal-loop {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-/* Sobe em sincronia com o cartão (mesma duração/delay de .anim-subida-cartao) e desaparece
-   assim que ele termina de assentar (ver comentário acima). */
-@keyframes barra-shinatal-entrada {
-  0% { opacity: 1; transform: translateY(56px); }
-  60% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(0); }
-}
-.anim-barra-shinatal {
-  animation: barra-shinatal-entrada 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: 0.1s;
-}
-/* infinite precisa de "none" explícito — a regra global de prefers-reduced-motion só acelera
-   (deixaria "tremendo" em vez de parado). */
-@media (prefers-reduced-motion: reduce) {
-  .barra-shinatal-pista { animation: none !important; }
-}
-
-/* ---------- Faixa "Shinatal" grudada no topo de #sobre-nos (home, dirigida por scroll) ---------- */
-/* Reaproveita .barra-shinatal-pista/-grupo/-marca/-item (mesmo visual da faixa das páginas
-   públicas), mas aqui fica presa à borda superior da seção enquanto ela sobe sobre o hero
-   sticky, e some (opacity) quando o topo da seção encontra o header — ver o observer
-   dedicado a #sentinela-faixa-shinatal no script da home. */
-.barra-shinatal-secao {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: 2rem;
-  overflow: hidden;
-  background: var(--shinatal-preto);
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  opacity: 1;
-  transition: opacity 0.4s ease;
-}
-.barra-shinatal-secao.faixa-oculta {
-  opacity: 0;
-}
-@media (prefers-reduced-motion: reduce) {
-  .barra-shinatal-secao { display: none; }
 }
 
 /* ---------- Revelar ao rolar (seções abaixo da dobra) ---------- */

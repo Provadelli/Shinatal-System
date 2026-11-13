@@ -16,7 +16,7 @@ function useComportamentosDaPagina() {
     // Importados só depois que a página montou: acessibilidade.js procura o menu, o botão de
     // pausar e o <main> assim que carrega.
     import("@legado/ui-utils.js").then(({ pausarAnimacaoForaDaTela, sincronizarAlturaHeader }) => {
-      pausarAnimacaoForaDaTela(".barra-shinatal-pista, .faixa-fotos-pista");
+      pausarAnimacaoForaDaTela(".faixa-fotos-pista");
       sincronizarAlturaHeader();
     });
 
@@ -38,16 +38,6 @@ function useComportamentosDaPagina() {
       observadores.push(obs);
     }
 
-    // Faixa "Shinatal" no topo de #sobre-nos: some quando a seção termina de cobrir o hero.
-    const sentinelaFaixa = document.getElementById("sentinela-faixa-shinatal");
-    const faixa = document.querySelector(".barra-shinatal-secao");
-    if (sentinelaFaixa && faixa) {
-      const obs = new IntersectionObserver(([entrada]) => {
-        faixa.classList.toggle("faixa-oculta", !entrada.isIntersecting);
-      }, { rootMargin: "0px 0px -100% 0px", threshold: 0 });
-      obs.observe(sentinelaFaixa);
-      observadores.push(obs);
-    }
     return () => observadores.forEach((o) => o.disconnect());
   }, []);
 

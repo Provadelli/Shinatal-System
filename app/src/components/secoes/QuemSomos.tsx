@@ -5,29 +5,9 @@ import { aoEntrarNaTela, cascata, surgir } from "@/lib/movimento";
 import { TITULO_SECAO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";
 import { cn } from "@/lib/utils";
 
-const FAIXA = ["Reconhecimento", "Gratidão", "Shine Rio", "Celebração 2026"];
-
-function GrupoFaixa({ oculto = false }: { oculto?: boolean }) {
-  return (
-    <ul className="barra-shinatal-grupo" aria-hidden={oculto || undefined}>
-      {FAIXA.flatMap((item) => [
-        <li key={`m-${item}`} className="barra-shinatal-marca">Shinatal</li>,
-        <li key={item} className="barra-shinatal-item">{item}</li>
-      ])}
-    </ul>
-  );
-}
-
 export function QuemSomos() {
   return (
     <section id="sobre-nos" className="secao-neve py-16 md:py-24 scroll-mt-24">
-      <span id="sentinela-faixa-shinatal" aria-hidden="true" className="block h-px w-full" />
-      <div className="barra-shinatal-secao" aria-hidden="true">
-        <div className="barra-shinatal-pista">
-          <GrupoFaixa />
-          <GrupoFaixa oculto />
-        </div>
-      </div>
       <span aria-hidden="true" className="grade-tecnica grade-tecnica--clara" />
 
       <motion.div
