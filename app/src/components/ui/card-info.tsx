@@ -1,5 +1,6 @@
 import * as React from "react";
-import { motion } from "framer-motion";
+// m (não motion): com LazyMotion no App, o motor de animação carrega à parte, fora do pacote inicial.
+import { m as motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { surgir } from "@/lib/movimento";

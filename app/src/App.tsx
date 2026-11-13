@@ -1,10 +1,14 @@
-import { useEffect } from "react";
-import { MotionConfig } from "framer-motion";
+import { lazy, Suspense, useEffect } from "react";
+import { LazyMotion, MotionConfig } from "framer-motion";
 import { Cabecalho } from "@/components/secoes/Cabecalho";
 import { Hero } from "@/components/secoes/Hero";
-import { QuemSomos } from "@/components/secoes/QuemSomos";
-import { SobreShinatal } from "@/components/secoes/SobreShinatal";
-import { ComoFunciona } from "@/components/secoes/ComoFunciona";
+
+// Seções abaixo da primeira tela: arquivos à parte, baixados depois do Hero (menos JS no início).
+const QuemSomos = lazy(() => import("@/components/secoes/QuemSomos").then((m) => ({ default: m.QuemSomos })));
+const SobreShinatal = lazy(() => import("@/components/secoes/SobreShinatal").then((m) => ({ default: m.SobreShinatal })));
+const ComoFunciona = lazy(() => import("@/components/secoes/ComoFunciona").then((m) => ({ default: m.ComoFunciona })));
+// Motor de animação do framer-motion, carregado à parte (ver lib/recursos-movimento.ts).
+const recursosDeMovimento = () => import("@/lib/recursos-movimento").then((r) => r.default);
 
 /** Liga os comportamentos de página que já existem em frontend/js (mesmos das outras páginas). */
 function useComportamentosDaPagina() {
@@ -55,15 +59,19 @@ function useComportamentosDaPagina() {
 export function App() {
   useComportamentosDaPagina();
   return (
-    <MotionConfig reducedMotion="user">
-      <Cabecalho />
-      <main id="conteudo" className="relative z-10" tabIndex={-1}>
-        <span id="sentinela-header-scroll" aria-hidden="true" className="block h-px w-full" />
-        <Hero />
-        <QuemSomos />
-        <SobreShinatal />
-        <ComoFunciona />
-      </main>
-    </MotionConfig>
+    <LazyMotion features={recursosDeMovimento} strict>
+      <MotionConfig reducedMotion="user">
+        <Cabecalho />
+        <main id="conteudo" className="relative z-10" tabIndex={-1}>
+          <span id="sentinela-header-scroll" aria-hidden="true" className="block h-px w-full" />
+          <Hero />
+          <Suspense fallback={null}>
+            <QuemSomos />
+            <SobreShinatal />
+            <ComoFunciona />
+          </Suspense>
+        </main>
+      </MotionConfig>
+    </LazyMotion>
   );
 }

@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+// m (não motion): com LazyMotion no App, o motor de animação carrega à parte, fora do pacote inicial.
+import { m as motion } from "framer-motion";
 import { Rotulo } from "@/components/ui/rotulo";
 import { aoEntrarNaTela, cascata, surgir } from "@/lib/movimento";
 import { TITULO_SECAO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";

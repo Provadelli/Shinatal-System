@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+// m (não motion): com LazyMotion no App, o motor de animação carrega à parte, fora do pacote inicial.
+import { m as motion } from "framer-motion";
 import { ArrowDown, Pause, PiggyBank, Play, Users } from "lucide-react";
 import { firebaseConfig, FIRESTORE_REST } from "@legado/firebase-config.js";
 import { BotaoContorno } from "@/components/ui/botao-contorno";

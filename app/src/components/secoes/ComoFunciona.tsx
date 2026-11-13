@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+// m (não motion): com LazyMotion no App, o motor de animação carrega à parte, fora do pacote inicial.
+import { m as motion } from "framer-motion";
 import { Award, CalendarCheck, CircleCheck, Gift, HeartHandshake, TrendingUp, Users } from "lucide-react";
 import { CardInfo } from "@/components/ui/card-info";
 import { Rotulo } from "@/components/ui/rotulo";
