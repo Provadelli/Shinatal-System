@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowDown, Pause, PiggyBank, Play, Users } from "lucide-react";
 import { firebaseConfig, FIRESTORE_REST } from "@legado/firebase-config.js";
 import { BotaoContorno } from "@/components/ui/botao-contorno";
-import { cascata, surgir, EASE_BRAND } from "@/lib/movimento";
+import { cascata, surgirTopo as surgir, EASE_BRAND } from "@/lib/movimento";
 import { TITULO_HERO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";
 import { cn } from "@/lib/utils";
 
@@ -153,7 +153,7 @@ function TituloHero() {
               className="titulo-brilho inline-block"
               initial={{ y: "105%" }}
               animate={{ y: "0%" }}
-              transition={{ duration: 1.1, ease: EASE_BRAND, delay: 0.55 + i * 0.12 }}
+              transition={{ duration: 1.1, ease: EASE_BRAND, delay: 0.15 + i * 0.12 }}
             >
               {palavra}
             </motion.span>
@@ -168,9 +168,9 @@ function TituloHero() {
         height={121}
         alt="Shinatal"
         className="logo-vermelho h-12 sm:h-14 lg:h-[4.5rem] w-auto inline-block align-middle mt-3"
-        initial={{ clipPath: "inset(0 100% 0 0)", opacity: 0 }}
+        initial={{ clipPath: "inset(0 100% 0 0)", opacity: 0.01 }}
         animate={{ clipPath: "inset(0 0% 0 0)", opacity: 1 }}
-        transition={{ duration: 1.2, ease: EASE_BRAND, delay: 0.9 }}
+        transition={{ duration: 1.2, ease: EASE_BRAND, delay: 0.5 }}
       />
     </h1>
   );
@@ -210,7 +210,7 @@ export function Hero() {
       </button>
 
       <div className="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-        <motion.div variants={cascata(0.1, 0.45)} initial="oculto" animate="visivel" className="flex flex-col items-start">
+        <motion.div variants={cascata(0.1, 0.1)} initial="oculto" animate="visivel" className="flex flex-col items-start">
           <motion.p variants={surgir} className="selo-premiacao font-mono text-[11px] sm:text-xs font-medium uppercase tracking-[0.2em]">
             <span aria-hidden="true" className="h-px w-8 bg-current opacity-70" />
             Programa de Premiação voluntária 2026
@@ -241,9 +241,9 @@ export function Hero() {
 
         {/* Card do fundo arrecadado */}
         <motion.div
-          initial={{ opacity: 0, y: 28, scale: 0.97 }}
+          initial={{ opacity: 0.01, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 1, ease: EASE_BRAND, delay: 0.75 }}
+          transition={{ duration: 1, ease: EASE_BRAND, delay: 0.35 }}
           className="relative w-full max-w-2xl mx-auto"
         >
           <div ref={cardRef} id="card-fundo" className="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">

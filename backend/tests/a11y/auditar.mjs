@@ -282,10 +282,14 @@ async function axe(pagina, rotulo) {
   // A fonte de ícones vem só com os ícones listados (scripts/fonte-icones.mjs). Um ícone fora da
   // lista aparece como o nome escrito ("visibility_off"), bem mais largo que o próprio tamanho.
   const semDesenho = await pagina.evaluate(async () => {
+    // fonts.ready resolve antes de a fonte ser pedida quando o ícone aparece tarde (menu do
+    // celular): carrega explicitamente antes de medir, senão o nome escrito vira falso positivo.
+    await document.fonts.load('24px "Material Symbols Outlined"', "menu").catch(() => {});
     await document.fonts.ready;
     return [...document.querySelectorAll(".material-symbols-outlined")]
       .filter((el) => el.getClientRects().length && el.textContent.trim().length > 2)
-      .filter((el) => el.scrollWidth > parseFloat(getComputedStyle(el).fontSize) * 1.6)
+      // Mede só o texto (Range), não a caixa: ícones em "pastilha" com padding não são falso positivo.
+      .filter((el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width > parseFloat(getComputedStyle(el).fontSize) * 1.6; })
       .map((el) => el.textContent.trim());
   });
   for (const nome of new Set(semDesenho)) relatorio.icones.push({ estado: rotulo, nome });
@@ -412,7 +416,7 @@ async function rodarLighthouse(navegador, caminho, rotulo) {
   const outros = ["best-practices", "seo"].flatMap((c) => categories[c].auditRefs
     .map((ref) => audits[ref.id]).filter((a) => a.score !== null && a.score < 1).map((a) => `${c}: ${a.id}`));
   if (process.env.DIAGNOSTICO) {
-    for (const id of ["errors-in-console", "inspector-issues", "image-aspect-ratio"]) {
+    for (const id of ["errors-in-console", "inspector-issues", "image-aspect-ratio", "layout-shifts"]) {
       const itens = audits[id]?.score === 1 ? [] : (audits[id]?.details?.items || []);
       for (const i of itens.slice(0, 4)) {
         console.log(`    [${id}] ${rotulo}: ${String(i.description || i.issueType || i.url || i.node?.snippet || JSON.stringify(i.subItems?.items?.[0] || i)).slice(0, 220)}`);
@@ -496,7 +500,7 @@ async function principal() {
     await capturar(pagina, "home · footer em repouso");
     await axe(pagina, "home · footer");
     // Hover do "fio dourado" num link do rodapé e num botão — só captura.
-    await pagina.hover(".footer-nav-link");
+    if (await pagina.$("footer a")) await pagina.hover("footer a"); // home em React: classe do link mudou
     await pausa(500);
     await capturar(pagina, "home · footer, hover em link");
 
@@ -595,9 +599,9 @@ async function principal() {
     await pagina.setViewport(DESKTOP);
     await entrar(pagina, "ana@shinerio.com");
     await visitar(pagina, "/dashboard", "painel do colaborador (desktop)");
-    for (const m of ["faltas", "advertencias", "regras", "conduta"]) {
-      await auditarModal(pagina, `painel do colaborador · modal ${m}`, `[data-abrir-modal="modal-${m}"]`, `modal-${m}`);
-    }
+    // Desde o redesign, faltas/advertências/regras/conduta são páginas próprias, não modais.
+    for (const p of ["faltas", "advertencias", "regulamento", "conduta"]) await visitar(pagina, `/${p}`, `colaborador · ${p}`);
+    await visitar(pagina, "/dashboard", "painel do colaborador (de volta)");
     await clicarVisivel(pagina, "[aria-controls='conteudo-regras-resumo']");
     const sanfona = await pagina.evaluate(() => document.querySelector("[aria-controls='conteudo-regras-resumo']").getAttribute("aria-expanded"));
     conferir("painel do colaborador: sanfona das regras informa aria-expanded", sanfona === "true", sanfona);
@@ -620,9 +624,9 @@ async function principal() {
     await capturar(pagina, "gestão · hover em linha da tabela");
     await auditarModal(pagina, "gestão · modal nova ação", `[data-nova-acao="falta"]`, "modal-nova-acao");
     await auditarModal(pagina, "gestão · modal novo colaborador", `[data-abrir-modal="modal-novo-colaborador"]`, "modal-novo-colaborador");
-    await auditarModal(pagina, "gestão · modal log", `[data-abrir-modal="modal-log"]`, "modal-log");
-    await auditarModal(pagina, "gestão · modal solicitações", `[data-abrir-modal="modal-solicitacoes"]`, "modal-solicitacoes");
-    await auditarModal(pagina, "gestão · modal conduta", `[data-abrir-modal="modal-conduta"]`, "modal-conduta");
+    // Log, solicitações e conduta viraram páginas próprias.
+    for (const p of ["atividade", "solicitacoes", "conduta"]) await visitar(pagina, `/${p}`, `gestão · ${p}`);
+    await visitar(pagina, "/gestao", "painel de gestão (de volta)");
     await auditarModal(pagina, "gestão · modal perfil", `[data-ver-perfil-uid]`, "modal-perfil");
     await auditarModal(pagina, "gestão · modal editar colaborador", `[data-editar-uid]`, "modal-editar-colaborador");
     await auditarModal(pagina, "gestão · modal colaboradores anteriores", `[data-abrir-modal="modal-colaboradores-anteriores"]`, "modal-colaboradores-anteriores");

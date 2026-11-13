@@ -20,6 +20,16 @@ export const surgir: Variants = {
   visivel: { opacity: 1, y: 0, transition: { duration: 0.9, ease: EASE_BRAND } }
 };
 
+/**
+ * Variante do topo (anima logo ao abrir): começa em 0.01, não 0 — o Chrome ignora opacity 0 no
+ * LCP. Só para o Hero: nas seções que esperam a rolagem (aoEntrarNaTela), 0.01 deixaria texto
+ * quase invisível parado na página, e o axe acusa contraste.
+ */
+export const surgirTopo: Variants = {
+  oculto: { opacity: 0.01, y: 22 },
+  visivel: { opacity: 1, y: 0, transition: { duration: 0.9, ease: EASE_BRAND } }
+};
+
 /** Revela uma vez, quando entra na tela. */
 export const aoEntrarNaTela = {
   initial: "oculto",
