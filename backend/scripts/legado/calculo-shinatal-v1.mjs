@@ -1,0 +1,865 @@
+/**
+ * Shinatal — Motor de cálculo da premiação.
+ * Implementação literal do "Regulamento Interno — Shinatal" (Shine Rio Serviços Ltda.).
+ * Cada função cita a seção do regulamento que implementa.
+ *
+ * Módulo puro (sem I/O, sem Firebase): recebe arrays já carregados do Firestore e devolve
+ * números. É usado tanto pelo dashboard do colaborador (somente leitura) quanto pelo
+ * simulador do painel de gestão.
+ *
+ * ⚠️ Seção 16 ("os redutores terão caráter acumulativo em no máximo dois índices, um maior
+ * + um menor") é a única regra genuinamente ambígua do texto. A leitura adotada aqui:
+ * dentre os redutores PERCENTUAIS (atrasos, disciplina, avaliação negativa), aplicam-se no
+ * máximo dois — o de maior peso e o de menor peso dentre os que ainda restarem — os demais
+ * são descartados. O desconto de faltas (Seção 7) tem fórmula própria em R$ e é sempre
+ * aplicado, pois o texto não o lista na tabela de "redutores" percentuais da Seção 16.
+ * Recomenda-se validação jurídica/RH desta interpretação antes de uso em produção.
+ */
+
+const CREDITO_POR_CONTRATO = 150; // Seção 2
+const MESES_ANO = 12;
+
+/* ------------------------------------------------------------------ */
+/* Elegibilidade — Seção 5                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * @param {{status:string, role?:string}} usuario status: 'ativo'|'aviso_previo'|'demitido'|'afastado'
+ * @returns {{elegivel:boolean, motivo:string|null}}
+ */
+function verificarElegibilidade(usuario) {
+  const motivos = {
+    demitido: "Desligamento (pedido ou demissão) antes da data de pagamento",
+    aviso_previo: "Cumprindo aviso prévio na data do pagamento",
+    abandono: "Abandono de emprego",
+    fraude: "Fraude, falsificação ou ato doloso contra a empresa/cliente",
+    // Regra da plataforma (não é da Seção 5 do regulamento): só o Presidente é uma conta
+    // puramente de gestão do programa (aprova solicitações, não é premiado) — Admin/DP/RH
+    // participam da divisão do fundo normalmente, como qualquer colaborador.
+    presidente: "Presidente — não participa da divisão do fundo (Seção especial da plataforma)"
+  };
+  if (usuario.role === "presidente") {
+    return { elegivel: false, motivo: motivos.presidente };
+  }
+  if (usuario.motivoPerdaIntegral && motivos[usuario.motivoPerdaIntegral]) {
+    return { elegivel: false, motivo: motivos[usuario.motivoPerdaIntegral] };
+  }
+  if (usuario.status === "demitido" || usuario.status === "aviso_previo") {
+    return { elegivel: false, motivo: motivos[usuario.status] };
+  }
+  return { elegivel: true, motivo: null };
+}
+
+/* ------------------------------------------------------------------ */
+/* Proporcionalidade — Seção 4                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Avos trabalhados no exercício (Seção 4.1): admissão até dia 15 conta o mês cheio;
+ * a partir do dia 16 a contagem começa no mês seguinte. Desligamento antes do fim do
+ * ano zera a elegibilidade (Seção 5), então aqui assumimos o colaborador ativo até 31/12
+ * do ano-exercício (ou até a data de corte informada).
+ * @param {string} dataAdmissaoISO 'aaaa-mm-dd'
+ * @param {number} anoExercicio
+ * @returns {number} 0 a 12
+ */
+function calcularAvosTrabalhados(dataAdmissaoISO, anoExercicio) {
+  const admissao = new Date(dataAdmissaoISO + "T00:00:00");
+  if (Number.isNaN(admissao.getTime())) return 0;
+
+  const anoAdmissao = admissao.getFullYear();
+  if (anoAdmissao > anoExercicio) return 0;
+  if (anoAdmissao < anoExercicio) return MESES_ANO; // admitido em ano anterior: exercício cheio
+
+  const mesInicio = admissao.getDate() <= 15 ? admissao.getMonth() : admissao.getMonth() + 1;
+  const avos = MESES_ANO - mesInicio; // mês de dezembro = índice 11 → 1 avo
+  return Math.max(0, Math.min(MESES_ANO, avos));
+}
+
+/** Percentual da cota conforme jornada contratual (Seção 4.2). */
+function percentualCargaHoraria(cargaHorariaDiaria) {
+  const tabela = { 8: 1, 6: 0.75, 4: 0.5 };
+  return tabela[cargaHorariaDiaria] ?? 0;
+}
+
+/** Peso do colaborador na divisão do fundo: avos/12 × % jornada (Seções 4 e 6). */
+function calcularPesoIndividual(usuario, anoExercicio) {
+  const avos = calcularAvosTrabalhados(usuario.dataAdmissao, anoExercicio);
+  const pctJornada = percentualCargaHoraria(usuario.cargaHoraria);
+  return (avos / MESES_ANO) * pctJornada;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fundo Shinatal                                                      */
+/* ------------------------------------------------------------------ */
+
+/** Ano (exercício do Shinatal) a que uma movimentação pertence. O crédito inicial segue o mês
+ * de referência da implantação (regra do dia 15 — implantado em 20/12/2025 conta em 2026); as
+ * demais movimentações, o ano da própria data. */
+function anoDoMovimento(movimento) {
+  if (!movimento.data) return null;
+  if (movimento.tipo === "credito_inicial") return calcularMesReferenciaImplantacao(movimento.data).ano;
+  return Number(String(movimento.data).slice(0, 4));
+}
+
+/**
+ * Quanto um contrato movimentou o Fundo Shinatal de um ano específico. Cada movimentação conta
+ * no ano em que aconteceu: um contrato implantado em 2025 não credita nada em 2026, mas saídas,
+ * redução de prazo e o estorno de um encerramento antecipado em 2026 descontam do fundo de 2026.
+ * @returns {{creditado:number, descontado:number, estorno:number, liquido:number}}
+ */
+function calcularContribuicaoNoAno(contrato, ano, hojeISO) {
+  const { movimentos } = calcularResumoContratoEmpresarial(contrato, hojeISO);
+  let creditado = 0;
+  let descontado = 0;
+  let estorno = 0;
+  for (const m of movimentos) {
+    if (anoDoMovimento(m) !== ano || !m.valor) continue;
+    if (m.valor > 0) creditado += m.valor;
+    else if (m.tipo === "estorno") estorno += -m.valor;
+    else descontado += -m.valor;
+  }
+  return { creditado, descontado, estorno, liquido: creditado - descontado - estorno };
+}
+
+/**
+ * Fundo Shinatal de um exercício (ano). O contrato individual do colaborador (coleção
+ * `contratos`, ações "Ativar contrato"/"Encerrar contrato" da aba RH) é dado interno — não
+ * alimenta o fundo. A única fonte de dinheiro é a aba "Contratos" (empresariais, por CNPJ), e só
+ * entram as movimentações daquele ano (`calcularContribuicaoNoAno`): créditos de contratos de
+ * anos anteriores já pertencem ao Shinatal daquele ano; aqui só entram os descontos/estornos.
+ * @param {object[]} contratosEmpresariais contratos empresariais (CNPJ)
+ * @param {number} [anoExercicio] ano do fundo — padrão: ano atual
+ */
+function calcularFundo(contratosEmpresariais = [], anoExercicio = new Date().getFullYear()) {
+  let arrecadado = 0;
+  let estornos = 0;
+
+  for (const ce of contratosEmpresariais) {
+    const contribuicao = calcularContribuicaoNoAno(ce, anoExercicio);
+    arrecadado += contribuicao.creditado;
+    estornos += contribuicao.descontado + contribuicao.estorno;
+  }
+
+  return {
+    arrecadado,
+    estornos,
+    saldoDisponivel: Math.max(0, arrecadado - estornos)
+  };
+}
+
+function mesesEntreDatas(inicioISO, fimISO) {
+  const inicio = new Date(inicioISO + "T00:00:00");
+  const fim = new Date(fimISO + "T00:00:00");
+  return (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth());
+}
+
+/**
+ * "Mês de referência" de implantação (regra do dia 15, mesma lógica de `calcularAvosTrabalhados`
+ * para admissão): implantado até o dia 15 conta o mês corrente; do dia 16 em diante, conta a
+ * partir do mês seguinte. Usado tanto para o rótulo de exibição quanto como base de
+ * `calcularMesesDesdeInicio` (duração prevista, meses decorridos, estorno — Seção 2.1).
+ * @param {string} dataInicioISO 'aaaa-mm-dd'
+ * @returns {{ano:number, mes:number}} mes 0-11
+ */
+function calcularMesReferenciaImplantacao(dataInicioISO) {
+  const d = new Date(dataInicioISO + "T00:00:00");
+  let ano = d.getFullYear();
+  let mes = d.getDate() <= 15 ? d.getMonth() : d.getMonth() + 1;
+  if (mes > 11) { mes = 0; ano += 1; }
+  return { ano, mes };
+}
+
+/** Formata o mês de referência como "mm/aaaa" para exibição. */
+function formatarMesReferencia({ ano, mes }) {
+  return `${String(mes + 1).padStart(2, "0")}/${ano}`;
+}
+
+/**
+ * Meses entre uma data de início e uma data final, ambos os meses inclusos. A regra do dia 15
+ * vale SÓ no início (`calcularMesReferenciaImplantacao`): até o dia 15 o mês conta, do dia 16 em
+ * diante começa no mês seguinte. O mês da data final (fim previsto, encerramento ou saída de
+ * funcionário) SEMPRE conta, qualquer que seja o dia.
+ * Ex.: 10/11/2025 → 12/02/2026 = 4 meses (nov, dez, jan, fev); 25/05 → 01/07 = 2 (jun, jul).
+ * Base da duração prevista, dos meses decorridos no estorno (Seção 2.1/2.2) e da permanência de
+ * cada funcionário, para que tudo fique na mesma régua.
+ * @param {string} dataInicioISO 'aaaa-mm-dd'
+ * @param {string} dataReferenciaISO 'aaaa-mm-dd'
+ */
+function calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO) {
+  const { ano, mes } = calcularMesReferenciaImplantacao(dataInicioISO);
+  const ref = new Date(dataReferenciaISO + "T00:00:00");
+  return (ref.getFullYear() - ano) * 12 + (ref.getMonth() - mes) + 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* CNPJ — cadastro de empresas (Repactuação)                           */
+/* Valida tanto o CNPJ numérico tradicional quanto o formato           */
+/* alfanumérico da Receita Federal (vigente desde jul/2026): os 12     */
+/* caracteres-base podem ser dígito ou letra maiúscula (A-Z), e os 2   */
+/* dígitos verificadores continuam sempre numéricos. O valor de cada   */
+/* caractere-base é (código ASCII − 48) — para dígitos '0'-'9' isso já */
+/* é o próprio valor numérico (0-9), então a mesma fórmula de módulo   */
+/* 11 do CNPJ tradicional cobre os dois formatos sem ramificação.      */
+/* ------------------------------------------------------------------ */
+
+const PESOS_CNPJ_D1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+const PESOS_CNPJ_D2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+/** Remove máscara e normaliza para maiúsculas (aceita dígitos e letras A-Z). */
+function normalizarCNPJ(valor) {
+  return String(valor || "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+}
+
+/** Aplica a máscara XX.XXX.XXX/XXXX-XX sobre o que já foi digitado. */
+function formatarCNPJ(valor) {
+  const v = normalizarCNPJ(valor).slice(0, 14);
+  const partes = [
+    [0, 2], [2, 5], [5, 8], [8, 12], [12, 14]
+  ].map(([ini, fim]) => v.slice(ini, fim)).filter(Boolean);
+  let saida = partes[0] || "";
+  if (partes[1]) saida += "." + partes[1];
+  if (partes[2]) saida += "." + partes[2];
+  if (partes[3]) saida += "/" + partes[3];
+  if (partes[4]) saida += "-" + partes[4];
+  return saida;
+}
+
+function calcularDigitoCNPJ(base, pesos) {
+  const soma = base.split("").reduce((acc, ch, i) => acc + (ch.charCodeAt(0) - 48) * pesos[i], 0);
+  const resto = soma % 11;
+  return resto < 2 ? 0 : 11 - resto;
+}
+
+/** @returns {boolean} true se o CNPJ (numérico ou alfanumérico) é válido. */
+function validarCNPJ(valor) {
+  const cnpj = normalizarCNPJ(valor);
+  if (!/^[0-9A-Z]{12}[0-9]{2}$/.test(cnpj)) return false;
+  if (/^(.)\1{13}$/.test(cnpj)) return false; // todos os caracteres iguais
+
+  const doze = cnpj.slice(0, 12);
+  const d1 = calcularDigitoCNPJ(doze, PESOS_CNPJ_D1);
+  const d2 = calcularDigitoCNPJ(doze + String(d1), PESOS_CNPJ_D2);
+  return cnpj.slice(12) === `${d1}${d2}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Contratos Empresariais (CNPJ) — Repactuação                         */
+/* Tudo fica direto no documento do contrato, sem subcoleção nem nomes */
+/* individuais: o quadro inicial é só uma quantidade; quem sai desse   */
+/* grupo entra em `saidasIniciais` (data + motivo); quem entra durante */
+/* o contrato entra em `entradasContrato` (data de entrada + data de   */
+/* saída, se já saiu também) — nenhum dos dois precisa de nome, só a   */
+/* contagem e a data importam para o cálculo. Cada entrada/saída       */
+/* ajusta o fundo em R$150/12 por funcionário × os meses do contrato   */
+/* que restam a partir da data. O crédito inicial (Seção 2.1) é        */
+/* proporcional aos MESES PREVISTOS do contrato (dataInicio →          */
+/* dataFimPrevista), limitados a 12 — um contrato previsto para 12+    */
+/* meses credita o valor cheio de R$150/funcionário, e um previsto     */
+/* para menos já nasce proporcional. Se o contrato encerrar antes de   */
+/* atingir esses mesmos meses previstos, o total creditado é estornado */
+/* proporcionalmente aos meses que faltavam (Seção 2.2), com base nos  */
+/* meses REALMENTE decorridos até o encerramento. Régua única: regra   */
+/* do dia 15 só no início; o mês da data final sempre conta.           */
+/* ------------------------------------------------------------------ */
+
+
+/** Duração prevista entre o início e o encerramento previsto do contrato (regra do dia 15 —
+ * ver `calcularMesesDesdeInicio`). */
+function calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO) {
+  if (!dataInicioISO || !dataFimPrevistaISO) return 0;
+  return Math.max(0, calcularMesesDesdeInicio(dataInicioISO, dataFimPrevistaISO));
+}
+
+/** Meses previstos do contrato, limitados a 12 (o crédito nunca ultrapassa R$150/func. — Seção 2).
+ * Um contrato de 1 mês já gera crédito (R$150/12 por funcionário); só 0 meses não gera. */
+function calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO) {
+  const meses = calcularDuracaoMesesPrevista(dataInicioISO, dataFimPrevistaISO);
+  if (meses < 1) return 0;
+  return Math.min(meses, MESES_ANO);
+}
+
+/** R$150/12 por funcionário do quadro inicial, × os meses vigentes previstos do contrato (Seção 2.1). */
+function calcularCreditoInicialContratoEmpresarial(contrato) {
+  const meses = calcularMesesVigentesContrato(contrato.dataInicio, contrato.dataFimPrevista);
+  return (CREDITO_POR_CONTRATO / MESES_ANO) * (contrato.quantidadeFuncionariosIniciais || 0) * meses;
+}
+
+/** Quantidade de funcionários de um registro de saída/entrada — 1 se não informado (compatível
+ * com registros antigos, de antes do campo de quantidade em lote). */
+function quantidadeDoRegistro(registro) {
+  return Math.max(1, Number(registro?.quantidade) || 1);
+}
+
+/**
+ * Meses do contrato que restam a partir de uma data de entrada/saída até o encerramento
+ * previsto (regra do dia 15, inclusiva — mesma régua de `calcularMesesDesdeInicio`), limitados
+ * aos meses vigentes do contrato (teto de 12; 0 se o contrato não gera crédito). Uma data antes
+ * do início conta o contrato todo; depois do fim previsto conta 0.
+ */
+function calcularMesesRestantesContrato(dataISO, dataInicioISO, dataFimPrevistaISO) {
+  const mesesVigentes = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
+  if (!dataISO || mesesVigentes <= 0) return 0;
+  const restantes = calcularMesesDesdeInicio(dataISO, dataFimPrevistaISO);
+  return Math.max(0, Math.min(restantes, mesesVigentes));
+}
+
+/**
+ * Ajustes por entrada (+) e saída (−, do quadro inicial ou de uma entrada) de funcionários
+ * durante o contrato, até a data de referência. A entrada credita R$150/12 × os meses do
+ * contrato que restam a partir da data de entrada (`calcularMesesRestantesContrato`). A saída
+ * desconta o que foi creditado ao funcionário MENOS os meses que ele trabalhou (o mês da saída
+ * conta sempre) — mesma lógica do prazo indeterminado. Ex.: creditado 12 meses (R$150), entrou
+ * em 10/11/2025 e saiu em 12/02/2026 = 4 meses trabalhados → desconta R$100. Cada registro pode
+ * representar um lote de N funcionários (campo `quantidade`).
+ * @param {Array<{dataEntrada:string, dataSaida?:string|null, quantidade?:number}>} entradasContrato
+ * @param {Array<{data:string, quantidade?:number}>} saidasIniciais
+ * @param {string} dataReferenciaISO
+ * @param {string} dataInicioISO início do contrato
+ * @param {string} dataFimPrevistaISO encerramento previsto atual do contrato
+ */
+function calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferenciaISO, dataInicioISO, dataFimPrevistaISO) {
+  const valorMes = CREDITO_POR_CONTRATO / MESES_ANO;
+  const mesesVigentes = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
+  const mesesCreditadosEntrada = (dataEntradaISO) => calcularMesesRestantesContrato(dataEntradaISO, dataInicioISO, dataFimPrevistaISO);
+  // Desconto da saída = meses creditados ao funcionário − meses trabalhados (entrada → saída).
+  const descontoSaida = (entradaISO, saidaISO, mesesCreditados, qtd) => {
+    const trabalhados = Math.max(0, calcularMesesDesdeInicio(entradaISO, saidaISO));
+    return valorMes * qtd * Math.max(0, mesesCreditados - trabalhados);
+  };
+  let acrescido = 0;
+  let descontado = 0;
+  const movimentos = []; // cada ajuste com sua data — base do fundo por ano (calcularFundo)
+  for (const e of (entradasContrato || [])) {
+    const qtd = quantidadeDoRegistro(e);
+    if (e.dataEntrada && e.dataEntrada <= dataReferenciaISO) {
+      const v = valorMes * qtd * mesesCreditadosEntrada(e.dataEntrada);
+      acrescido += v;
+      movimentos.push({ tipo: "entrada", data: e.dataEntrada, valor: v });
+    }
+    if (e.dataEntrada && e.dataSaida && e.dataSaida <= dataReferenciaISO) {
+      const v = descontoSaida(e.dataEntrada, e.dataSaida, mesesCreditadosEntrada(e.dataEntrada), qtd);
+      descontado += v;
+      movimentos.push({ tipo: "saida", data: e.dataSaida, valor: -v });
+    }
+  }
+  for (const s of (saidasIniciais || [])) {
+    if (s.data && s.data <= dataReferenciaISO) {
+      const v = descontoSaida(dataInicioISO, s.data, mesesVigentes, quantidadeDoRegistro(s));
+      descontado += v;
+      movimentos.push({ tipo: "saida", data: s.data, valor: -v });
+    }
+  }
+  return { acrescido, descontado, movimentos };
+}
+
+/**
+ * Monta a lista de pausas atualizada a partir de uma transição de status — mesma regra
+ * compartilhada por contratos empresariais e por contratos individuais de colaborador: entrar em
+ * "pausado" abre uma nova pausa; sair de "pausado" fecha a última pausa aberta com a data de
+ * retomada. Retorna `null` quando a transição exige uma data que ainda não foi informada (fora
+ * dessas duas transições não é erro — devolve a lista sem mudança nenhuma).
+ * @param {Array<{dataPausa:string, dataRetomada:string|null}>} pausasAtuais
+ * @param {boolean} estavaPausado status anterior do contrato era "pausado"
+ * @param {string} novoStatus status selecionado agora
+ * @param {string} [dataPausa] usada só ao entrar em "pausado"
+ * @param {string} [dataRetomada] usada só ao sair de "pausado"
+ */
+function montarPausasAposTransicao(pausasAtuais, estavaPausado, novoStatus, dataPausa, dataRetomada) {
+  const pausas = pausasAtuais || [];
+  if (novoStatus === "pausado" && !estavaPausado) {
+    if (!dataPausa) return null;
+    return [...pausas, { dataPausa, dataRetomada: null }];
+  }
+  if (estavaPausado && novoStatus !== "pausado") {
+    if (!dataRetomada) return null;
+    return pausas.map((p, i) => (i === pausas.length - 1 ? { ...p, dataRetomada } : p));
+  }
+  return pausas;
+}
+
+/** Soma os meses em que o contrato ficou pausado até a data de referência — uma pausa ainda
+ * aberta (dataRetomada null) conta até a própria data de referência. Tempo pausado não conta
+ * como tempo efetivo de execução do contrato (ver "Pausar contrato" abaixo). */
+function calcularMesesPausados(pausas, dataReferenciaISO) {
+  return (pausas || []).reduce((soma, p) => {
+    if (!p.dataPausa || p.dataPausa > dataReferenciaISO) return soma;
+    const fim = p.dataRetomada && p.dataRetomada < dataReferenciaISO ? p.dataRetomada : dataReferenciaISO;
+    return soma + Math.max(0, mesesEntreDatas(p.dataPausa, fim));
+  }, 0);
+}
+
+/** Soma "funcionário-meses" pausados até a data de referência: cada pausa contribui
+ * quantidade × meses-pausados (uma pausa ainda aberta conta até a própria data de referência).
+ * Mesma mecânica de `calcularMesesPausados`, mas ponderada pela quantidade de funcionários
+ * afetados — usada para descontar do estorno só a fração do quadro que ficou pausada, não o
+ * contrato inteiro (ver "Pausar funcionários" abaixo). */
+function calcularFuncionarioMesesPausados(funcionariosPausados, dataReferenciaISO) {
+  return (funcionariosPausados || []).reduce((soma, p) => {
+    if (!p.dataPausa || p.dataPausa > dataReferenciaISO) return soma;
+    const fim = p.dataRetomada && p.dataRetomada < dataReferenciaISO ? p.dataRetomada : dataReferenciaISO;
+    return soma + quantidadeDoRegistro(p) * Math.max(0, mesesEntreDatas(p.dataPausa, fim));
+  }, 0);
+}
+
+/** Estorno proporcional se o contrato encerrar (ou estiver projetado a encerrar) antes dos meses
+ * previstos. `mesesDecorridos` é o tempo EFETIVO de execução — exclui tanto os períodos em que o
+ * contrato inteiro esteve pausado (`pausas`, ver `calcularMesesPausados`) quanto, proporcional-
+ * mente, os períodos em que só uma PARTE do quadro esteve pausada (`funcionariosPausados`): a
+ * fração excluída é funcionário-meses pausados ÷ quadro inicial — pausar todo o quadro inicial
+ * dá o mesmo resultado que pausar o contrato inteiro por aquele período. */
+function calcularEstornoContratoEmpresarial(dataInicioISO, dataFimPrevistaISO, dataReferenciaISO, valorCreditadoAteAData, pausas = [], funcionariosPausados = [], quantidadeFuncionariosIniciais = 0) {
+  if (!dataInicioISO || valorCreditadoAteAData <= 0) return 0;
+  const mesesAlvo = calcularMesesVigentesContrato(dataInicioISO, dataFimPrevistaISO);
+  if (mesesAlvo <= 0) return 0;
+  const mesesBrutos = Math.max(0, calcularMesesDesdeInicio(dataInicioISO, dataReferenciaISO));
+  const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferenciaISO);
+  const mesesPausadosQuadro = quantidadeFuncionariosIniciais > 0 ? funcionarioMesesPausados / quantidadeFuncionariosIniciais : 0;
+  const mesesDecorridos = Math.max(0, mesesBrutos - calcularMesesPausados(pausas, dataReferenciaISO) - mesesPausadosQuadro);
+  if (mesesDecorridos >= mesesAlvo) return 0;
+  const mesesFaltantes = mesesAlvo - mesesDecorridos;
+  return Math.min(valorCreditadoAteAData, (valorCreditadoAteAData / mesesAlvo) * mesesFaltantes);
+}
+
+/* ------------------------------------------------------------------ */
+/* Contratos de prazo indeterminado (`prazoIndeterminado: true`)       */
+/* Sem data de fim, não há "meses previstos": cada funcionário entra   */
+/* com os R$150 cheios (12 meses adiantados — Seção 2), seja do quadro */
+/* inicial ou de uma entrada. Quando ele sai, ou o contrato encerra, o */
+/* valor dele passa a ser R$150/12 × os meses que ele realmente ficou  */
+/* (até 12) — a diferença é descontada/estornada.                      */
+/* ------------------------------------------------------------------ */
+
+/** Meses de pausa do contrato inteiro que caem dentro do intervalo [inicio, fim]. */
+function calcularMesesPausadosEntre(pausas, inicioISO, fimISO) {
+  return (pausas || []).reduce((soma, p) => {
+    if (!p.dataPausa) return soma;
+    const ini = p.dataPausa > inicioISO ? p.dataPausa : inicioISO;
+    const fimPausa = p.dataRetomada || fimISO;
+    const fim = fimPausa < fimISO ? fimPausa : fimISO;
+    if (fim <= ini) return soma;
+    return soma + Math.max(0, mesesEntreDatas(ini, fim));
+  }, 0);
+}
+
+/** Meses que um lote ficou no contrato (dia 15 só na entrada; o mês da saída/encerramento
+ * sempre conta), sem as pausas do contrato inteiro nesse período, limitados a 12. */
+function calcularMesesPermanencia(entradaISO, saidaISO, pausas) {
+  const brutos = Math.max(0, calcularMesesDesdeInicio(entradaISO, saidaISO));
+  const efetivos = Math.max(0, brutos - calcularMesesPausadosEntre(pausas, entradaISO, saidaISO));
+  return Math.min(efetivos, MESES_ANO);
+}
+
+/** Resumo de um contrato de prazo indeterminado — mesmos campos de
+ * `calcularResumoContratoEmpresarial`, para que todas as telas funcionem igual. */
+function calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO) {
+  const encerrado = contrato.status === "encerrado";
+  const dataReferencia = encerrado ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
+  const valorMes = CREDITO_POR_CONTRATO / MESES_ANO;
+  const pausas = contrato.pausas || [];
+  const saidasIniciais = contrato.saidasIniciais || [];
+  const entradasContrato = contrato.entradasContrato || [];
+  const qtdIniciais = contrato.quantidadeFuncionariosIniciais || 0;
+  // Desconto de quem sai antes de completar 12 meses: R$12,50 × meses que faltaram.
+  const desconto = (entradaISO, saidaISO, qtd) =>
+    valorMes * qtd * (MESES_ANO - calcularMesesPermanencia(entradaISO, saidaISO, pausas));
+
+  const creditoInicial = CREDITO_POR_CONTRATO * qtdIniciais;
+  let acrescido = 0;
+  let descontado = 0;
+  let estornoLotes = 0;
+  const movimentos = [{ tipo: "credito_inicial", data: contrato.dataInicio, valor: creditoInicial }];
+
+  let qtdIniciaisRestantes = qtdIniciais;
+  for (const s of saidasIniciais) {
+    if (!s.data || s.data > dataReferencia) continue;
+    const qtd = quantidadeDoRegistro(s);
+    qtdIniciaisRestantes -= qtd;
+    const v = desconto(contrato.dataInicio, s.data, qtd);
+    descontado += v;
+    movimentos.push({ tipo: "saida", data: s.data, valor: -v });
+  }
+  if (qtdIniciaisRestantes > 0) estornoLotes += desconto(contrato.dataInicio, dataReferencia, qtdIniciaisRestantes);
+
+  for (const e of entradasContrato) {
+    if (!e.dataEntrada || e.dataEntrada > dataReferencia) continue;
+    const qtd = quantidadeDoRegistro(e);
+    acrescido += CREDITO_POR_CONTRATO * qtd;
+    movimentos.push({ tipo: "entrada", data: e.dataEntrada, valor: CREDITO_POR_CONTRATO * qtd });
+    if (e.dataSaida && e.dataSaida <= dataReferencia) {
+      const v = desconto(e.dataEntrada, e.dataSaida, qtd);
+      descontado += v;
+      movimentos.push({ tipo: "saida", data: e.dataSaida, valor: -v });
+    } else {
+      estornoLotes += desconto(e.dataEntrada, dataReferencia, qtd);
+    }
+  }
+
+  const totalCreditado = Math.max(0, creditoInicial + acrescido - descontado);
+  const funcionariosPausados = [...(contrato.pausasQuadroInicial || []), ...(contrato.pausasEntradas || [])];
+  const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferencia);
+  const estorno = Math.min(totalCreditado, estornoLotes + valorMes * funcionarioMesesPausados);
+  const totalCreditadoFundo = encerrado ? Math.max(0, totalCreditado - estorno) : totalCreditado;
+  if (encerrado && estorno > 0) movimentos.push({ tipo: "estorno", data: dataReferencia, valor: -estorno });
+
+  const saidasIniciaisQtd = saidasIniciais.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
+  const entradasAtivasQtd = entradasContrato.filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
+  const qtdAtual = Math.max(0, qtdIniciais - saidasIniciaisQtd) + entradasAtivasQtd;
+  const qtdPausadaAtual = funcionariosPausados.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+  return {
+    creditoInicial, acrescido, descontado, ajustePrazo: 0, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
+    qtdAtual, mesesPausados: calcularMesesPausados(pausas, dataReferencia), funcionarioMesesPausados, qtdPausadaAtual,
+    movimentos
+  };
+}
+
+/** Converte a data de uma entrada do histórico (Timestamp do Firestore, Date, {seconds} ou
+ * string) para 'aaaa-mm-dd'; null se não der para ler. */
+function dataHistoricoParaISO(valor) {
+  if (!valor) return null;
+  let d = null;
+  if (typeof valor.toDate === "function") d = valor.toDate();
+  else if (valor instanceof Date) d = valor;
+  else if (typeof valor.seconds === "number") d = new Date(valor.seconds * 1000);
+  else if (typeof valor === "string") d = new Date(valor.length === 10 ? valor + "T00:00:00" : valor);
+  if (!d || Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Data da última alteração de prazo registrada no histórico do contrato (ou null). */
+function dataUltimaAlteracaoPrazo(contrato) {
+  const alteracoes = (contrato.historicoMovimentacoes || [])
+    .filter((h) => h.tipo === "edicao_prazo" && /prazo/i.test(h.descricao || ""));
+  for (let i = alteracoes.length - 1; i >= 0; i--) {
+    const iso = dataHistoricoParaISO(alteracoes[i].data);
+    if (iso) return iso;
+  }
+  return null;
+}
+
+/**
+ * Resumo financeiro completo de um contrato empresarial: crédito inicial, ajustes por
+ * entrada/saída e o estorno — real se já encerrado, ou projetado ("se encerrasse hoje")
+ * enquanto o contrato estiver ativo (Cláusula 2.2). Também devolve o headcount atual
+ * (`qtdAtual`), já líquido de saídas do quadro inicial e de entradas que também saíram.
+ *
+ * `acrescido`/`descontado` (exibidos na planilha) somam tanto os ajustes de funcionários
+ * quanto o efeito de mudar o prazo previsto do contrato (`ajustePrazo`) — estender o prazo
+ * aumenta o crédito (entra em `acrescido`), encurtar reduz (entra em `descontado`). Esse
+ * ajuste é só de EXIBIÇÃO: `totalCreditado` já reflete o prazo atual através do próprio
+ * `creditoInicial`, então `ajustePrazo` não é somado de novo ali (evita contar duas vezes).
+ * @param {{dataInicio:string, status:string, dataEncerramentoReal:string|null,
+ *   dataFimPrevista?:string, dataFimPrevistaOriginal?:string,
+ *   quantidadeFuncionariosIniciais?:number, saidasIniciais?:Array<{data:string}>,
+ *   entradasContrato?:Array<{dataEntrada:string, dataSaida?:string|null}>,
+ *   pausas?:Array<{dataPausa:string, dataRetomada:string|null}>,
+ *   pausasQuadroInicial?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>,
+ *   pausasEntradas?:Array<{dataPausa:string, dataRetomada:string|null, quantidade?:number}>}} contrato
+ */
+function calcularResumoContratoEmpresarial(contrato, hojeISO = new Date().toISOString().slice(0, 10)) {
+  if (contrato.prazoIndeterminado) return calcularResumoContratoEmpresarialIndeterminado(contrato, hojeISO);
+  const dataReferencia = contrato.status === "encerrado" ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
+  const saidasIniciais = contrato.saidasIniciais || [];
+  const entradasContrato = contrato.entradasContrato || [];
+  const creditoInicial = calcularCreditoInicialContratoEmpresarial(contrato);
+  const { acrescido: acrescidoFuncionarios, descontado: descontadoFuncionarios, movimentos: movimentosFuncionarios } =
+    calcularAjustesFuncionariosContrato(entradasContrato, saidasIniciais, dataReferencia, contrato.dataInicio, contrato.dataFimPrevista);
+
+  // Contratos antigos (de antes deste campo existir) não têm dataFimPrevistaOriginal — nesse
+  // caso o prazo atual vira a própria base de comparação, então o ajuste dá 0 (comportamento
+  // igual ao de antes desta função existir, sem quebrar contratos já cadastrados).
+  const creditoInicialOriginal = calcularCreditoInicialContratoEmpresarial(
+    { ...contrato, dataFimPrevista: contrato.dataFimPrevistaOriginal || contrato.dataFimPrevista }
+  );
+  const ajustePrazo = creditoInicial - creditoInicialOriginal;
+
+  const acrescido = acrescidoFuncionarios + Math.max(0, ajustePrazo);
+  const descontado = descontadoFuncionarios + Math.max(0, -ajustePrazo);
+  const totalCreditado = creditoInicial + acrescidoFuncionarios - descontadoFuncionarios;
+  const pausas = contrato.pausas || [];
+  // Duas fontes de funcionário pausado — quem já estava desde a implantação e quem entrou
+  // durante o contrato — mas a mesma regra de estorno (proporcional ao quadro inicial) se
+  // aplica às duas, então são somadas num único pool para o cálculo.
+  const funcionariosPausados = [...(contrato.pausasQuadroInicial || []), ...(contrato.pausasEntradas || [])];
+  const qtdIniciais = contrato.quantidadeFuncionariosIniciais || 0;
+  const estorno = calcularEstornoContratoEmpresarial(
+    contrato.dataInicio, contrato.dataFimPrevista, dataReferencia, totalCreditado, pausas, funcionariosPausados, qtdIniciais
+  );
+  const totalCreditadoFundo = contrato.status === "encerrado" ? Math.max(0, totalCreditado - estorno) : totalCreditado;
+  const saidasIniciaisQtd = saidasIniciais.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
+  const entradasAtivasQtd = entradasContrato.filter((e) => !e.dataSaida).reduce((soma, e) => soma + quantidadeDoRegistro(e), 0);
+  const qtdAtual = Math.max(0, qtdIniciais - saidasIniciaisQtd) + entradasAtivasQtd;
+  const mesesPausados = calcularMesesPausados(pausas, dataReferencia);
+  const funcionarioMesesPausados = calcularFuncionarioMesesPausados(funcionariosPausados, dataReferencia);
+  const qtdPausadaAtual = funcionariosPausados.filter((p) => !p.dataRetomada).reduce((soma, p) => soma + quantidadeDoRegistro(p), 0);
+
+  // Movimentações datadas (base do fundo por ano — ver calcularFundo): crédito inicial pelo
+  // prazo original na implantação, ajuste de prazo na data da última alteração registrada,
+  // entradas/saídas nas próprias datas e o estorno na data do encerramento.
+  const movimentos = [
+    { tipo: "credito_inicial", data: contrato.dataInicio, valor: creditoInicialOriginal },
+    ...movimentosFuncionarios
+  ];
+  if (ajustePrazo !== 0) {
+    movimentos.push({ tipo: "prazo", data: dataUltimaAlteracaoPrazo(contrato) || contrato.dataInicio, valor: ajustePrazo });
+  }
+  if (contrato.status === "encerrado" && estorno > 0) {
+    movimentos.push({ tipo: "estorno", data: dataReferencia, valor: -estorno });
+  }
+  return {
+    creditoInicial, acrescido, descontado, ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
+    qtdAtual, mesesPausados, funcionarioMesesPausados, qtdPausadaAtual, movimentos
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Faltas injustificadas — Seção 7                                     */
+/* ------------------------------------------------------------------ */
+
+/** Filtra e conta apenas as faltas que geram desconto (Seção 7.3 exclui as justificadas). */
+function contarFaltasComDesconto(faltas, anoExercicio) {
+  return faltas.filter((f) => {
+    const ano = new Date(f.data + "T00:00:00").getFullYear();
+    return ano === anoExercicio && f.justificada === false;
+  }).length;
+}
+
+/** Desconto = cota individual ÷ 30 × nº de faltas (Seção 7.1). */
+function calcularDescontoFaltas(cotaAntesDoDesconto, numeroFaltas) {
+  return (cotaAntesDoDesconto / 30) * numeroFaltas;
+}
+
+/* ------------------------------------------------------------------ */
+/* Atrasos / pontualidade — Seção 8                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Conta pontos de atraso no ano (Seção 8.2): cada bloco de 6 atrasos num mesmo MÊS vira 1 ponto —
+ * 6 atrasos = 1 ponto, 12 = 2 pontos, 36 = 6 pontos, 72 = 12 pontos (teto, ver
+ * calcularPercentualAtraso). Até 5 atrasos no mês não gera nenhum ponto. A quantidade de atrasos
+ * de cada mês é informada diretamente pelo DP (campo "mesAno" + "quantidadeAtrasos"), já
+ * considerando quais atrasos contam (Seção 8.4) — o sistema não registra mais horários.
+ * @returns {{pontos:number, porMes:Record<string, number>}}
+ */
+function contarPontosAtraso(atrasos, anoExercicio) {
+  const porMes = {}; // 'aaaa-mm' -> soma de atrasos lançados no mês
+  for (const a of atrasos) {
+    const ano = Number((a.mesAno || "").split("-")[0]);
+    if (ano !== anoExercicio) continue;
+    porMes[a.mesAno] = (porMes[a.mesAno] || 0) + (Number(a.quantidadeAtrasos) || 0);
+  }
+  const pontos = Object.values(porMes).reduce((soma, qtd) => soma + Math.floor(qtd / 6), 0);
+  return { pontos, porMes };
+}
+
+/** Cada ponto = 1% de desconto, teto de 12% (Seção 8.3). */
+function calcularPercentualAtraso(pontos) {
+  return Math.min(12, pontos) / 100;
+}
+
+/* ------------------------------------------------------------------ */
+/* Medidas disciplinares — Seção 9                                     */
+/* ------------------------------------------------------------------ */
+
+const TABELA_DISCIPLINAR = {
+  verbal: 0.05,
+  escrita: 0.10,
+  suspensao1: 0.25,
+  suspensao2: 0.50,
+  suspensao3: "PERDA_INTEGRAL"
+};
+
+/**
+ * Retorna o maior redutor disciplinar aplicável no ano (o regulamento não soma advertências
+ * entre si — usa-se a ocorrência mais grave) e sinaliza perda integral na 3ª suspensão.
+ */
+function calcularDisciplinar(advertencias, anoExercicio) {
+  const doAno = advertencias.filter((a) => new Date(a.data + "T00:00:00").getFullYear() === anoExercicio);
+  if (doAno.some((a) => a.tipo === "suspensao3")) {
+    return { percentual: 1, perdaIntegral: true, ocorrencias: doAno };
+  }
+  let maior = 0;
+  for (const a of doAno) {
+    const valor = TABELA_DISCIPLINAR[a.tipo];
+    if (typeof valor === "number") maior = Math.max(maior, valor);
+  }
+  return { percentual: maior, perdaIntegral: false, ocorrencias: doAno };
+}
+
+/* ------------------------------------------------------------------ */
+/* Avaliação de desempenho — Seção 11                                  */
+/* ------------------------------------------------------------------ */
+
+const TABELA_AVALIACAO = { excelente: 0.02, bom: 0, regular: -0.05, insatisfatorio: -0.15 };
+
+function calcularAvaliacao(avaliacoes, anoExercicio) {
+  const doAno = avaliacoes.find((a) => a.ano === anoExercicio && a.validadoRH);
+  if (!doAno) return { percentual: 0, conceito: null };
+  return { percentual: TABELA_AVALIACAO[doAno.conceito] ?? 0, conceito: doAno.conceito };
+}
+
+/* ------------------------------------------------------------------ */
+/* Bônus por excelência — Seção 10                                     */
+/* ------------------------------------------------------------------ */
+
+function calcularBonusExcelencia({ numeroFaltas, pontosAtraso, disciplinar }) {
+  const semOcorrencias = numeroFaltas === 0 && pontosAtraso === 0 && disciplinar.ocorrencias.length === 0;
+  return semOcorrencias ? 0.03 : 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Consolidação da Seção 16 (acumulação de redutores/adicionais)       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Aplica no máximo 2 redutores percentuais (o maior + o menor entre os restantes).
+ * @param {number[]} percentuais lista de redutores percentuais candidatos (0 a 1)
+ */
+function limitarRedutoresADoisIndices(percentuais) {
+  const validos = percentuais.filter((p) => p > 0).sort((a, b) => b - a);
+  if (validos.length <= 2) return validos.reduce((soma, p) => soma + p, 0);
+  return validos[0] + validos[validos.length - 1];
+}
+
+/* ------------------------------------------------------------------ */
+/* Pipeline completo por colaborador                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * @param {object} usuario doc de `usuarios/{uid}`
+ * @param {object} dados { faltas, atrasos, advertencias, avaliacoes } — já filtrados por uid
+ * @param {number} saldoFundo saldo disponível do fundo no exercício
+ * @param {number} somaPesos soma de calcularPesoIndividual() de todos os elegíveis
+ * @param {number} anoExercicio
+ */
+function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExercicio) {
+  const elegibilidade = verificarElegibilidade(usuario);
+  const resultado = {
+    elegivel: elegibilidade.elegivel,
+    motivoInelegibilidade: elegibilidade.motivo,
+    pesoIndividual: 0,
+    cotaBase: 0,
+    percentualRedutoresAplicados: 0,
+    descontoFaltas: 0,
+    percentualAdicionais: 0,
+    numeroFaltas: 0,
+    pontosAtraso: 0,
+    disciplinar: { percentual: 0, perdaIntegral: false, ocorrencias: [] },
+    avaliacao: { percentual: 0, conceito: null },
+    bonusExcelencia: 0,
+    cotaFinal: 0,
+    detalhamento: []
+  };
+
+  if (!elegibilidade.elegivel || saldoFundo <= 0 || somaPesos <= 0) {
+    return resultado;
+  }
+
+  // 1) Cota base proporcional (Seções 4 e 6)
+  const peso = calcularPesoIndividual(usuario, anoExercicio);
+  const cotaBase = (peso / somaPesos) * saldoFundo;
+  resultado.pesoIndividual = peso;
+  resultado.cotaBase = cotaBase;
+
+  // 2) Insumos dos redutores/adicionais
+  const numeroFaltas = contarFaltasComDesconto(dados.faltas, anoExercicio);
+  const { pontos: pontosAtraso } = contarPontosAtraso(dados.atrasos, anoExercicio);
+  const disciplinar = calcularDisciplinar(dados.advertencias, anoExercicio);
+  const avaliacao = calcularAvaliacao(dados.avaliacoes, anoExercicio);
+  const bonus = calcularBonusExcelencia({ numeroFaltas, pontosAtraso, disciplinar });
+
+  resultado.numeroFaltas = numeroFaltas;
+  resultado.pontosAtraso = pontosAtraso;
+  resultado.disciplinar = disciplinar;
+  resultado.avaliacao = avaliacao;
+  resultado.bonusExcelencia = bonus;
+
+  // Perda integral por 3ª suspensão (Seção 9)
+  if (disciplinar.perdaIntegral) {
+    resultado.cotaFinal = 0;
+    resultado.detalhamento.push("Perda integral: 3ª suspensão disciplinar (Seção 9).");
+    return resultado;
+  }
+
+  // 3) Redutores percentuais — no máximo 2 índices (Seção 16)
+  const percentualAtraso = calcularPercentualAtraso(pontosAtraso);
+  const percentualAvaliacaoNegativa = avaliacao.percentual < 0 ? Math.abs(avaliacao.percentual) : 0;
+  const percentualRedutores = limitarRedutoresADoisIndices([
+    percentualAtraso,
+    disciplinar.percentual,
+    percentualAvaliacaoNegativa
+  ]);
+  resultado.percentualRedutoresAplicados = percentualRedutores;
+  const cotaAposRedutores = cotaBase * (1 - percentualRedutores);
+
+  // 4) Desconto de faltas injustificadas (Seção 7) — aplicado após os redutores percentuais
+  const descontoFaltas = calcularDescontoFaltas(cotaAposRedutores, numeroFaltas);
+  resultado.descontoFaltas = descontoFaltas;
+  const cotaAposFaltas = Math.max(0, cotaAposRedutores - descontoFaltas);
+
+  // 5) Adicionais — bônus de excelência + avaliação positiva, acumuláveis (Seção 16)
+  const percentualAvaliacaoPositiva = avaliacao.percentual > 0 ? avaliacao.percentual : 0;
+  const percentualAdicionais = bonus + percentualAvaliacaoPositiva;
+  resultado.percentualAdicionais = percentualAdicionais;
+
+  const cotaFinal = cotaAposFaltas * (1 + percentualAdicionais);
+  resultado.cotaFinal = Math.max(0, cotaFinal);
+
+  return resultado;
+}
+
+/**
+ * Recalcula a cota estimada de TODOS os elegíveis para obter a soma de pesos correta e
+ * então devolve o resultado individual do `uidAlvo`. Use esta função no dashboard/simulador.
+ */
+function calcularCotaComContexto(uidAlvo, todosUsuarios, mapaDados, contratosEmpresariais, anoExercicio) {
+  const { saldoDisponivel } = calcularFundo(contratosEmpresariais, anoExercicio);
+  const elegiveis = todosUsuarios.filter((u) => verificarElegibilidade(u).elegivel);
+  const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
+
+  const usuarioAlvo = todosUsuarios.find((u) => u.uid === uidAlvo);
+  if (!usuarioAlvo) return null;
+
+  const dados = mapaDados[uidAlvo] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
+  return calcularCotaColaborador(usuarioAlvo, dados, saldoDisponivel, somaPesos, anoExercicio);
+}
+
+// Exportações ES Module (consumidas via <script type="module"> em dashboard.js/gestao.js).
+export {
+  CREDITO_POR_CONTRATO,
+  MESES_ANO,
+  verificarElegibilidade,
+  calcularAvosTrabalhados,
+  percentualCargaHoraria,
+  calcularPesoIndividual,
+  calcularFundo,
+  calcularContribuicaoNoAno,
+  mesesEntreDatas,
+  contarFaltasComDesconto,
+  calcularDescontoFaltas,
+  contarPontosAtraso,
+  calcularPercentualAtraso,
+  calcularDisciplinar,
+  calcularAvaliacao,
+  calcularBonusExcelencia,
+  limitarRedutoresADoisIndices,
+  calcularCotaColaborador,
+  calcularCotaComContexto,
+  normalizarCNPJ,
+  formatarCNPJ,
+  validarCNPJ,
+  calcularMesesRestantesContrato,
+  calcularDuracaoMesesPrevista,
+  calcularMesesVigentesContrato,
+  quantidadeDoRegistro,
+  calcularCreditoInicialContratoEmpresarial,
+  calcularAjustesFuncionariosContrato,
+  calcularEstornoContratoEmpresarial,
+  calcularResumoContratoEmpresarial,
+  calcularMesesPausados,
+  calcularFuncionarioMesesPausados,
+  montarPausasAposTransicao,
+  calcularMesReferenciaImplantacao,
+  formatarMesReferencia,
+  calcularMesesDesdeInicio
+};

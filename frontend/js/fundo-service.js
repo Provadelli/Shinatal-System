@@ -7,7 +7,7 @@ import { db } from "./firebase-init.js";
 import {
   collection, doc, getDocs, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial } from "./calculo-shinatal.js";
+import { montarAgregadosFundo } from "./calculo-shinatal.js";
 
 /**
  * Carrega os contratos empresariais. Cada documento já carrega seu próprio
@@ -30,34 +30,23 @@ async function carregarContratosEmpresariais() {
 async function recalcularEPublicarFundo({ usuarios, anoExercicio, atualizadoPorUid }) {
   const contratosEmpresariais = await carregarContratosEmpresariais();
 
-  const { arrecadado, estornos, saldoDisponivel } = calcularFundo(contratosEmpresariais, anoExercicio);
-  const elegiveis = usuarios.filter((u) => verificarElegibilidade(u).elegivel);
-  const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
+  // Mesmo montador usado pelo script de migração (backend/scripts/recalcular-regra-v2.mjs).
+  // "Colaboradores" públicos = headcount atual dos contratos empresariais (sem PII, sem contrato
+  // individual); `arrecadado` público = saldo líquido, o mesmo exibido na gestão.
+  const { fundo, publico } = montarAgregadosFundo(contratosEmpresariais, usuarios, anoExercicio);
 
   await setDoc(doc(db, "fundo", String(anoExercicio)), {
-    arrecadado, estornos, saldoDisponivel, somaPesos,
-    totalContratosAtivos: contratosEmpresariais.filter((c) => c.status === "ativo").length,
-    totalContratosEncerrados: contratosEmpresariais.filter((c) => c.status === "encerrado").length,
+    ...fundo,
     atualizadoEm: serverTimestamp(),
     atualizadoPor: atualizadoPorUid
   });
 
-  // Agregado público (sem PII) para o card da landing page (index.html), lido sem login.
-  // "Colaboradores" é só o headcount atual de cada contrato empresarial (quadro inicial
-  // líquido de saídas + entradas ainda ativas) — não soma contrato individual do colaborador.
-  const colaboradores = contratosEmpresariais.reduce(
-    (soma, ce) => soma + calcularResumoContratoEmpresarial(ce).qtdAtual, 0
-  );
-
-  // `arrecadado` público = saldo líquido do fundo (já descontadas saídas e estornos), o mesmo
-  // valor mostrado em gestao.html (#fundo-saldo). Não publicar o bruto: a landing divergiria.
   await setDoc(doc(db, "estatisticas", "publico"), {
-    arrecadado: saldoDisponivel,
-    colaboradores,
+    ...publico,
     atualizadoEm: serverTimestamp()
   }, { merge: true });
 
-  return { saldoDisponivel, somaPesos, contratosEmpresariais };
+  return { saldoDisponivel: fundo.saldoDisponivel, somaPesos: fundo.somaPesos, contratosEmpresariais };
 }
 
 export { carregarContratosEmpresariais, recalcularEPublicarFundo };

@@ -6,6 +6,7 @@ import { traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./ui-utils.js";
 import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./turnstile-config.js";
 import { VERSAO_TERMOS } from "./lgpd-config.js";
+import { hojeISOLocal } from "./calculo-shinatal.js";
 
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
@@ -83,7 +84,7 @@ form.addEventListener("submit", async (e) => {
     mostrarErro("Informe a data de admissão.");
     return;
   }
-  if (dataAdmissao > new Date().toISOString().slice(0, 10)) {
+  if (dataAdmissao > hojeISOLocal()) {
     mostrarErro("A data de admissão não pode ser no futuro.");
     return;
   }

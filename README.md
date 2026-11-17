@@ -108,6 +108,24 @@ A auditoria usa os emuladores do Firebase com dados de exemplo — **nunca toca 
 `frontend/js/calculo-shinatal.js`, isolado de I/O. É a peça mais sensível do projeto: qualquer
 mudança ali precisa bater com o regulamento.
 
+**Régua de meses dos contratos (v2, nov/2026).** Toda contagem de meses de contrato empresarial
+passa por `contarMesesContabilizados`, a única referência do sistema:
+
+- **Entrada** (início do contrato, entrada de funcionário, retomada de pausa): até o dia 14 o
+  mês conta; do dia 15 em diante, conta a partir do mês seguinte.
+- **Término previsto e encerramento do contrato:** o mês final sempre conta.
+- **Desligamento individual** (e início de pausa): o mês só conta se a pessoa ficou até o
+  último dia dele.
+- O cálculo é **por lote de funcionários**: crédito antecipado (R$ 12,50/mês, até 12 meses), e
+  na saída ou no encerramento cada lote passa a valer só os meses contados. Um desligamento
+  nunca altera os demais.
+- Nada de valor por contrato fica gravado: tudo é recalculado a partir das datas, então
+  contratos antigos e novos seguem a mesma régua. A admissão de colaboradores (avos, Seção 4.1)
+  continua na regra do dia 15/16 do regulamento.
+
+Testes: `npm run test:calculo`. Migração auditável dos dados já gravados (histórico e agregados
+do fundo): `backend/scripts/recalcular-regra-v2.mjs` (`--simular`, `--aplicar`, `--reverter`).
+
 **Avaliação de Conduta (entre colegas).** Todos participam, exceto o Presidente. Cada um avalia
 os colegas online com os 4 conceitos da Seção 11 (Excelente, Bom, Regular, Insatisfatório). É
 **puramente social**: os votos são anônimos (só o autor lê o próprio voto — ver

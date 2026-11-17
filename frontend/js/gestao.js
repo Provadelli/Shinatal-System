@@ -10,7 +10,7 @@ import { exigirAutenticacao, fazerLogout, traduzirErroAuth, gravarCadastroPenden
 import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial,
-  calcularContribuicaoNoAno
+  calcularContribuicaoNoAno, hojeISOLocal
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
@@ -662,7 +662,7 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
   const uid = document.getElementById("acao-uid").value;
   if (!uid) return mostrarToast("Selecione um colaborador.", "erro");
 
-  const data = document.getElementById("acao-data").value || new Date().toISOString().slice(0, 10);
+  const data = document.getElementById("acao-data").value || hojeISOLocal();
   const motivo = document.getElementById("acao-motivo").value.trim();
   const alvoNome = state.usuarios.find((u) => u.uid === uid)?.nome || null;
 
