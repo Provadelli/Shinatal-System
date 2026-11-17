@@ -179,3 +179,23 @@ test("19. consistência banco × interface: agregados publicados = cálculo das 
   const somaContratos = contratos.reduce((s, c) => s + calcularContribuicaoNoAno(c, 2026, HOJE).liquido, 0);
   assert.equal(somaContratos, tela.saldoDisponivel);
 });
+
+test("tela: detalhe por registro e meses contabilizados usam a mesma régua do fundo", async () => {
+  const { detalharRegistroFuncionarios, faixaMesesContabilizados } = await import("../../../frontend/js/calculo-shinatal.js");
+  const c = base({ saidasIniciais: [{ data: "2026-05-10" }], entradasContrato: [{ dataEntrada: "2026-03-20", quantidade: 2 }] });
+  const saida = detalharRegistroFuncionarios(c, c.saidasIniciais[0], "saida_inicial", HOJE);
+  assert.equal(saida.mesesContados, 4);
+  assert.equal(saida.desconto, 100);
+  assert.deepEqual(saida.faixa, { inicio: { ano: 2026, mes: 0 }, fim: { ano: 2026, mes: 3 } });
+  const entrada = detalharRegistroFuncionarios(c, c.entradasContrato[0], "entrada", HOJE);
+  assert.equal(entrada.mesesCreditados, 9);
+  assert.equal(entrada.credito, 225);
+  assert.equal(entrada.mesesContados, 8); // abr–nov
+  const r = resumo(c, HOJE);
+  assert.equal(r.mesesContabilizados, 11); // jan–nov
+  assert.equal(r.mesesCreditoPrevistos, 12);
+  // Soma dos detalhes = o que o resumo leva ao fundo.
+  assert.equal(r.descontado, saida.desconto);
+  assert.equal(r.acrescido, entrada.credito);
+  assert.equal(faixaMesesContabilizados("2026-03-20", "2026-04-10", "desligamento"), null);
+});
