@@ -434,8 +434,38 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = hojeISOLocal()) {
     ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
     qtdAtual, mesesPausados: calcularMesesPausados(pausas, dataReferencia, contrato.dataInicio),
     funcionarioMesesPausados, qtdPausadaAtual, movimentos, lotes,
+    // Para exibição: meses do contrato já contabilizados na data de referência (régua v2, sem
+    // as pausas) e o total que dá direito a crédito (vigentes, ou 12 no prazo indeterminado).
+    mesesContabilizados: contarMesesContabilizados({ inicio: contrato.dataInicio, fim: dataReferencia, tipoFim: "referencia", pausas }),
+    mesesCreditoPrevistos: indeterminado ? MESES_ANO : calcularMesesVigentesContrato(contrato.dataInicio, contrato.dataFimPrevista),
     versaoRegra: VERSAO_REGRA_CALCULO
   };
+}
+
+/**
+ * Detalhe de UM registro da aba Funcionários (uma saída do quadro inicial ou uma entrada),
+ * calculado pela mesma régua do resumo — o que a tela mostra é exatamente o que vai ao fundo.
+ * @param {"saida_inicial"|"entrada"} tipo
+ */
+function detalharRegistroFuncionarios(contrato, registro, tipo, hojeISO = hojeISOLocal()) {
+  const dataReferencia = contrato.status === "encerrado" ? (contrato.dataEncerramentoReal || hojeISO) : hojeISO;
+  const lote = tipo === "saida_inicial"
+    ? { origem: "quadro_inicial", entrada: contrato.dataInicio, saida: registro.data, quantidade: quantidadeDoRegistro(registro) }
+    : { origem: "entrada", entrada: registro.dataEntrada, saida: registro.dataSaida || null, quantidade: quantidadeDoRegistro(registro) };
+  if (lote.saida && lote.saida > dataReferencia) lote.saida = null;
+  const calculado = calcularLote(lote, contrato, dataReferencia);
+  const fim = lote.saida || dataReferencia;
+  const faixa = faixaMesesContabilizados(entradaEfetiva(lote.entrada, contrato), fim, lote.saida ? "desligamento" : "referencia");
+  return { ...calculado, faixa, dataReferencia };
+}
+
+/** Primeiro e último mês contabilizados entre duas datas ({ano, mes}), ou null se nenhum. */
+function faixaMesesContabilizados(inicioISO, fimISO, tipoFim) {
+  const ini = primeiroMesContabilizado(inicioISO);
+  const fim = ultimoMesContabilizado(fimISO, tipoFim);
+  if (ini === null || fim === null || fim < ini) return null;
+  const mes = (idx) => ({ ano: Math.floor(idx / MESES_ANO), mes: idx % MESES_ANO });
+  return { inicio: mes(ini), fim: mes(fim) };
 }
 
 /* ------------------------------------------------------------------ */
@@ -828,6 +858,8 @@ export {
   quantidadeDoRegistro,
   calcularCreditoInicialContratoEmpresarial,
   calcularResumoContratoEmpresarial,
+  detalharRegistroFuncionarios,
+  faixaMesesContabilizados,
   calcularMesesPausados,
   calcularFuncionarioMesesPausados,
   montarPausasAposTransicao,

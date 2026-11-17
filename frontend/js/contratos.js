@@ -13,7 +13,8 @@ import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
   quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
-  montarPausasAposTransicao, calcularContribuicaoNoAno, montarAgregadosFundo, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO
+  montarPausasAposTransicao, calcularContribuicaoNoAno, montarAgregadosFundo, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO,
+  detalharRegistroFuncionarios, faixaMesesContabilizados
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
@@ -121,6 +122,33 @@ function atualizarContadoresFiltroStatus() {
   select.querySelector('option[value="encerrado"]').textContent = `Somente encerrados (${contagens.encerrado})`;
 }
 
+/** "X de Y meses (mm/aaaa a mm/aaaa)" — meses do contrato já contabilizados pela régua v2. */
+function textoMesesContabilizados(contrato, resumo, duracaoPrevista) {
+  const faixa = faixaMesesContabilizados(contrato.dataInicio, resumo.dataReferencia, "referencia");
+  const limite = contrato.prazoIndeterminado ? Infinity : duracaoPrevista;
+  const contados = Math.min(resumo.mesesContabilizados, limite);
+  if (!faixa || contados <= 0) {
+    return `Nenhum mês contabilizado ainda — começa em ${formatarMesReferencia(calcularMesReferenciaImplantacao(contrato.dataInicio))}`;
+  }
+  const ate = contrato.prazoIndeterminado || resumo.mesesContabilizados <= limite
+    ? faixa.fim
+    : calcularMesReferenciaFim(contrato.dataFimPrevista);
+  const pausas = resumo.mesesPausados ? ` · ${resumo.mesesPausados} pausado(s) não contam` : "";
+  const total = contrato.prazoIndeterminado ? `${contados} ${contados === 1 ? "mês" : "meses"}` : `${contados} de ${duracaoPrevista} meses`;
+  return `${total} (${formatarMesReferencia(faixa.inicio)} a ${formatarMesReferencia(ate)})${pausas}`;
+}
+
+/** Mês ({ano, mes}) de uma data final de contrato — o mês do término previsto sempre conta. */
+function calcularMesReferenciaFim(dataISO) {
+  const p = partesISO(dataISO);
+  return p ? { ano: p.ano, mes: p.mes } : { ano: NaN, mes: NaN };
+}
+
+/** "mm/aaaa a mm/aaaa" de uma faixa de meses, ou "nenhum mês". */
+function textoFaixa(faixa) {
+  return faixa ? `${formatarMesReferencia(faixa.inicio)} a ${formatarMesReferencia(faixa.fim)}` : "nenhum mês";
+}
+
 function renderTabela() {
   atualizarContadoresFiltroStatus();
   const termo = document.getElementById("busca-contratos").value.trim().toLowerCase();
@@ -196,6 +224,11 @@ function renderTabela() {
             <p class="text-label-sm text-on-surface-variant">sem data de encerramento</p>` : `
             <p class="text-on-surface">${formatarData(c.dataFimPrevista)}</p>
             <p class="text-label-sm text-on-surface-variant">${duracaoPrevista} meses previstos</p>`}
+          </div>
+          <div class="col-span-2 rounded-lg bg-surface-container px-3 py-2">
+            <p class="text-label-sm text-on-surface-variant">Meses contabilizados <span class="font-semibold">(régua v2)</span></p>
+            <p class="text-on-surface font-semibold">${textoMesesContabilizados(c, resumo, duracaoPrevista)}</p>
+            <p class="text-label-sm text-on-surface-variant">Entrada até o dia 14 conta o mês · desligamento só conta meses completos · crédito de até ${resumo.mesesCreditoPrevistos} ${resumo.mesesCreditoPrevistos === 1 ? "mês" : "meses"} por funcionário</p>
           </div>
           <div>
             <p class="text-label-sm text-on-surface-variant">Descontado (saídas/prazo)</p>
@@ -456,10 +489,12 @@ function renderQuadroInicial() {
   const saidas = contratoEmEdicao.saidasIniciais || [];
   const totalSaidas = saidas.reduce((soma, s) => soma + quantidadeDoRegistro(s), 0);
   const ativos = Math.max(0, qtdIniciais - totalSaidas);
+  const resumoQuadro = calcularResumoContratoEmpresarial(contratoEmEdicao);
   resumoEl.innerHTML = [
     chipEstatistica("no quadro inicial", qtdIniciais),
     chipEstatistica(totalSaidas === 1 ? "saída" : "saídas", totalSaidas, totalSaidas ? "negativo" : "neutro"),
-    chipEstatistica(ativos === 1 ? "ativo" : "ativos", ativos, "positivo")
+    chipEstatistica(ativos === 1 ? "ativo" : "ativos", ativos, "positivo"),
+    ativos ? chipEstatistica(`de ${resumoQuadro.mesesCreditoPrevistos} meses contabilizados por funcionário ativo`, Math.min(resumoQuadro.mesesContabilizados, resumoQuadro.mesesCreditoPrevistos)) : ""
   ].join("");
 
   if (!saidas.length) {
@@ -468,9 +503,14 @@ function renderQuadroInicial() {
   }
   lista.innerHTML = saidas.map((s, i) => {
     const qtd = quantidadeDoRegistro(s);
+    const det = detalharRegistroFuncionarios(contratoEmEdicao, s, "saida_inicial");
+    const calculo = det.saida
+      ? `Contou ${textoFaixa(det.faixa)}: ${det.mesesContados} de ${det.mesesCreditados} meses creditados · desconto de ${formatarMoeda(det.desconto)}`
+      : "Saída futura — ainda não descontada";
     return `
     <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
-      <span class="text-on-surface-variant"><strong class="text-christmas-red">${qtd} ${qtd === 1 ? "saída" : "saídas"}</strong> em ${formatarData(s.data)}${s.motivo ? ` — ${escaparHTML(s.motivo)}` : ""}</span>
+      <span class="text-on-surface-variant"><strong class="text-christmas-red">${qtd} ${qtd === 1 ? "saída" : "saídas"}</strong> em ${formatarData(s.data)}${s.motivo ? ` — ${escaparHTML(s.motivo)}` : ""}
+        <span class="block">${calculo}</span></span>
       ${podeGerenciar ? `<button data-remover-saida-inicial="${i}" title="Desfazer esta saída" aria-label="Desfazer esta saída" class="text-christmas-red hover:opacity-70 transition-opacity p-1"><span class="material-symbols-outlined text-lg" aria-hidden="true">undo</span></button>` : ""}
     </li>`;
   }).join("");
@@ -505,9 +545,15 @@ function renderEntradasContrato() {
     const texto = en.dataSaida
       ? `<strong class="text-secondary">${qtd} ${qtd === 1 ? "entrada" : "entradas"}</strong> em ${formatarData(en.dataEntrada)} → <strong class="text-christmas-red">saída</strong> em ${formatarData(en.dataSaida)}`
       : `<strong class="text-secondary">${qtd} ${qtd === 1 ? "entrada" : "entradas"}</strong> em ${formatarData(en.dataEntrada)} — ainda ativo(s)`;
+    const det = detalharRegistroFuncionarios(contratoEmEdicao, en, "entrada");
+    const credito = `Crédito de ${det.mesesCreditados} ${det.mesesCreditados === 1 ? "mês" : "meses"} (${formatarMoeda(det.credito)})`;
+    const calculo = det.saida
+      ? `${credito} · contou ${textoFaixa(det.faixa)}: ${det.mesesContados} ${det.mesesContados === 1 ? "mês" : "meses"} · desconto de ${formatarMoeda(det.desconto)}`
+      : `${credito} · ${det.mesesContados} ${det.mesesContados === 1 ? "mês contabilizado" : "meses contabilizados"} até agora${det.faixa ? ` (${textoFaixa(det.faixa)})` : ""}`;
     return `
       <li class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
-        <span class="text-on-surface-variant">${texto}${en.motivo ? ` — ${escaparHTML(en.motivo)}` : ""}</span>
+        <span class="text-on-surface-variant">${texto}${en.motivo ? ` — ${escaparHTML(en.motivo)}` : ""}
+          <span class="block">${calculo}</span></span>
         <span class="flex items-center">${acoesAdmin}</span>
       </li>`;
   }).join("");
