@@ -32,3 +32,6 @@ desktop.ini
 # imagem renderizada em frontend/assets/timbrado-shinerio.jpg.
 docs/TIMBRADO*.docx
 docs/TIMBRADO*.pdf
+
+# Saídas do recálculo de regra (backup e relatórios com dados reais de contratos) — só local.
+backend/scripts/out/recalculo-*/

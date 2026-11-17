@@ -13,7 +13,7 @@ import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
   quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
-  montarPausasAposTransicao, calcularContribuicaoNoAno, calcularFundo
+  montarPausasAposTransicao, calcularContribuicaoNoAno, montarAgregadosFundo, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO
 } from "./calculo-shinatal.js";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
@@ -85,12 +85,13 @@ async function recalcularEPublicarFundo() {
 }
 
 /** Os totais publicados (`fundo/{ano}` e `estatisticas/publico`) só são regravados quando um
- * contrato muda. Se a regra de cálculo mudar (ex.: mês do encerramento sempre conta), os valores
- * salvos ficam desatualizados — então, ao abrir a página, compara com o recálculo e republica
- * só se houver diferença. */
+ * contrato muda. Se a regra de cálculo mudar (ex.: régua v2), os valores salvos ficam
+ * desatualizados — então, ao abrir a página, compara com o recálculo (mesmo montador que grava,
+ * `montarAgregadosFundo`) e republica só se houver diferença. Assim a tela nunca mostra um
+ * número e o banco outro. */
 async function sincronizarFundoPublicado() {
   if (!state.contratosEmpresariais.length) return;
-  const { arrecadado, estornos, saldoDisponivel } = calcularFundo(state.contratosEmpresariais, ANO_EXERCICIO);
+  const esperado = montarAgregadosFundo(state.contratosEmpresariais, state.usuarios, ANO_EXERCICIO);
   const [fundoSnap, publicoSnap] = await Promise.all([
     getDoc(doc(db, "fundo", String(ANO_EXERCICIO))),
     getDoc(doc(db, "estatisticas", "publico"))
@@ -99,10 +100,9 @@ async function sincronizarFundoPublicado() {
   const fundo = fundoSnap.exists() ? fundoSnap.data() : null;
   const publico = publicoSnap.exists() ? publicoSnap.data() : null;
   const desatualizado = !fundo
-    || difere(fundo.arrecadado, arrecadado)
-    || difere(fundo.estornos, estornos)
-    || difere(fundo.saldoDisponivel, saldoDisponivel)
-    || difere(publico?.arrecadado, saldoDisponivel);
+    || ["arrecadado", "estornos", "saldoDisponivel"].some((k) => difere(fundo[k], esperado.fundo[k]))
+    || difere(publico?.arrecadado, esperado.publico.arrecadado)
+    || difere(publico?.colaboradores, esperado.publico.colaboradores);
   if (desatualizado) await recalcularEPublicarFundo();
 }
 
@@ -316,10 +316,15 @@ document.getElementById("ce-cnpj").addEventListener("input", (e) => {
 /* Modal: Contrato (abas "Dados do contrato" e "Funcionários")         */
 /* ------------------------------------------------------------------ */
 
+/** Soma meses a uma data de calendário sem passar por UTC (31/01 + 1 mês = 28 ou 29/02). */
 function somarMeses(dataISO, meses) {
-  const d = new Date(dataISO + "T00:00:00");
-  d.setMonth(d.getMonth() + meses);
-  return d.toISOString().slice(0, 10);
+  const p = partesISO(dataISO);
+  if (!p) return "";
+  const total = p.ano * 12 + p.mes + meses;
+  const ano = Math.floor(total / 12);
+  const mes = total % 12;
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+  return `${ano}-${String(mes + 1).padStart(2, "0")}-${String(Math.min(p.dia, ultimoDia)).padStart(2, "0")}`;
 }
 
 function alternarTabContrato(nomeTab) {
@@ -418,14 +423,14 @@ document.getElementById("ce-qtd-iniciais").addEventListener("input", atualizarPr
 function atualizarResumoQuadro() {
   const el = document.getElementById("ce-resumo-quadro");
   if (!contratoEmEdicao) {
-    el.textContent = "Se o contrato encerrar antes de 12 meses, o valor creditado é estornado proporcionalmente aos meses faltantes.";
+    el.textContent = "Cada funcionário é contado individualmente: entrada até o dia 14 conta o mês; desligamento só conta meses completos. Se o contrato encerrar antes do previsto, o valor é estornado pelos meses que faltaram.";
     document.getElementById("ce-tab-qtd-badge").textContent = "0";
     return;
   }
   const resumo = calcularResumoContratoEmpresarial(contratoEmEdicao);
   document.getElementById("ce-tab-qtd-badge").textContent = String(resumo.qtdAtual);
   const infoPausados = resumo.qtdPausadaAtual ? ` ${resumo.qtdPausadaAtual} pausado(s) no momento.` : "";
-  el.textContent = `Quadro atual: ${resumo.qtdAtual} funcionário(s) ativo(s) — ${formatarMoeda(resumo.totalCreditadoFundo)} creditados ao Fundo Shinatal. Se o contrato encerrar antes de 12 meses, o valor é estornado proporcionalmente.${infoPausados}`;
+  el.textContent = `Quadro atual: ${resumo.qtdAtual} funcionário(s) ativo(s) — ${formatarMoeda(resumo.totalCreditadoFundo)} creditados ao Fundo Shinatal. Se o contrato encerrar antes do previsto, cada funcionário tem estornados os meses que faltaram.${infoPausados}`;
 }
 
 /** Chip de estatística (quadro/entradas) — mais legível e acessível que uma frase corrida. */
@@ -622,7 +627,7 @@ function atualizarPreviewEstornoContrato() {
   const dataInicio = document.getElementById("ce-inicio").value;
   const prazoIndeterminado = prazoIndeterminadoMarcado();
   const dataFimPrevista = prazoIndeterminado ? null : (document.getElementById("ce-fim-previsto").value || contratoEmEdicao.dataFimPrevista);
-  const dataFimReal = document.getElementById("ce-fim-real").value || new Date().toISOString().slice(0, 10);
+  const dataFimReal = document.getElementById("ce-fim-real").value || hojeISOLocal();
   const statusSelecionado = document.getElementById("ce-status").value;
   const pausas = montarPausasAtualizadas(statusSelecionado) ?? contratoEmEdicao.pausas;
   const resumo = calcularResumoContratoEmpresarial(
@@ -677,7 +682,7 @@ async function confirmarEAplicarMovimentacao({ idContrato, contratoBase, contrat
 
   const entrada = {
     tipo, descricao: descricaoEvento, fundoAntes: antes, fundoDepois: depois,
-    data: new Date(), registradoPor: perfil.uid
+    data: new Date(), registradoPor: perfil.uid, versaoRegra: VERSAO_REGRA_CALCULO
   };
   const historicoMovimentacoes = [...(contratoBase.historicoMovimentacoes || []), entrada];
   const camposCompletos = { ...camposParaSalvar, historicoMovimentacoes };
@@ -716,10 +721,15 @@ function renderHistoricoMovimentacoes() {
     lista.innerHTML = `<li class="font-body text-label-sm text-on-surface-variant">Nenhuma movimentação registrada ainda.</li>`;
     return;
   }
+  // Entradas gravadas pelo script de migração (`recalculo_regra`/`reversao_regra`) recebem um selo
+  // de auditoria — são ajustes de regra, não movimentações feitas por um gestor.
+  const seloAuditoria = (h) => (h.tipo === "recalculo_regra" || h.tipo === "reversao_regra")
+    ? `<span class="inline-block mr-1 px-1.5 rounded bg-tertiary-container/40 text-on-tertiary-container">Recálculo de regra${h.versaoRegra ? ` ${escaparHTML(h.versaoRegra)}` : ""}</span>`
+    : "";
   lista.innerHTML = historico.map((h) => `
     <li class="flex items-center justify-between gap-3 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
       <span class="text-on-surface-variant">
-        <span class="block text-on-surface font-medium">${escaparHTML(h.descricao)}</span>
+        <span class="block text-on-surface font-medium">${seloAuditoria(h)}${escaparHTML(h.descricao)}</span>
         ${formatarDataHora(h.data)}
       </span>
       <span class="whitespace-nowrap font-semibold ${h.fundoDepois < h.fundoAntes ? "text-christmas-red" : "text-secondary"}">
@@ -804,7 +814,7 @@ document.getElementById("ce-fim-previsto").addEventListener("input", () => {
 document.getElementById("ce-status").addEventListener("change", (e) => {
   const status = e.target.value;
   const estavaPausado = contratoEmEdicao?.status === "pausado";
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISOLocal();
 
   const mostrarEncerramento = status === "encerrado";
   document.getElementById("ce-bloco-encerramento").classList.toggle("hidden", !mostrarEncerramento);
@@ -952,7 +962,7 @@ document.getElementById("form-contrato-empresarial").addEventListener("submit", 
       descricao: dados.prazoIndeterminado
         ? `Crédito inicial lançado: ${dados.quantidadeFuncionariosIniciais} funcionário(s) × R$150 (prazo indeterminado)`
         : `Crédito inicial lançado: ${dados.quantidadeFuncionariosIniciais} funcionário(s) × ${dados.duracaoMesesPrevista} meses previstos`,
-      fundoAntes: 0, fundoDepois: creditoInicial, data: new Date(), registradoPor: perfil.uid
+      fundoAntes: 0, fundoDepois: creditoInicial, data: new Date(), registradoPor: perfil.uid, versaoRegra: VERSAO_REGRA_CALCULO
     }];
     const payloadCriacao = { ...contratoBaseCriacao, historicoMovimentacoes, registradoPor: perfil.uid, criadoEm: serverTimestamp() };
 
@@ -1079,7 +1089,7 @@ function esconderFormSaidaInicial() {
 document.getElementById("btn-saida-inicial").addEventListener("click", () => {
   document.getElementById("form-saida-inicial").classList.remove("hidden");
   document.getElementById("btn-saida-inicial").classList.add("hidden");
-  document.getElementById("si-data").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("si-data").value = hojeISOLocal();
   document.getElementById("si-quantidade").value = "1";
 });
 
@@ -1155,7 +1165,7 @@ function esconderFormNovaEntrada() {
 document.getElementById("btn-nova-entrada").addEventListener("click", () => {
   document.getElementById("form-nova-entrada").classList.remove("hidden");
   document.getElementById("btn-nova-entrada").classList.add("hidden");
-  document.getElementById("ne-data").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("ne-data").value = hojeISOLocal();
   document.getElementById("ne-quantidade").value = "1";
 });
 
@@ -1233,7 +1243,7 @@ document.getElementById("lista-entradas-contrato").addEventListener("click", asy
   if (btnMarcar) {
     entradaEmEdicaoIndex = Number(btnMarcar.dataset.marcarSaidaEntrada);
     document.getElementById("form-saida-entrada").classList.remove("hidden");
-    document.getElementById("se-data").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("se-data").value = hojeISOLocal();
     return;
   }
 
@@ -1286,7 +1296,7 @@ function configurarBlocoPausar({
   document.getElementById(idBtnPausar).addEventListener("click", () => {
     document.getElementById(idFormPausar).classList.remove("hidden");
     document.getElementById(idBtnPausar).classList.add("hidden");
-    document.getElementById(idData).value = new Date().toISOString().slice(0, 10);
+    document.getElementById(idData).value = hojeISOLocal();
     document.getElementById(idQuantidade).value = "1";
   });
 
@@ -1367,7 +1377,7 @@ function configurarBlocoPausar({
     if (btnMarcar) {
       indiceEmRetomada = Number(btnMarcar.dataset.marcarRetomada);
       document.getElementById(idFormRetomar).classList.remove("hidden");
-      document.getElementById(idDataRetomada).value = new Date().toISOString().slice(0, 10);
+      document.getElementById(idDataRetomada).value = hojeISOLocal();
       return;
     }
 
