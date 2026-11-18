@@ -13,9 +13,9 @@ import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
   quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
-  montarPausasAposTransicao, calcularContribuicaoNoAno, montarAgregadosFundo, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO,
+  montarPausasAposTransicao, calcularContribuicaoNoAno, calcularVisaoSemestral, montarAgregadosFundo, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO,
   detalharRegistroFuncionarios, faixaMesesContabilizados
-} from "./calculo-shinatal.js";
+} from "./calculo-shinatal.js?v=v2-2026-11b";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
 import { criarSolicitacao } from "./solicitacoes-service.js";
@@ -149,8 +149,46 @@ function textoFaixa(faixa) {
   return faixa ? `${formatarMesReferencia(faixa.inicio)} a ${formatarMesReferencia(faixa.fim)}` : "nenhum mês";
 }
 
+/** Visão global do exercício por semestre: ativos, positivo (créditos e saldo remanescente das
+ * saídas), negativo (descontos de contratos de anos anteriores) e valor total. Mesmo motor do fundo. */
+function renderVisaoSemestral() {
+  const alvo = document.getElementById("visao-semestral");
+  if (!alvo) return;
+  const v = calcularVisaoSemestral(state.contratosEmpresariais, ANO_EXERCICIO);
+  const linha = (rotulo, d, destaque = false) => `
+    <tr class="${destaque ? "font-semibold border-t border-outline-variant/60" : ""}">
+      <th scope="row" class="py-1.5 pr-4 text-left font-medium text-on-surface">${rotulo}</th>
+      <td class="py-1.5 px-3 text-right">${d.ativos}</td>
+      <td class="py-1.5 px-3 text-right text-secondary">${formatarMoeda(d.positivo)}</td>
+      <td class="py-1.5 px-3 text-right text-on-surface-variant">${formatarMoeda(d.remanescente)}</td>
+      <td class="py-1.5 px-3 text-right text-christmas-red">${formatarMoeda(d.negativo)}</td>
+      <td class="py-1.5 pl-3 text-right text-primary">${formatarMoeda(d.valorTotal)}</td>
+    </tr>`;
+  alvo.innerHTML = `
+    <table class="w-full min-w-[34rem] font-body text-body-md">
+      <caption class="sr-only">Visão global do Shinatal ${ANO_EXERCICIO} por semestre</caption>
+      <thead class="text-label-sm text-on-surface-variant">
+        <tr>
+          <th scope="col" class="py-1 pr-4 text-left font-normal">Exercício ${ANO_EXERCICIO}</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">Ativos</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">Positivo</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">dos quais remanescente</th>
+          <th scope="col" class="py-1 px-3 text-right font-normal">Negativo</th>
+          <th scope="col" class="py-1 pl-3 text-right font-normal">Valor total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${linha("1º semestre", v.semestres[1])}
+        ${linha("2º semestre", v.semestres[2])}
+        ${linha("Total", v.total, true)}
+      </tbody>
+    </table>
+    <p class="mt-2 font-body text-label-sm text-on-surface-variant">Positivo: R$ 150 por funcionário que entrou no exercício (semestre da entrada); quem já saiu deixa só o saldo remanescente. Negativo: desconto de saída de quem foi creditado em ano anterior (semestre da saída). Contratos com ajuste manual não entram.</p>`;
+}
+
 function renderTabela() {
   atualizarContadoresFiltroStatus();
+  renderVisaoSemestral();
   const termo = document.getElementById("busca-contratos").value.trim().toLowerCase();
   const statusFiltro = document.getElementById("filtro-status-contrato").value;
 
@@ -193,6 +231,10 @@ function renderTabela() {
           </div>
           <span class="inline-flex items-center px-2 py-1 rounded-full font-body text-label-sm shrink-0 ${status.classe}">${status.texto}</span>
         </div>
+        ${resumo.ajusteManual ? `
+        <p class="-mt-2 font-body text-label-sm rounded-lg bg-tertiary-container/40 text-on-tertiary-container px-2 py-1">
+          <span class="font-semibold">Ajuste manual:</span> contribui com R$ 0,00 (${escaparHTML(resumo.ajusteManual.motivo)}). Pela régua seriam crédito de ${formatarMoeda(resumo.ajusteManual.creditoRegua)} e desconto de ${formatarMoeda(resumo.ajusteManual.descontoRegua)}.
+        </p>` : ""}
         ${resumo.mesesPausados || resumo.qtdPausadaAtual ? `
         <p class="-mt-2 font-body text-label-sm text-on-surface-variant">
           ${[
@@ -769,14 +811,21 @@ function renderHistoricoMovimentacoes() {
   }
   // Entradas gravadas pelo script de migração (`recalculo_regra`/`reversao_regra`) recebem um selo
   // de auditoria — são ajustes de regra, não movimentações feitas por um gestor.
-  const seloAuditoria = (h) => (h.tipo === "recalculo_regra" || h.tipo === "reversao_regra")
-    ? `<span class="inline-block mr-1 px-1.5 rounded bg-tertiary-container/40 text-on-tertiary-container">Recálculo de regra${h.versaoRegra ? ` ${escaparHTML(h.versaoRegra)}` : ""}</span>`
+  const ROTULOS_AUDITORIA = {
+    recalculo_regra: "Recálculo de regra", reversao_regra: "Recálculo de regra",
+    importacao_planilha: "Planilha de controle", reversao_planilha: "Planilha de controle",
+    ajuste_manual: "Ajuste manual", reversao_ajuste_manual: "Ajuste manual"
+  };
+  const seloAuditoria = (h) => ROTULOS_AUDITORIA[h.tipo]
+    ? `<span class="inline-block mr-1 px-1.5 rounded bg-tertiary-container/40 text-on-tertiary-container">${ROTULOS_AUDITORIA[h.tipo]}${h.versaoRegra ? ` ${escaparHTML(h.versaoRegra)}` : ""}</span>`
     : "";
+  const motivo = (h) => (h.tipo === "ajuste_manual" || h.tipo === "importacao_planilha") && h.motivo
+    ? `<span class="block">Motivo: ${escaparHTML(h.motivo)}</span>` : "";
   lista.innerHTML = historico.map((h) => `
     <li class="flex items-center justify-between gap-3 font-body text-label-sm bg-surface-container rounded-lg px-3 py-2">
       <span class="text-on-surface-variant">
         <span class="block text-on-surface font-medium">${seloAuditoria(h)}${escaparHTML(h.descricao)}</span>
-        ${formatarDataHora(h.data)}
+        ${motivo(h)}${formatarDataHora(h.data)}
       </span>
       <span class="whitespace-nowrap font-semibold ${h.fundoDepois < h.fundoAntes ? "text-christmas-red" : "text-secondary"}">
         ${formatarMoeda(h.fundoAntes)} → ${formatarMoeda(h.fundoDepois)}

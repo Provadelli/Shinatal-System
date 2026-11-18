@@ -7,7 +7,7 @@ import { db } from "./firebase-init.js";
 import {
   collection, doc, getDocs, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { montarAgregadosFundo } from "./calculo-shinatal.js";
+import { montarAgregadosFundo } from "./calculo-shinatal.js?v=v2-2026-11b";
 
 /**
  * Carrega os contratos empresariais. Cada documento já carrega seu próprio

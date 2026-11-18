@@ -11,7 +11,7 @@ import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarT
 import {
   calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial,
   calcularContribuicaoNoAno, hojeISOLocal
-} from "./calculo-shinatal.js";
+} from "./calculo-shinatal.js?v=v2-2026-11b";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
 import { criarSolicitacao } from "./solicitacoes-service.js";

@@ -1,7 +1,7 @@
 // Shinatal — vitrine de "Perfil" (o próprio colaborador, ou visto por admin/DP/RH/Presidente):
 // junta tudo que calculo-shinatal.js já calcula numa única tela, sem repetir nenhuma fórmula.
 import { formatarMoeda, formatarData, formatarMesAno, escaparHTML, formatarJornadaSemanal } from "./ui-utils.js";
-import { contarPontosAtraso } from "./calculo-shinatal.js";
+import { contarPontosAtraso } from "./calculo-shinatal.js?v=v2-2026-11b";
 
 const ROTULOS_ADVERTENCIA = {
   verbal: "Advertência verbal", escrita: "Advertência escrita",

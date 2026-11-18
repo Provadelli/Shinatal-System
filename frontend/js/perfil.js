@@ -8,7 +8,7 @@ import {
   formatarData, formatarJornadaSemanal, mostrarToast, iniciarContagemReenvio,
   ativarRevelacaoAoRolar, sincronizarAlturaHeader, construirAvatarHTML, redimensionarImagemParaBase64
 } from "./ui-utils.js";
-import { calcularCotaColaborador } from "./calculo-shinatal.js";
+import { calcularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11b";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
 import { ENCARREGADO, CONTROLADORA, linkEncarregado } from "./lgpd-config.js";
 import { gerarPdfMeusDados } from "./meus-dados-pdf.js";
