@@ -235,7 +235,7 @@ function mostrarAvisoConfiguracao() {
   aviso.className =
     "fixed top-0 inset-x-0 z-[9999] bg-christmas-red text-white text-center text-sm py-2 px-4 font-body";
   aviso.textContent =
-    "⚠ Firebase ainda não configurado — edite js/firebase-init.js com as credenciais do projeto (veja SETUP.md).";
+    "⚠ Firebase ainda não configurado — edite js/firebase-init.js com as credenciais do projeto (veja docs/guias/SETUP.md).";
   document.body.prepend(aviso);
 }
 

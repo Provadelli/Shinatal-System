@@ -24,7 +24,7 @@
   --shinatal-ink-muted: #5E615C;
   --shinatal-gradiente: linear-gradient(135deg, #0E3B2E 0%, #C9A048 100%);
   --shinatal-gradiente-valor: linear-gradient(135deg, #8A6A2F 0%, #C9A048 100%);
-  /* Tons calculados para contraste (WCAG 2.2 AA) — ver docs/ACESSIBILIDADE.md:
+  /* Tons calculados para contraste (WCAG 2.2 AA) — ver docs/qualidade/ACESSIBILIDADE.md:
      - ouro-texto: o dourado da marca (#C9A048) não chega a 3:1 no claro; para TEXTO pequeno sobre
        fundo claro usa-se esta versão mais funda (5,8:1 no marfim). O dourado vivo continua em
        números grandes, ícones decorativos e sobre fundos escuros.

@@ -3,7 +3,7 @@
 // VERSAO_TERMOS: data da versão vigente dos Termos de Uso e da Política de Privacidade. Ao mudar
 // qualquer um dos dois de forma relevante, atualize as páginas (termos.html, privacidade.html) e
 // troque esta versão — todo mundo verá o pedido de aceite de novo no próximo login.
-// Ver docs/LGPD.md.
+// Ver docs/conformidade/LGPD.md.
 export const VERSAO_TERMOS = "2026-10-27";
 
 /** Controladora dos dados (art. 5º, VI). */

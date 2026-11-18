@@ -138,12 +138,14 @@ testes automatizada, não apenas revisão teórica.
 
 ### [ALTA] Senha padrão compartilhada e versionada para as 4 contas mais privilegiadas
 
+> **Nota de redação (18/11/2026):** a senha padrão antiga e os e-mails das contas privilegiadas foram removidos deste documento. O achado continua válido: a senha antiga ainda existe no histórico do Git e deve ser tratada como vazada.
+
 - **Onde:** `backend/scripts/seed-usuarios.js:20-27` e `docs/SETUP.md:63-67` (documentam a senha em
-  texto puro); `docs/prompt-original.txt:33-40` (documenta os e-mails exatos das 4 contas e a
-  intenção original de senha "1234", posteriormente trocada para "Shine@2026" no script real).
-- **Evidência:** `seed-usuarios.js` define `SENHA_PADRAO = "Shine@2026"` e cria com ela os 4
-  usuários mais privilegiados do sistema — `shinerio@shinerio.com` (Presidente),
-  `ti@shinerio.com` (Admin), `dp@shinerio.com` (DP), `rh@shinerio.com` (RH). Busca em todo o
+  texto puro); `docs/prompt-original.txt:33-40` (hoje fora do Git; documentava os e-mails exatos das 4 contas e a
+  intenção original de uma senha fraca, depois trocada por outra senha fixa no script real).
+- **Evidência:** `seed-usuarios.js` define `SENHA_PADRAO = [senha removida deste documento]` e cria com ela os 4
+  usuários mais privilegiados do sistema — Presidente, Admin, DP e RH
+  (e-mails omitidos deste documento). Busca em todo o
   código (`grep` por "trocarSenha"/"senhaTemporaria"/"primeiroAcesso"/etc.) não encontrou nenhuma
   lógica que force a troca dessa senha no primeiro login — a única proteção é uma instrução em
   texto no console (`oriente a troca no primeiro acesso`) e no `SETUP.md`.
@@ -154,8 +156,8 @@ testes automatizada, não apenas revisão teórica.
   pública do GitHub sem autenticação (indicando que é **privado**), o que limita — mas não elimina
   — a exposição: colaboradores do repo, ou qualquer vazamento futuro dele, expõem as 4 contas.
 - **Plano de remediação técnico:**
-  1. **Imediato:** verificar manualmente se `shinerio@shinerio.com`, `ti@shinerio.com`,
-     `dp@shinerio.com` e `rh@shinerio.com` ainda usam `Shine@2026` em produção; se sim, trocar a
+  1. **Imediato:** verificar manualmente se as 4 contas especiais (Presidente, Admin,
+     DP e RH) ainda usam a senha padrão antiga em produção; se sim, trocar a
      senha de cada uma agora (Firebase Console > Authentication, ou "Esqueci minha senha" na
      tela de login).
   2. **Curto prazo:** adicionar um campo `senhaTemporaria: true` ao documento `usuarios/{uid}`

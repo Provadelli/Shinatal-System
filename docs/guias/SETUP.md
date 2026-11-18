@@ -75,12 +75,11 @@ firebase deploy --only firestore:rules
    npm install
    npm run seed
    ```
-3. Isso cria as contas abaixo, cada uma com uma **senha temporária aleatória** impressa uma única
-   vez no terminal (não há senha fixa no código):
-   - `shinerio@shinerio.com` (Presidente — acima do Admin, aprova solicitações)
-   - `ti@shinerio.com` (Admin — acesso total, sem aprovação)
-   - `dp@shinerio.com` (Departamento Pessoal)
-   - `rh@shinerio.com` (Recursos Humanos)
+3. Isso cria as 4 contas especiais, cada uma com uma **senha temporária aleatória** impressa uma
+   única vez no terminal (não há senha fixa no código): Presidente (aprova solicitações), Admin,
+   Departamento Pessoal e Recursos Humanos. Os e-mails dessas contas ficam só no
+   `seed-usuarios.js` local (fora do Git) e não são documentados aqui, para não expor quais
+   endereços têm privilégio.
 
    Oriente cada um a trocar a senha assim que possível, usando "Esqueci minha senha" na
    tela de login. **Atenção:** rodar `npm run seed` de novo reescreve `dataAdmissao`/`status`/

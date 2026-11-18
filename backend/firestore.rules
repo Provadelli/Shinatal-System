@@ -634,7 +634,7 @@ service cloud.firestore {
     //
     // LIMITE HONESTO: as rules não recalculam o fundo — não conseguem somar os contratos. O que
     // elas fazem agora é recusar valor negativo, campo extra e autoria falsa. A integridade do
-    // VALOR continua dependendo de o cálculo rodar no cliente. Ver docs/security.
+    // VALOR continua dependendo de o cálculo rodar no cliente. Ver docs/seguranca.
     // -------------------------------------------------------------
     function fundoValido() {
       let d = request.resource.data;

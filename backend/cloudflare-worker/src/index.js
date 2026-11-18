@@ -12,7 +12,7 @@
 // Functions/Blocking Functions para interceptá-los no servidor. Aqui o Worker só verifica o
 // token antes do navegador tentar — é uma barreira real contra bots simples/scrapers, mas não
 // é criptograficamente à prova de um atacante que decida chamar o Firebase Auth diretamente.
-// Documentado também em SETUP.md.
+// Documentado também em docs/guias/SETUP.md.
 //
 // Não usa firebase-admin (não roda em Node — Workers são um runtime V8 isolado, sem os módulos
 // nativos que o Admin SDK precisa). Em vez disso, chama as mesmas APIs REST públicas que o SDK

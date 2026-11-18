@@ -1,5 +1,5 @@
 // Shinatal — configuração do Cloudflare Turnstile (anti-bot em cadastro, login e recuperação
-// de senha). Veja o passo a passo completo em SETUP.md ("8. Configurar Cloudflare Turnstile").
+// de senha). Veja o passo a passo completo em docs/guias/SETUP.md ("8. Configurar Cloudflare Turnstile").
 //
 // >>> SUBSTITUA os dois valores abaixo depois de criar o widget e publicar o Worker. <<<
 // A site key é PÚBLICA por design do Turnstile (assim como a apiKey do Firebase) — a proteção
