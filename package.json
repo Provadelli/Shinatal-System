@@ -1,6 +1,7 @@
 {
   "name": "shinatal-tooling",
   "private": true,
+  "author": "Pedro Provadelli (https://github.com/Provadelli)",
   "devDependencies": {
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
