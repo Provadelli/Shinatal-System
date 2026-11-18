@@ -126,6 +126,19 @@ passa por `contarMesesContabilizados`, a única referência do sistema:
 Testes: `npm run test:calculo`. Migração auditável dos dados já gravados (histórico e agregados
 do fundo): `backend/scripts/recalcular-regra-v2.mjs` (`--simular`, `--aplicar`, `--reverter`).
 
+**Planilha de controle.** A cópia versionada da planilha de controle fica em
+`backend/scripts/dados/planilha-controle-2026.json`: as linhas, o contrato de cada uma e os
+totais esperados (exercício 2026: R$ 8.800,00). `backend/scripts/importar-planilha-controle.mjs`
+(`--simular`, `--aplicar`, `--reverter`) reconcilia o banco com ela. O script não duplica
+contratos, não apaga nada, registra `importacao_planilha` no histórico e se recusa a gravar se o
+total não bater. `npm run test:calculo` confere cada linha, o total e a visão por semestre
+(`calcularVisaoSemestral`). O contrato CPRM fica fora dessa base, e um teste falha se ele aparecer.
+
+**Ajuste manual.** Uma exceção decidida pelo gestor é registrada como entrada
+`{tipo: "ajuste_manual", efeito: "contribuicao_zero", motivo}` no histórico do contrato. O
+contrato passa a contribuir com R$ 0,00, e o card mostra quanto a régua daria. A régua em si não
+muda. Uma entrada `reversao_ajuste_manual` desfaz a exceção.
+
 **Avaliação de Conduta (entre colegas).** Todos participam, exceto o Presidente. Cada um avalia
 os colegas online com os 4 conceitos da Seção 11 (Excelente, Bom, Regular, Insatisfatório). É
 **puramente social**: os votos são anônimos (só o autor lê o próprio voto — ver

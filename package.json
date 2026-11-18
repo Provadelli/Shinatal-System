@@ -23,7 +23,7 @@
     "icones": "node scripts/fonte-icones.mjs",
     "config:firebase": "node scripts/codificar-config-firebase.mjs",
     "layout": "node scripts/layout.mjs",
-    "test:calculo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test backend/tests/calculo/regua.test.mjs backend/tests/calculo/contratos.test.mjs backend/tests/calculo/migracao.test.mjs"
+    "test:calculo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test backend/tests/calculo/regua.test.mjs backend/tests/calculo/contratos.test.mjs backend/tests/calculo/migracao.test.mjs backend/tests/calculo/planilha.test.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

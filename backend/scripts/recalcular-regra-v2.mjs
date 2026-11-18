@@ -24,16 +24,15 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import admin from "firebase-admin";
 import * as antigo from "./legado/calculo-shinatal-v1.mjs";
 import * as novo from "../../frontend/js/calculo-shinatal.js";
+import * as util from "./lib/firestore-util.mjs";
 import { planejarMigracao, montarEntradaAuditoria, montarEntradaReversao, jaMigrado, relatorioCSV, AUTOR_SCRIPT, TOLERANCIA } from "./lib/recalculo.mjs";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const VERSAO = novo.VERSAO_REGRA_CALCULO;
-const TIPOS_SOLICITACAO_CONTRATO = ["contrato_empresarial_criar", "contrato_empresarial_editar", "contrato_empresarial_excluir"];
 
 const credencial = JSON.parse(fs.readFileSync(path.join(DIR, "service-account.json"), "utf8"));
 admin.initializeApp({ credential: admin.credential.cert(credencial) });
@@ -41,76 +40,12 @@ const db = admin.firestore();
 const { FieldValue, Timestamp } = admin.firestore;
 
 /* ----------------------------- utilitários ----------------------------- */
-
-/** Firestore → JSON (Timestamps viram {_timestamp: ISO}). */
-function serializar(valor) {
-  if (valor instanceof Timestamp) return { _timestamp: valor.toDate().toISOString() };
-  if (Array.isArray(valor)) return valor.map(serializar);
-  if (valor && typeof valor === "object") return Object.fromEntries(Object.entries(valor).map(([k, v]) => [k, serializar(v)]));
-  return valor;
-}
-
-/** Hash do que importa para o cálculo — detecta contrato alterado entre a simulação e a aplicação. */
-function hashContrato(c) {
-  const { historicoMovimentacoes, ...resto } = serializar(c);
-  const prazo = (historicoMovimentacoes || []).filter((h) => h.tipo === "edicao_prazo");
-  return crypto.createHash("sha256").update(JSON.stringify(ordenar({ ...resto, prazo }))).digest("hex");
-}
-function ordenar(v) {
-  if (Array.isArray(v)) return v.map(ordenar);
-  if (v && typeof v === "object") return Object.fromEntries(Object.keys(v).sort().map((k) => [k, ordenar(v[k])]));
-  return v;
-}
-
-async function carregar() {
-  const [contratosSnap, usuariosSnap, fundoSnap, publicoSnap, solicitacoesSnap] = await Promise.all([
-    db.collection("contratosEmpresariais").get(),
-    db.collection("usuarios").get(),
-    db.collection("fundo").get(),
-    db.collection("estatisticas").doc("publico").get(),
-    db.collection("solicitacoes").where("status", "==", "pendente").get()
-  ]);
-  return {
-    contratos: contratosSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-    usuarios: usuariosSnap.docs.map((d) => ({ uid: d.id, ...d.data() })),
-    fundos: Object.fromEntries(fundoSnap.docs.map((d) => [d.id, d.data()])),
-    publico: publicoSnap.exists ? publicoSnap.data() : null,
-    pendentesContrato: solicitacoesSnap.docs
-      .map((d) => ({ id: d.id, ...d.data() }))
-      .filter((s) => TIPOS_SOLICITACAO_CONTRATO.includes(s.tipo))
-  };
-}
-
-/** Republica `fundo/{ano}` (todos os anos com movimento ou já publicados) e `estatisticas/publico`. */
-async function republicarAgregados(contratos, usuarios, anosExistentes, hojeISO) {
-  const anoAtual = Number(hojeISO.slice(0, 4));
-  const anos = [...new Set([...novo.anosComMovimento(contratos, hojeISO), ...anosExistentes.map(Number), anoAtual])]
-    .filter(Number.isFinite).sort((a, b) => a - b);
-  const publicados = {};
-  for (const ano of anos) {
-    const { fundo } = novo.montarAgregadosFundo(contratos, usuarios, ano, hojeISO);
-    await db.collection("fundo").doc(String(ano)).set({
-      ...fundo, atualizadoEm: FieldValue.serverTimestamp(), atualizadoPor: AUTOR_SCRIPT
-    });
-    publicados[ano] = fundo;
-  }
-  const { publico } = novo.montarAgregadosFundo(contratos, usuarios, anoAtual, hojeISO);
-  await db.collection("estatisticas").doc("publico").set({ ...publico, atualizadoEm: FieldValue.serverTimestamp() }, { merge: true });
-  return { anos, publicados, publico };
-}
-
-/** Relê o banco e confere que cada `fundo/{ano}` bate com o recálculo. */
-async function validar(hojeISO) {
-  const { contratos, usuarios, fundos } = await carregar();
-  const divergencias = [];
-  for (const [ano, gravado] of Object.entries(fundos)) {
-    const { fundo } = novo.montarAgregadosFundo(contratos, usuarios, Number(ano), hojeISO);
-    for (const k of ["arrecadado", "estornos", "saldoDisponivel"]) {
-      if (Math.abs((gravado[k] || 0) - fundo[k]) >= TOLERANCIA) divergencias.push({ ano, campo: k, gravado: gravado[k], esperado: fundo[k] });
-    }
-  }
-  return divergencias;
-}
+// serializar, hashContrato, carregar, republicação e validação: lib/firestore-util.mjs.
+const carregar = () => util.carregar(db);
+const republicarAgregados = (contratos, usuarios, anosExistentes, hojeISO) =>
+  util.republicarAgregados(db, FieldValue, AUTOR_SCRIPT, contratos, usuarios, anosExistentes, hojeISO);
+const validar = (hojeISO) => util.validarAgregados(db, hojeISO);
+const { serializar, hashContrato } = util;
 
 /* ------------------------------- modos ------------------------------- */
 

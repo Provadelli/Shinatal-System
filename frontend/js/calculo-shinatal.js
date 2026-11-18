@@ -373,6 +373,28 @@ function dataUltimaAlteracaoPrazo(contrato) {
   return null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Ajuste manual (exceção decidida pelo gestor)                        */
+/* Fica registrado no próprio histórico do contrato (trilha auditável) */
+/* como `{tipo:"ajuste_manual", efeito:"contribuicao_zero", motivo}`.  */
+/* Não muda a régua: os lotes continuam calculados normalmente (para   */
+/* mostrar quanto a régua daria), mas o contrato passa a contribuir    */
+/* R$ 0,00 (nem crédito nem desconto). Uma entrada posterior           */
+/* `reversao_ajuste_manual` desfaz a exceção.                          */
+/* ------------------------------------------------------------------ */
+
+const EFEITO_AJUSTE_CONTRIBUICAO_ZERO = "contribuicao_zero";
+
+/** Ajuste manual vigente do contrato (a última entrada decide) ou null. */
+function obterAjusteManual(contrato) {
+  let ajuste = null;
+  for (const h of (contrato?.historicoMovimentacoes || [])) {
+    if (h?.tipo === "ajuste_manual" && h.efeito === EFEITO_AJUSTE_CONTRIBUICAO_ZERO) ajuste = h;
+    else if (h?.tipo === "reversao_ajuste_manual") ajuste = null;
+  }
+  return ajuste;
+}
+
 /**
  * Resumo financeiro completo de um contrato empresarial (determinado ou indeterminado):
  * crédito inicial, entradas/saídas, ajuste de prazo e estorno — real se encerrado, projetado
@@ -427,13 +449,35 @@ function calcularResumoContratoEmpresarial(contrato, hojeISO = hojeISOLocal()) {
 
   // `acrescido`/`descontado` (exibidos na planilha) incluem o efeito da mudança de prazo; o
   // `totalCreditado` já reflete o prazo atual pelo próprio `creditoInicial` (sem contar duas vezes).
-  return {
+  const valores = {
     creditoInicial,
     acrescido: acrescidoFuncionarios + Math.max(0, ajustePrazo),
     descontado: descontadoFuncionarios + Math.max(0, -ajustePrazo),
-    ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, dataReferencia,
+    ajustePrazo, totalCreditado, estorno, totalCreditadoFundo, movimentos
+  };
+
+  // Exceção manual: o contrato contribui R$ 0,00. Guarda o que a régua daria, para exibir.
+  const ajuste = obterAjusteManual(contrato);
+  let ajusteManual = null;
+  if (ajuste) {
+    const creditoRegua = movimentos.filter((m) => m.valor > 0).reduce((s, m) => s + m.valor, 0);
+    const descontoRegua = movimentos.filter((m) => m.valor < 0).reduce((s, m) => s - m.valor, 0);
+    ajusteManual = {
+      efeito: ajuste.efeito, motivo: ajuste.motivo || "",
+      creditoRegua, descontoRegua, liquidoRegua: creditoRegua - descontoRegua,
+      totalCreditadoFundoRegua: totalCreditadoFundo
+    };
+    Object.assign(valores, {
+      creditoInicial: 0, acrescido: 0, descontado: 0, ajustePrazo: 0,
+      totalCreditado: 0, estorno: 0, totalCreditadoFundo: 0,
+      movimentos: movimentos.map((m) => ({ ...m, valorRegua: m.valor, valor: 0 }))
+    });
+  }
+
+  return {
+    ...valores, dataReferencia,
     qtdAtual, mesesPausados: calcularMesesPausados(pausas, dataReferencia, contrato.dataInicio),
-    funcionarioMesesPausados, qtdPausadaAtual, movimentos, lotes,
+    funcionarioMesesPausados, qtdPausadaAtual, lotes, ajusteManual,
     // Para exibição: meses do contrato já contabilizados na data de referência (régua v2, sem
     // as pausas) e o total que dá direito a crédito (vigentes, ou 12 no prazo indeterminado).
     mesesContabilizados: contarMesesContabilizados({ inicio: contrato.dataInicio, fim: dataReferencia, tipoFim: "referencia", pausas }),
@@ -524,6 +568,78 @@ function calcularFundo(contratosEmpresariais = [], anoExercicio = new Date().get
     estornos += contribuicao.descontado + contribuicao.estorno;
   }
   return { arrecadado, estornos, saldoDisponivel: Math.max(0, arrecadado - estornos) };
+}
+
+/** 1 (jan a jun) ou 2 (jul a dez) para uma data 'aaaa-mm-dd'. */
+function semestreDaData(dataISO) {
+  const p = partesISO(dataISO);
+  return p && p.mes >= 6 ? 2 : 1;
+}
+
+/**
+ * Visão global do exercício por semestre (aba "PLANILHA GLOBAL" da planilha de controle).
+ * Só reorganiza os mesmos lotes e movimentos de `calcularResumoContratoEmpresarial`, então o
+ * total (positivo − negativo) é sempre igual ao saldo de `calcularFundo` no mesmo ano.
+ *  • Lote creditado no ano e ainda ativo: conta como ativo e o crédito entra no POSITIVO do
+ *    semestre da entrada.
+ *  • Lote creditado no ano que já saiu no ano: o saldo remanescente (crédito − desconto) entra
+ *    no POSITIVO do semestre da entrada.
+ *  • Lote creditado em ano anterior que saiu no ano: o desconto entra no NEGATIVO do semestre
+ *    da saída.
+ *  • Ajuste de prazo e estorno de encerramento do ano: pelo semestre da própria data.
+ *  • Contrato com ajuste manual (contribuição zero): não entra.
+ */
+function calcularVisaoSemestral(contratosEmpresariais = [], anoExercicio, hojeISO) {
+  const novo = () => ({ ativos: 0, positivo: 0, negativo: 0, remanescente: 0 });
+  const semestres = { 1: novo(), 2: novo() };
+  const ano = (iso) => Number(String(iso).slice(0, 4));
+
+  for (const c of contratosEmpresariais) {
+    const resumo = calcularResumoContratoEmpresarial(c, hojeISO);
+    if (resumo.ajusteManual) continue;
+    const anoCreditoInicial = calcularMesReferenciaImplantacao(c.dataInicio).ano;
+
+    for (const l of resumo.lotes) {
+      const anoCredito = l.origem === "entrada" ? ano(l.entrada) : anoCreditoInicial;
+      // Entrada de 15 a 31/12 credita no ano seguinte: cai no 1º semestre daquele ano.
+      const semEntrada = ano(l.entrada) === anoCredito ? semestreDaData(l.entrada) : 1;
+      const saiuNoAno = l.saida && ano(l.saida) === anoExercicio;
+      if (anoCredito === anoExercicio) {
+        if (saiuNoAno) {
+          const remanescente = l.credito - l.desconto;
+          semestres[semEntrada].positivo += remanescente;
+          semestres[semEntrada].remanescente += remanescente;
+        } else {
+          semestres[semEntrada].positivo += l.credito;
+          if (!l.saida || ano(l.saida) > anoExercicio) semestres[semEntrada].ativos += l.quantidade;
+        }
+      } else if (anoCredito < anoExercicio && saiuNoAno) {
+        semestres[semestreDaData(l.saida)].negativo += l.desconto;
+      }
+    }
+    // Os lotes já usam o prazo ATUAL; o ajuste de prazo pertence à data da alteração (movimento
+    // "prazo" abaixo), então sai do crédito inicial para não contar duas vezes.
+    if (resumo.ajustePrazo && anoCreditoInicial === anoExercicio) {
+      const semInicio = ano(c.dataInicio) === anoCreditoInicial ? semestreDaData(c.dataInicio) : 1;
+      semestres[semInicio].positivo -= resumo.ajustePrazo;
+    }
+    for (const m of resumo.movimentos) {
+      if ((m.tipo !== "prazo" && m.tipo !== "estorno") || !m.valor || anoDoMovimento(m) !== anoExercicio) continue;
+      const s = semestres[semestreDaData(m.data)];
+      if (m.valor > 0) s.positivo += m.valor;
+      else s.negativo += -m.valor;
+    }
+  }
+
+  for (const s of Object.values(semestres)) s.valorTotal = s.positivo - s.negativo;
+  const total = {
+    ativos: semestres[1].ativos + semestres[2].ativos,
+    positivo: semestres[1].positivo + semestres[2].positivo,
+    negativo: semestres[1].negativo + semestres[2].negativo,
+    remanescente: semestres[1].remanescente + semestres[2].remanescente
+  };
+  total.valorTotal = total.positivo - total.negativo;
+  return { anoExercicio, semestres, total };
 }
 
 /**
@@ -829,6 +945,10 @@ export {
   anoDoMovimento,
   anosComMovimento,
   montarAgregadosFundo,
+  calcularVisaoSemestral,
+  semestreDaData,
+  obterAjusteManual,
+  EFEITO_AJUSTE_CONTRIBUICAO_ZERO,
   contarFaltasComDesconto,
   calcularDescontoFaltas,
   contarPontosAtraso,

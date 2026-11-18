@@ -9,7 +9,7 @@ import {
   alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
 
 } from "./ui-utils.js";
-import { calcularCotaColaborador } from "./calculo-shinatal.js";
+import { calcularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11b";
 import { sincronizarDiretorio } from "./conduta-service.js";
 
 // Sem onclick inline no HTML (a CSP proíbe) — os gatilhos são ligados aqui, antes de qualquer await.

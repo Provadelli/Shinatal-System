@@ -6,7 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao } from "../auth.js";
 import { escaparHTML, formatarDataHora, formatarMoeda, mostrarToast, debounce } from "../ui-utils.js";
-import { calcularResumoContratoEmpresarial } from "../calculo-shinatal.js";
+import { calcularResumoContratoEmpresarial } from "../calculo-shinatal.js?v=v2-2026-11b";
 import { recalcularEPublicarFundo } from "../fundo-service.js";
 import { registrarLog } from "../log-service.js";
 
