@@ -1,173 +1,191 @@
-# Shinatal
+<div align="center">
 
-Portal interno do **Shinatal**, o programa de premiação de fim de ano da Shine Rio Serviços Ltda.
-Colaboradores acompanham a cota estimada, o fundo arrecadado e o status dos contratos; a gestão
-lança faltas, advertências, avaliações e contratos.
+<img src="frontend/assets/logoshinatal-cropped.webp" alt="Shinatal" width="220" />
 
-**Produção:** [shinatal.shinerio.com](https://shinatal.shinerio.com) (Vercel)
+### O programa de premiação de fim de ano da Shine Rio
 
-| | |
-|---|---|
-| Front-end | Página inicial em React + TypeScript (Vite); demais páginas em HTML, Tailwind e JS modular |
-| Back-end | Firebase Authentication + Firestore (plano gratuito, sem servidor próprio) |
-| Proteção | Firestore Security Rules, App Check (reCAPTCHA), Cloudflare Turnstile, CSP estrita |
-| Qualidade | WCAG 2.2 AA — axe-core 0 violações e Lighthouse Acessibilidade 100 |
+Portal onde cada colaborador acompanha o Fundo Shinatal e a própria cota, e onde a gestão registra contratos, faltas, advertências e avaliações com regras auditáveis.
+
+[![Produção](https://img.shields.io/badge/produção-shinatal.shinerio.com-8B1E2D?style=flat-square)](https://shinatal.shinerio.com)
+![Vercel](https://img.shields.io/badge/deploy-Vercel-000000?style=flat-square&logo=vercel)
+![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?style=flat-square&logo=firebase&logoColor=black)
+![React](https://img.shields.io/badge/React-TypeScript-3178C6?style=flat-square&logo=react&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![WCAG](https://img.shields.io/badge/WCAG-2.2%20AA-2E7D32?style=flat-square)
+![Testes](https://img.shields.io/badge/testes%20do%20cálculo-79%20passando-2E7D32?style=flat-square)
+![Uso interno](https://img.shields.io/badge/licença-uso%20interno-555555?style=flat-square)
+
+[Produção](https://shinatal.shinerio.com) · [Arquitetura](docs/ARQUITETURA.md) · [Regras de cálculo](docs/regras/Regras_de_Calculo_Shinatal.pdf) · [Setup](docs/guias/SETUP.md) · [Documentação](docs/README.md)
+
+<br/>
+
+<img src="docs/imagens/home.webp" alt="Página inicial do Shinatal com o Fundo Shinatal 2026" width="860" />
+
+</div>
 
 ---
 
 ## Sumário
 
-- [Estrutura do repositório](#estrutura-do-repositório)
-- [Rodando localmente](#rodando-localmente)
+- [Visão geral](#visão-geral)
+- [Funcionalidades](#funcionalidades)
+- [Arquitetura em 1 minuto](#arquitetura-em-1-minuto)
+- [Stack](#stack)
+- [Começando](#começando)
 - [Scripts](#scripts)
-- [Publicação](#publicação)
+- [Qualidade](#qualidade)
 - [Papéis de usuário](#papéis-de-usuário)
-- [Regras de negócio](#regras-de-negócio)
-- [Desempenho, acessibilidade e responsividade](#desempenho-acessibilidade-e-responsividade)
+- [Segurança](#segurança)
 - [Documentação](#documentação)
 
 ---
 
-## Estrutura do repositório
+## Visão geral
 
-```
-app/                Página inicial em React + TypeScript (Vite, framer-motion)
-  src/components/   Seções da home (Hero, Quem somos, Sobre, Como funciona) e componentes de UI
-  src/lib/          Movimento, tipografia e utilitários
-frontend/           Demais páginas (login, cadastro, painéis, contratos, gestão, LGPD…)
-  css/              styles.css (estilos do sistema) + tailwind-input.css → tailwind.css
-  js/               Módulos por página, serviços do Firestore e o motor de cálculo
-  assets/           Imagens, vídeos e fontes locais (com hash no nome)
-backend/
-  firestore.rules   Regras de segurança do Firestore
-  cloudflare-worker/  Worker que valida o Turnstile no cadastro
-  scripts/          Scripts administrativos (Admin SDK)
-  tests/a11y/       Auditoria de acessibilidade, desempenho e responsividade
-  tests/rules/      Testes das regras do Firestore
-scripts/            Build: cabeçalho/rodapé compartilhados, fonte de ícones, imagens e vídeo
-docs/               Configuração, requisitos, LGPD, acessibilidade e o regulamento interno
-design/             Referências visuais (mockups) — não vai para o site
-dist/               Build publicado (gerado por npm run build, fora do Git)
+Todo contrato que a Shine Rio fecha com uma empresa cliente alimenta o **Fundo Shinatal**: cada funcionário alocado vale R$ 150,00 por ano (R$ 12,50 por mês). No fim do exercício, o fundo é dividido entre os colaboradores elegíveis, de forma proporcional ao tempo e à jornada de cada um, com redutores e bônus previstos no [Regulamento Interno](docs/regras/Regulamento_Interno_Shinatal.pdf).
+
+```mermaid
+flowchart LR
+  contrato["Contrato com<br/>empresa cliente"] --> funcionario["R$ 150 por<br/>funcionário alocado"]
+  funcionario --> fundo[("Fundo Shinatal<br/>do exercício")]
+  saida["Saídas e encerramentos<br/>(régua de meses)"] -. "descontos" .-> fundo
+  fundo --> cota["Cota de cada colaborador<br/>tempo × jornada"]
+  cota --> ajustes["Faltas, atrasos, advertências,<br/>avaliação e bônus"]
+  ajustes --> premio(["Premiação de Natal"])
 ```
 
-## Rodando localmente
+Todo valor é **recalculado a partir das datas**. Nada em reais fica gravado por contrato, então a tela, o banco e os relatórios mostram sempre o mesmo número.
 
-Pré-requisitos e configuração do Firebase: **[docs/SETUP.md](docs/SETUP.md)** e
-**[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**.
+## Funcionalidades
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**👤 Para o colaborador**
+
+- Painel com o Fundo Shinatal do ano e a cota estimada
+- Simulador do impacto de faltas, atrasos e advertências
+- Perfil com histórico e download dos próprios dados (LGPD)
+- Avaliação de conduta entre colegas, anônima
+- Regulamento sempre à mão
+
+</td>
+<td width="50%" valign="top">
+
+**🗂️ Para a gestão**
+
+- Contratos empresariais com CNPJ validado na Receita
+- Entradas, saídas e pausas por funcionário, com a régua de meses v2
+- Visão global por semestre, igual à planilha de controle
+- Lançamento de faltas, atrasos, advertências e avaliações
+- Fila de aprovação do Presidente e histórico auditável
+
+</td>
+</tr>
+</table>
+
+## Arquitetura em 1 minuto
+
+Sem servidor próprio: o navegador fala direto com o Firebase, protegido por regras de segurança, App Check e um Worker da Cloudflare no cadastro. Todos os números saem de um único motor de cálculo puro, compartilhado pelas telas, pelos scripts e pelos testes.
+
+```mermaid
+flowchart LR
+  user(["Usuários"]) --> site["Portal<br/>Vercel"]
+  site --> auth["Firebase Auth"]
+  site --> fs[("Firestore<br/>+ Rules")]
+  site -. "App Check" .-> fs
+  site -- "cadastro" --> worker["Cloudflare Worker<br/>Turnstile"]
+  worker --> auth
+  motor["Motor de cálculo<br/>calculo-shinatal.js"] --- site
+  scripts["Scripts Admin SDK<br/>simular, aplicar, reverter"] --> fs
+  motor --- scripts
+```
+
+A arquitetura completa, com o modelo de dados, os fluxos, a segurança e as decisões técnicas, está em **[docs/ARQUITETURA.md](docs/ARQUITETURA.md)**.
+
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Página inicial | React 18, TypeScript, Vite, framer-motion |
+| Portal | HTML, Tailwind CSS, módulos ES (sem framework) |
+| Autenticação e dados | Firebase Authentication e Cloud Firestore (plano Spark) |
+| Proteção | Firestore Security Rules, App Check (reCAPTCHA Enterprise), Cloudflare Turnstile, CSP estrita |
+| Hospedagem | Vercel (deploy a cada push na `main`) |
+| Testes | `node:test`, emuladores do Firebase, axe-core, Lighthouse |
+
+## Começando
+
+**Pré-requisitos:** Node.js 20.11 ou superior (o `test:calculo` usa `--disable-warning`) e um projeto Firebase configurado ([guia de setup](docs/guias/SETUP.md) e [requisitos](docs/guias/REQUIREMENTS.md)).
 
 ```bash
-npm ci            # instala e já compila o Tailwind (postinstall)
-npm run dev       # servidor do Vite com recarga automática
-npm run build     # gera dist/ exatamente como vai para produção
-npm run preview   # serve o dist/ localmente
+npm ci              # instala as dependências e compila o Tailwind
+npm run dev         # servidor de desenvolvimento com recarga automática
+npm run build       # gera dist/ exatamente como vai para produção
+npm run preview     # serve o dist/ localmente
 ```
 
-A configuração real do Firebase fica em `firebase-config.local.json` (fora do Git) e é embutida
-em `frontend/js/firebase-init.js` por `npm run config:firebase`.
+A configuração real do Firebase fica em `firebase-config.local.json`, fora do Git, e é embutida no build por `npm run config:firebase`.
 
 ## Scripts
 
 | Comando | O que faz |
 |---|---|
-| `npm run build` | Cabeçalho/rodapé compartilhados → Tailwind → checagem de tipos → build do Vite |
+| `npm run build` | Cabeçalho e rodapé, Tailwind, checagem de tipos e build do Vite |
+| `npm run test:calculo` | Testes do motor de cálculo e da planilha de controle |
 | `npm run layout` | Aplica `scripts/partials/` (cabeçalho e rodapé) em todas as páginas |
 | `npm run build:css` | Compila `frontend/css/tailwind.css` |
-| `npm run icones` | Regera a fonte de ícones só com os ícones usados no site — **rode ao usar um ícone novo** |
+| `npm run icones` | Regera a fonte de ícones; rode ao usar um ícone novo |
 | `npm run optimize:images` | Gera as versões WebP responsivas das fotos |
-| `npm run optimize:video` | Gera os vídeos do topo (vertical e horizontal) |
-| `npm run config:firebase` | Codifica a configuração do Firebase em `firebase-init.js` |
+| `npm run optimize:video` | Gera os vídeos do topo |
+| `npm run config:firebase` | Embute a configuração do Firebase em `firebase-init.js` |
 
-## Publicação
+**Manutenção de dados** (em `backend/scripts`, com a conta de serviço local): `recalcular-regra-v2.mjs` e `importar-planilha-controle.mjs`, sempre no ciclo `--simular`, `--aplicar` e, se preciso, `--reverter`. Veja a [seção 8 da arquitetura](docs/ARQUITETURA.md#8-manutenção-de-dados).
 
-Todo push na `main` é publicado automaticamente pela Vercel (`vercel.json`: `npm run build`,
-pasta `dist/`, headers de cache e de segurança). Antes de publicar, rode a auditoria:
+## Qualidade
+
+| Área | Como é garantida |
+|---|---|
+| Cálculo | 79 testes: régua de meses, contratos, fundo, migração e cada linha da planilha de controle |
+| Segurança | Testes das regras do Firestore no emulador e auditorias em [docs/seguranca/](docs/seguranca/) |
+| Acessibilidade | WCAG 2.2 AA, ABNT NBR 17225 e eMAG; axe-core sem violações e Lighthouse 100 ([detalhes](docs/qualidade/ACESSIBILIDADE.md)) |
+| Responsividade | Testada de 320 a 1920 px, sem rolagem horizontal |
+| Desempenho | Fontes locais, ícones sob medida, JavaScript dividido, vídeo adiado e assets com cache de 1 ano |
+
+Antes de publicar, rode a auditoria completa (usa os emuladores e nunca toca produção):
 
 ```bash
-cd backend/tests/a11y
-npm install
-npm test                  # axe + teclado + larguras + Lighthouse (~6 min)
-SEM_LIGHTHOUSE=1 npm test # sem Lighthouse (mais rápido)
+cd backend/tests/a11y && npm install && npm test
 ```
-
-A auditoria usa os emuladores do Firebase com dados de exemplo — **nunca toca produção**.
 
 ## Papéis de usuário
 
 | Papel | Acesso |
 |---|---|
-| **Presidente** | Acesso total; único que grava contratos/avaliações direto; aprova ou rejeita as solicitações dos demais gestores. |
-| **Admin** | Gestão completa; contratos/avaliações passam pela aprovação do Presidente. |
-| **DP** (Departamento Pessoal) | Lança falta, atraso, advertência e avaliação (avaliação vai para aprovação). |
-| **RH** (Recursos Humanos) | Ativa/encerra contrato e lança avaliação (ambos vão para aprovação). |
-| **Colaborador** | Vê o próprio perfil, a cota estimada, o fundo, o status dos contratos e o simulador de impacto. |
+| **Presidente** | Acesso total. Único que grava contratos e avaliações direto e aprova as solicitações dos demais gestores. Não participa da divisão do fundo. |
+| **Admin** | Gestão completa; contratos e avaliações passam pela aprovação do Presidente. |
+| **DP** | Lança falta, atraso, advertência e avaliação (a avaliação vai para aprovação). |
+| **RH** | Ativa e encerra contrato e lança avaliação (ambos vão para aprovação). |
+| **Colaborador** | Vê o próprio perfil, a cota estimada, o fundo, os contratos e o simulador. |
 
-## Regras de negócio
+## Segurança
 
-**Cálculo da premiação.** Implementa as seções do
-[Regulamento Interno](docs/Regulamento_Interno_Shinatal.pdf) em
-`frontend/js/calculo-shinatal.js`, isolado de I/O. É a peça mais sensível do projeto: qualquer
-mudança ali precisa bater com o regulamento.
-
-**Régua de meses dos contratos (v2, nov/2026).** Toda contagem de meses de contrato empresarial
-passa por `contarMesesContabilizados`, a única referência do sistema:
-
-- **Entrada** (início do contrato, entrada de funcionário, retomada de pausa): até o dia 14 o
-  mês conta; do dia 15 em diante, conta a partir do mês seguinte.
-- **Término previsto e encerramento do contrato:** o mês final sempre conta.
-- **Desligamento individual** (e início de pausa): o mês só conta se a pessoa ficou até o
-  último dia dele.
-- O cálculo é **por lote de funcionários**: crédito antecipado (R$ 12,50/mês, até 12 meses), e
-  na saída ou no encerramento cada lote passa a valer só os meses contados. Um desligamento
-  nunca altera os demais.
-- Nada de valor por contrato fica gravado: tudo é recalculado a partir das datas, então
-  contratos antigos e novos seguem a mesma régua. A admissão de colaboradores (avos, Seção 4.1)
-  continua na regra do dia 15/16 do regulamento.
-
-Testes: `npm run test:calculo`. Migração auditável dos dados já gravados (histórico e agregados
-do fundo): `backend/scripts/recalcular-regra-v2.mjs` (`--simular`, `--aplicar`, `--reverter`).
-
-**Planilha de controle.** A cópia versionada da planilha de controle fica em
-`backend/scripts/dados/planilha-controle-2026.json`: as linhas, o contrato de cada uma e os
-totais esperados (exercício 2026: R$ 8.800,00). `backend/scripts/importar-planilha-controle.mjs`
-(`--simular`, `--aplicar`, `--reverter`) reconcilia o banco com ela. O script não duplica
-contratos, não apaga nada, registra `importacao_planilha` no histórico e se recusa a gravar se o
-total não bater. `npm run test:calculo` confere cada linha, o total e a visão por semestre
-(`calcularVisaoSemestral`). O contrato CPRM fica fora dessa base, e um teste falha se ele aparecer.
-
-**Ajuste manual.** Uma exceção decidida pelo gestor é registrada como entrada
-`{tipo: "ajuste_manual", efeito: "contribuicao_zero", motivo}` no histórico do contrato. O
-contrato passa a contribuir com R$ 0,00, e o card mostra quanto a régua daria. A régua em si não
-muda. Uma entrada `reversao_ajuste_manual` desfaz a exceção.
-
-**Avaliação de Conduta (entre colegas).** Todos participam, exceto o Presidente. Cada um avalia
-os colegas online com os 4 conceitos da Seção 11 (Excelente, Bom, Regular, Insatisfatório). É
-**puramente social**: os votos são anônimos (só o autor lê o próprio voto — ver
-`backend/firestore.rules`) e nunca entram no cálculo da cota nem do fundo. Nasce desligada; só
-Admin ou Presidente liga (`configuracoes/avaliacaoConduta`). O perfil mostra apenas a contagem
-de votos por conceito, nunca quem votou.
-
-## Desempenho, acessibilidade e responsividade
-
-- **Acessibilidade:** WCAG 2.2 AA, ABNT NBR 17225 e eMAG. Modais com foco preso e Esc, abas
-  pelas setas, botão "Pausar animações", contraste recalculado. Detalhes em
-  [docs/ACESSIBILIDADE.md](docs/ACESSIBILIDADE.md).
-- **Responsividade:** testada de 320 a 1920 px; nenhuma página tem rolagem horizontal ou
-  conteúdo cortado (WCAG 1.4.10). Abaixo de 400 px, Entrar/Cadastro ficam dentro do menu.
-- **Desempenho:**
-  - fontes locais, com a de ícones reduzida aos ícones usados;
-  - home com o JavaScript dividido: animações e seções abaixo da primeira tela carregam depois;
-  - vídeo só depois do carregamento e nunca com Data Saver ou "reduzir movimento";
-  - assets com hash e cache de 1 ano.
-- **Movimento:** a faixa de fotos roda sozinha e pode ser arrastada com mouse ou dedo; no
-  celular a home rola normalmente (sem o efeito de seção cobrindo o topo).
+Nenhuma credencial, senha ou dado pessoal real fica no repositório. Leia a **[política de segurança](SECURITY.md)** antes de contribuir: ela lista o que nunca versionar e como reportar uma vulnerabilidade.
 
 ## Documentação
 
 | Documento | Conteúdo |
 |---|---|
-| [docs/SETUP.md](docs/SETUP.md) | Configuração do Firebase, Turnstile, variáveis e deploy |
-| [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | Pré-requisitos de ambiente |
-| [docs/ACESSIBILIDADE.md](docs/ACESSIBILIDADE.md) | Critérios WCAG atendidos e como auditar |
-| [docs/LGPD.md](docs/LGPD.md) | Tratamento de dados pessoais |
-| [docs/security/](docs/security/) | Auditorias de segurança |
-| [Regulamento Interno](docs/Regulamento_Interno_Shinatal.pdf) | Fonte de verdade das regras de premiação |
+| [docs/README.md](docs/README.md) | Índice de toda a documentação |
+| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Arquitetura com diagramas |
+| [docs/guias/SETUP.md](docs/guias/SETUP.md) | Configuração do Firebase, Turnstile, App Check e publicação |
+| [docs/regras/](docs/regras/) | Regulamento interno e regras de cálculo |
+| [docs/conformidade/LGPD.md](docs/conformidade/LGPD.md) | Tratamento de dados pessoais |
+| [SECURITY.md](SECURITY.md) | Política de segurança |
+
+---
+
+<div align="center">
+<sub>© 2026 Shine Rio Group · Software de uso interno · Feito com cuidado no Rio de Janeiro</sub>
+</div>

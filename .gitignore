@@ -34,5 +34,7 @@ docs/TIMBRADO*.docx
 docs/TIMBRADO*.pdf
 
 # Saídas do recálculo de regra (backup e relatórios com dados reais de contratos) — só local.
-backend/scripts/out/recalculo-*/
-backend/scripts/out/planilha-*/
+backend/scripts/out/
+
+# Material interno que nunca vai para o Git (prompts, rascunhos, anotações)
+.privado/

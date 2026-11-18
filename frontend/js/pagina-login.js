@@ -45,7 +45,7 @@ form.addEventListener("submit", async (e) => {
     // Turnstile ANTES do navegador tentar o login. Não é uma garantia criptográfica (o
     // signInWithEmailAndPassword abaixo é uma chamada pública do Firebase Auth que um atacante
     // decidido poderia chamar direto, pulando esta checagem): o Spark (plano gratuito) não tem
-    // Cloud Functions/Blocking Functions para exigir isso no servidor. Ver nota em SETUP.md.
+    // Cloud Functions/Blocking Functions para exigir isso no servidor. Ver nota em docs/guias/SETUP.md.
     if (TURNSTILE_CONFIGURADO) {
       const resposta = await fetch(`${TURNSTILE_WORKER_URL}/api/turnstile/verificar`, {
         method: "POST",

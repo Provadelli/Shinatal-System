@@ -162,7 +162,7 @@ function mostrarToast(mensagem, tipo = "info") {
  * modo automático `cf-turnstile`, que depende de timing entre o <script> externo e este módulo
  * ES — a API explícita evita a corrida). Resolve com o id do widget (usado depois para ler o
  * token e para resetar em caso de falha), ou `null` se o Turnstile ainda não foi configurado
- * (site key placeholder — ver turnstile-config.js e SETUP.md).
+ * (site key placeholder — ver turnstile-config.js e docs/guias/SETUP.md).
  */
 function montarTurnstile(containerId, siteKey) {
   return new Promise((resolve) => {

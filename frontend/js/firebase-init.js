@@ -63,6 +63,6 @@ export const CONFIGURADO = Boolean(firebaseConfig.apiKey);
 if (!CONFIGURADO) {
   console.warn(
     "[Shinatal] Firebase ainda não configurado. Preencha firebase-config.local.json e rode " +
-    "npm run config:firebase (veja SETUP.md)."
+    "npm run config:firebase (veja docs/guias/SETUP.md)."
   );
 }
