@@ -36,6 +36,7 @@ Portal onde cada colaborador acompanha o Fundo Shinatal e a própria cota, e ond
 - [Qualidade](#qualidade)
 - [Papéis de usuário](#papéis-de-usuário)
 - [Segurança](#segurança)
+- [Autor](#autor)
 - [Documentação](#documentação)
 
 ---
@@ -173,6 +174,25 @@ cd backend/tests/a11y && npm install && npm test
 
 Nenhuma credencial, senha ou dado pessoal real fica no repositório. Leia a **[política de segurança](SECURITY.md)** antes de contribuir: ela lista o que nunca versionar e como reportar uma vulnerabilidade.
 
+## Autor
+
+<table>
+<tr>
+<td align="center" width="160">
+<a href="https://github.com/Provadelli"><img src="https://github.com/Provadelli.png" width="96" alt="Pedro Provadelli" /></a><br/>
+<b>Pedro Provadelli</b><br/>
+<sub><a href="https://github.com/Provadelli">@Provadelli</a></sub>
+</td>
+<td>
+
+**Concepção, arquitetura e desenvolvimento.**
+
+Responsável pelo desenho do sistema, pelo motor de cálculo do Fundo Shinatal, pelas regras de segurança do Firestore, pela página inicial e pelo portal. Créditos completos em [AUTHORS.md](AUTHORS.md).
+
+</td>
+</tr>
+</table>
+
 ## Documentação
 
 | Documento | Conteúdo |
@@ -187,5 +207,6 @@ Nenhuma credencial, senha ou dado pessoal real fica no repositório. Leia a **[p
 ---
 
 <div align="center">
+<sub>Concebido, arquitetado e desenvolvido por <a href="https://github.com/Provadelli">Pedro Provadelli</a></sub><br/>
 <sub>© 2026 Shine Rio Group · Software de uso interno · Feito com cuidado no Rio de Janeiro</sub>
 </div>
