@@ -4,7 +4,7 @@
 //
 // Dois cabeçalhos, uma fonte cada (scripts/partials/):
 //   - cabecalho-publico.html: páginas abertas (login, cadastro, termos...). Mesmo desenho do
-//     cabeçalho da home: logo, links em mono e os botões vazados "Entrar" e "Cadastro".
+//     cabeçalho da home: logo, links em mono e os botões pílula "Entrar" (vidro) e "Cadastro" (sólido).
 //   - cabecalho-sistema.html: páginas logadas. Traz TODOS os itens de todos os papéis, marcados
 //     com data-papeis; js/cabecalho-sistema.js remove o que o papel de quem entrou não usa. Assim
 //     nenhum item "some" de uma página para outra: o cabeçalho é literalmente o mesmo em todas.

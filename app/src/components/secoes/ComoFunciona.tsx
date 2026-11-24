@@ -46,7 +46,7 @@ export function ComoFunciona() {
         <span aria-hidden="true" className="grade-pontos" />
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
           <CabecalhoSecao numero="03" titulo="Como funciona o programa" />
-          <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+          <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch gap-5 lg:gap-6">
             {ETAPAS.map((etapa, i) => (
               <CardInfo key={etapa.texto} numero={numero(i)} icone={etapa.icone}>
                 {etapa.texto}
@@ -60,7 +60,7 @@ export function ComoFunciona() {
       <section id="nossos-valores" className="secao-neve py-16 md:py-24 scroll-mt-24">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <CabecalhoSecao numero="04" titulo="Nossos valores" />
-          <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+          <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="grid grid-cols-1 md:grid-cols-2 items-stretch gap-5 lg:gap-6">
             {VALORES.map((valor, i) => (
               <CardInfo key={valor.titulo} numero={numero(i)} icone={valor.icone} titulo={valor.titulo}>
                 {valor.texto}

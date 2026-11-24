@@ -53,7 +53,7 @@ function renderToggle() {
         <p class="registro-titulo flex items-center gap-2"><span class="badge ${ativa ? "badge-sucesso" : "badge-neutro"}">${ativa ? "Ativada" : "Desativada"}</span>Avaliação de conduta</p>
         <p class="registro-detalhe">Só Admin e Presidente podem ${ativa ? "desativar" : "ativar"} esta função para todo mundo.</p>
       </div>
-      <button type="button" id="btn-toggle-conduta" class="btn-contorno ${ativa ? "btn-contorno--vinho" : "btn-contorno--verde"} btn-contorno--compacto">${ativa ? "Desativar" : "Ativar"}</button>
+      <button type="button" id="btn-toggle-conduta" class="btn-pilula ${ativa ? "btn-pilula--solido" : "btn-pilula--vidro"} btn-pilula--compacto">${ativa ? "Desativar" : "Ativar"}</button>
     </div>`;
   document.getElementById("btn-toggle-conduta").addEventListener("click", async (e) => {
     e.currentTarget.disabled = true;

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { m as motion } from "framer-motion";
 import { ArrowDown, Pause, PiggyBank, Play, Users } from "lucide-react";
 import { firebaseConfig, FIRESTORE_REST } from "@legado/firebase-config.js";
-import { BotaoContorno } from "@/components/ui/botao-contorno";
+import { BotaoPilula } from "@/components/ui/botao-pilula";
 import { cascata, surgirTopo as surgir, EASE_BRAND } from "@/lib/movimento";
 import { TITULO_HERO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";
 import { cn } from "@/lib/utils";
@@ -228,10 +228,10 @@ export function Hero() {
             </p>
           </motion.div>
 
-          <motion.div variants={surgir} className="mt-9 flex flex-col items-start gap-5">
-            <div className="flex flex-wrap gap-3">
-              <BotaoContorno href="/login" tom="vinho" seta>Fazer login</BotaoContorno>
-              <BotaoContorno href="/cadastro" tom="verde">Criar cadastro</BotaoContorno>
+          <motion.div variants={surgir} className="mt-9 flex w-full flex-col items-start gap-4 sm:w-auto">
+            <div className="flex w-full gap-3 sm:w-auto">
+              <BotaoPilula href="/login" estilo="solido" seta className="flex-1 sm:flex-none sm:min-w-[10.5rem]">Fazer login</BotaoPilula>
+              <BotaoPilula href="/cadastro" estilo="vidro" className="flex-1 sm:flex-none sm:min-w-[10.5rem]">Criar cadastro</BotaoPilula>
             </div>
             <a href="#como-funciona" className="link-claro">
               Como funciona o Shinatal

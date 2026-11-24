@@ -1,6 +1,6 @@
 // m (não motion): com LazyMotion no App, o motor de animação carrega à parte, fora do pacote inicial.
 import { m as motion } from "framer-motion";
-import { BotaoContorno } from "@/components/ui/botao-contorno";
+import { BotaoPilula } from "@/components/ui/botao-pilula";
 import { EASE_BRAND } from "@/lib/movimento";
 
 const LINKS = [
@@ -40,8 +40,8 @@ export function Cabecalho() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
-            <BotaoContorno href="/login" tom="verde" tamanho="compacto">Login</BotaoContorno>
-            <BotaoContorno href="/cadastro" tom="vinho" tamanho="compacto" seta>Cadastro</BotaoContorno>
+            <BotaoPilula href="/login" estilo="vidro" tamanho="compacto">Login</BotaoPilula>
+            <BotaoPilula href="/cadastro" estilo="solido" tamanho="compacto" seta>Cadastro</BotaoPilula>
           </div>
         </div>
       </motion.nav>
@@ -57,8 +57,8 @@ export function Cabecalho() {
 
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="header-acesso">
-              <BotaoContorno href="/login" tom="verde" tamanho="compacto">Entrar</BotaoContorno>
-              <BotaoContorno href="/cadastro" tom="vinho" tamanho="compacto" seta>Cadastro</BotaoContorno>
+              <BotaoPilula href="/login" estilo="vidro" tamanho="compacto">Entrar</BotaoPilula>
+              <BotaoPilula href="/cadastro" estilo="solido" tamanho="compacto" seta>Cadastro</BotaoPilula>
             </span>
             <button type="button" data-menu-alternar aria-expanded="false" aria-controls="menu-celular" className="btn-fantasma !border-0 !py-1.5 !px-2.5 text-sm">
               Menu

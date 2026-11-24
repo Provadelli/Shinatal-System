@@ -22,21 +22,22 @@ export function CardInfo({ numero, icone: Icone, titulo, children, className }: 
   return (
     <motion.article
       variants={surgir}
-      whileHover={{ y: -6 }}
-      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      whileHover={{ y: -4 }}
+      // Spring criticamente amortecida (sem bounce): hover é passivo, não há gesto com momento.
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
       className={cn(
-        "group relative flex h-full flex-col gap-8 overflow-hidden rounded-[0.875rem] border border-[#E4E1D8] bg-white p-6 sm:p-7",
-        "shadow-[0_1px_2px_rgba(20,22,20,0.04),0_6px_18px_rgba(20,22,20,0.04)]",
-        "transition-[border-color,box-shadow] duration-500 ease-brand",
-        "hover:border-[#C9A048] hover:shadow-[0_2px_6px_rgba(20,22,20,0.05),0_26px_48px_-22px_rgba(122,92,34,0.45)]",
+        "group relative flex h-full flex-col gap-10 overflow-hidden rounded-2xl border border-[#E4E1D8] bg-white p-7 lg:p-8",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_2px_rgba(20,22,20,0.04),0_8px_24px_-12px_rgba(20,22,20,0.08)]",
+        "transition-[border-color,box-shadow] duration-300 ease-brand",
+        "hover:border-[#C9A048]/60 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_2px_6px_rgba(20,22,20,0.05),0_24px_48px_-24px_rgba(122,92,34,0.4)]",
         className
       )}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <span aria-hidden="true" className="font-mono text-xs font-medium tracking-[0.18em] text-[#1E5B43]">
           {numero}
         </span>
-        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#E4E1D8] text-[#1E5B43] transition-colors duration-500 ease-brand group-hover:border-transparent group-hover:text-[#101412]">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E4E1D8] text-[#1E5B43] transition-colors duration-500 ease-brand group-hover:border-transparent group-hover:text-[#101412]">
           <span
             aria-hidden="true"
             className="absolute inset-0 scale-0 rounded-full bg-gradient-to-br from-[#FBE7B0] via-[#E9C77C] to-[#C9A048] transition-transform duration-500 ease-brand group-hover:scale-100"
@@ -49,13 +50,14 @@ export function CardInfo({ numero, icone: Icone, titulo, children, className }: 
         </span>
       </div>
 
-      <div className="mt-auto">
+      {/* Texto logo abaixo do cabeçalho do card: começa na mesma linha em todos os cards da grade. */}
+      <div>
         {titulo && (
-          <h3 className="mb-2.5 font-display text-[1.375rem] font-semibold leading-snug tracking-[-0.02em] text-[#141614]">
+          <h3 className="mb-2.5 font-display text-[1.375rem] font-semibold leading-[1.25] tracking-[-0.022em] text-[#141614]">
             {titulo}
           </h3>
         )}
-        <p className={cn("font-body", titulo ? "text-[1.0625rem] leading-[1.65] text-[#5E615C]" : "text-[1.125rem] leading-[1.6] text-[#141614]")}>
+        <p className={cn("font-body", titulo ? "text-[1.0625rem] leading-[1.6] text-[#5E615C]" : "text-[1.125rem] leading-[1.6] text-[#141614]")}>
           {children}
         </p>
       </div>

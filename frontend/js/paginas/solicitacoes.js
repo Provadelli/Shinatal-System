@@ -95,8 +95,8 @@ onSnapshot(qPendentes, debounce((snap) => {
         <div class="w-full">${detalhes(s)}</div>
         <p class="registro-detalhe">Pedido por ${escaparHTML(s.solicitadoPorNome) || "gestão"}</p>
         <div class="w-full flex flex-col sm:flex-row gap-2 mt-1">
-          <button type="button" data-aceitar="${d.id}" class="btn-contorno btn-contorno--verde btn-contorno--compacto sm:flex-1">Aceitar</button>
-          <button type="button" data-rejeitar="${d.id}" class="btn-contorno btn-contorno--vinho btn-contorno--compacto sm:flex-1">Rejeitar</button>
+          <button type="button" data-aceitar="${d.id}" class="btn-pilula btn-pilula--vidro btn-pilula--compacto sm:flex-1">Aceitar</button>
+          <button type="button" data-rejeitar="${d.id}" class="btn-pilula btn-pilula--solido btn-pilula--compacto sm:flex-1">Rejeitar</button>
         </div>
       </li>`;
   }).join("");
