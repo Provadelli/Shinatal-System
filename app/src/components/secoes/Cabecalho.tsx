@@ -22,7 +22,7 @@ const entrada = {
 export function Cabecalho() {
   return (
     <>
-      <motion.nav {...entrada} aria-label="Principal" className="header-flutuante header-home header-transparente hidden md:flex">
+      <motion.nav {...entrada} aria-label="Principal" className="header-flutuante header-home header-transparente hidden lg:flex">
         <div className="w-full max-w-container-max mx-auto px-margin-desktop min-h-14 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-2.5 shrink-0">
             <span className="flex flex-col items-start leading-none gap-1">
@@ -46,7 +46,7 @@ export function Cabecalho() {
         </div>
       </motion.nav>
 
-      <motion.header {...entrada} className="header-flutuante header-home header-transparente md:hidden">
+      <motion.header {...entrada} className="header-flutuante header-home header-transparente lg:hidden">
         <div className="max-w-container-max mx-auto px-margin-mobile min-h-12 flex items-center justify-between gap-3">
           <a href="/" className="flex items-center gap-2.5 shrink-0">
             <span className="flex flex-col items-start leading-none gap-1">

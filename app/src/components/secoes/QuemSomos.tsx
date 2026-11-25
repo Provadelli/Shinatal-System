@@ -2,7 +2,7 @@
 import { m as motion } from "framer-motion";
 import { Rotulo } from "@/components/ui/rotulo";
 import { aoEntrarNaTela, cascata, surgir } from "@/lib/movimento";
-import { TITULO_SECAO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";
+import { TITULO_SECAO, FRASE_DESTAQUE, TEXTO_CORRIDO } from "@/lib/tipografia";
 import { cn } from "@/lib/utils";
 
 export function QuemSomos() {
@@ -15,11 +15,11 @@ export function QuemSomos() {
         variants={cascata(0.12)}
         className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid md:grid-cols-2 gap-12 md:gap-16 items-center"
       >
-        <motion.figure variants={surgir} className="order-2 md:order-1">
+        <motion.figure variants={surgir} className="quem-somos-foto group order-2 md:order-1">
           <div className="relative">
-            {/* Moldura dourada deslocada (decorativa) */}
-            <span aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-lg border border-festive-gold/60" />
-            <div className="relative rounded-lg overflow-hidden foto-quem-somos shadow-[0_18px_40px_-18px_rgba(35,32,27,0.35)]">
+            {/* Moldura dourada deslocada (decorativa): se afasta da foto ao entrar e no hover. */}
+            <span aria-hidden="true" className="quem-somos-moldura absolute inset-0 rounded-2xl border border-festive-gold/60" />
+            <div className="relative rounded-2xl overflow-hidden foto-quem-somos shadow-[0_30px_60px_-34px_rgba(35,32,27,0.45)]">
               <img
                 src="/assets/foto1-800.webp"
                 srcSet="/assets/foto1-400.webp 400w, /assets/foto1-800.webp 800w, /assets/foto1-1200.webp 960w"
@@ -27,12 +27,12 @@ export function QuemSomos() {
                 width={960}
                 height={1280}
                 alt="Celebração do Shinatal"
-                className="w-full h-auto object-cover aspect-[4/3]"
+                className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-[1400ms] ease-brand group-hover:scale-[1.035]"
                 loading="lazy"
               />
             </div>
           </div>
-          <figcaption className="font-body text-label-sm text-outline mt-6 text-center">
+          <figcaption className="font-serif italic text-base text-[#5E615C] mt-7 text-center">
             O espírito de celebração e gratidão que move o Shinatal.
           </figcaption>
         </motion.figure>
@@ -44,7 +44,7 @@ export function QuemSomos() {
           <motion.h2 variants={surgir} className={cn(TITULO_SECAO, "mb-7 text-on-surface")}>
             Quem somos
           </motion.h2>
-          <motion.p variants={surgir} className={cn(TEXTO_ABERTURA, "mb-6 text-on-surface")}>
+          <motion.p variants={surgir} className={cn(FRASE_DESTAQUE, "mb-7 text-on-surface")}>
             A Shine Rio nasceu do compromisso de tratar cada colaborador como parte essencial de uma mesma equipe.
             Ao longo do nosso caminho, aprendemos que reconhecimento e cuidado constroem histórias, e é esse espírito
             que carregamos em cada contrato, em cada dia de trabalho e em cada conquista.

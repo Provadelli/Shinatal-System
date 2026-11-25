@@ -44,8 +44,9 @@ const lista = [...icones].sort(); // o Google Fonts exige ordem alfabética
 /* ---------- 2. Baixa as fontes do Google Fonts ---------- */
 // User-Agent de navegador atual: sem ele o Google devolve TTF em vez de woff2.
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
-// Space Grotesk (títulos e números), Inter (texto) e JetBrains Mono (rótulos técnicos).
-const URL_TEXTO = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap";
+// Space Grotesk (títulos e números), Inter (texto), JetBrains Mono (rótulos técnicos) e
+// Fraunces (frase principal do hero; normal e itálico, só o peso 400).
+const URL_TEXTO = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400&display=swap";
 const URL_ICONES = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=${lista.join(",")}&display=block`;
 
 async function baixarTexto(url) {

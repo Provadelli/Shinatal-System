@@ -29,6 +29,8 @@ const hoje = new Date();
 const valores = {
   ANO: String(hoje.getFullYear()),
   VERSAO,
+  // Nos rodapés aparece só a versão principal ("v3.0" vira "V3"), sem a data de atualização.
+  VERSAO_CURTA: VERSAO.replace(/^v(\d+).*$/, "V$1"),
   ATUALIZADO: hoje.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
 };
 

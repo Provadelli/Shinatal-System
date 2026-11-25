@@ -365,6 +365,64 @@ h1, h2, h3, .font-display {
   object-fit: cover;
 }
 .faixa-fotos-item:hover { transform: scale(1.02); }
+/* Foto da faixa: aro creme fino que aquece para o dourado e um zoom lento da imagem no hover. */
+.faixa-fotos-item img { transition: transform 1.2s cubic-bezier(0.16, 0.84, 0.32, 1); }
+.faixa-fotos-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(232, 217, 174, 0.14);
+  transition: box-shadow 0.8s ease;
+  pointer-events: none;
+}
+.faixa-fotos-item:hover img { transform: scale(1.05); }
+.faixa-fotos-item:hover::after { box-shadow: inset 0 0 0 1px rgba(232, 217, 174, 0.55); }
+
+/* ---------- Refinos das seções da página inicial ----------
+   Movimento suave e só de GPU. Presos à rolagem com animation-timeline: view() onde o navegador
+   suporta; sem suporte (ou com "reduzir movimento") tudo fica no estado final, parado. */
+/* Quem somos: a moldura dourada se afasta da foto ao entrar e um pouco mais no hover. */
+.quem-somos-moldura { translate: 12px 12px; transition: translate 0.9s cubic-bezier(0.16, 0.84, 0.32, 1); }
+.quem-somos-foto:hover .quem-somos-moldura { translate: 18px 18px; }
+/* Como funciona: fio dourado na altura dos números, visível nos vãos entre os cards. */
+.etapas-fio { display: none; }
+@media (min-width: 1024px) {
+  .etapas-fio {
+    display: block;
+    position: absolute;
+    left: 2rem;
+    right: 2rem;
+    top: calc(2rem + 1.375rem);
+    z-index: 0;
+    height: 1px;
+    background: linear-gradient(90deg, #C9A048, #F0CF7A 50%, #C9A048);
+    opacity: 0.8;
+    transform-origin: left;
+  }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .quem-somos-moldura {
+      animation: moldura-afasta linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 45%;
+    }
+    .etapas-fio {
+      animation: fio-desenha linear both;
+      animation-timeline: view();
+      animation-range: entry 30% cover 40%;
+    }
+    .rotulo-fio {
+      transform-origin: left;
+      animation: fio-desenha linear both;
+      animation-timeline: view();
+      animation-range: entry 30% entry 90%;
+    }
+  }
+}
+@keyframes moldura-afasta { from { transform: translate(-12px, -12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fio-desenha { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .faixa-fotos-sobre:hover .faixa-fotos-pista {
   animation-play-state: paused;
 }
@@ -383,9 +441,10 @@ h1, h2, h3, .font-display {
   .faixa-fotos-sobre { overflow-x: auto; }
 }
 
-/* Celular: sem o efeito "tela subindo" (hero sticky + seção cobrindo). A página rola normal,
-   e o card com o valor do Fundo Shinatal fica visível em vez de ser coberto. */
-@media (max-width: 767px) {
+/* Celular, tablet (hero numa coluna só até 1024 px) e telas muito baixas: sem o efeito "tela
+   subindo" (hero sticky + seção cobrindo). A página rola normal, e o card com o valor do Fundo
+   Shinatal fica visível em vez de ser coberto. */
+@media (max-width: 1023px), (max-height: 640px) {
   /* "main" na frente: esta regra vem antes da base (.secao-hero-video, logo abaixo) no arquivo. */
   main .secao-hero-video { position: relative; }
 }
@@ -409,7 +468,12 @@ h1, h2, h3, .font-display {
   top: 0;
   isolation: isolate;
   overflow: hidden;
-  min-height: calc(100dvh - var(--altura-header, 3.5rem));
+  /* O cabeçalho é fixo e fica POR CIMA do hero (não ocupa espaço acima dele): o hero precisa
+     ocupar a tela inteira, senão uma faixa da seção seguinte aparecia no pé da primeira tela.
+     svh (sem contar a barra do navegador que aparece/some) e não dvh, para o hero não mudar de
+     altura ao rolar no celular; o -1px fecha o sentinela de 1px que vem logo antes do hero. */
+  min-height: calc(100vh - 1px);
+  min-height: calc(100svh - 1px);
 }
 /* Celular em pé: pôster vertical (recorte do miolo, bem mais leve) — casa com hero-retrato-v3.mp4. */
 @media (max-aspect-ratio: 1/1) {
@@ -443,44 +507,43 @@ h1, h2, h3, .font-display {
    classe é reaproveitada em outros lugares que precisam continuar opacos: card de
    login, foto de "Quem somos", cards de "Como funciona"/"Valores"). O blur soma com
    o overlay escurecido do hero (acima) pra manter o texto legível. */
-/* Vidro líquido (no estilo da Apple), bem transparente: véu branco muito leve sobre o vídeo, com
-   desfoque curto e brilho leve, para o vídeo aparecer nítido e clareado por trás;
-   reflexo diagonal na superfície; aro de luz em degradê na borda (::before, mais forte no canto
-   superior esquerdo e no inferior direito); luz interna no alto e sombra macia por fora.
-   No celular o desfoque é menor: o card fica sobre o vídeo e o vidro é redesenhado a cada quadro. */
+/* Vidro verde-noite: o card escurece levemente o vídeo num verde da marca (em vez do véu branco),
+   com desfoque curto, borda creme bem fina e um fio dourado discreto no alto (::before), que se
+   desenha do centro para as pontas ao abrir. No celular o desfoque é menor (custo por quadro). */
 #card-fundo {
-  background:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0.03) 62%, rgba(255, 255, 255, 0.1) 100%);
-  border-color: transparent;
-  -webkit-backdrop-filter: blur(6px) saturate(160%) brightness(1.25);
-  backdrop-filter: blur(6px) saturate(160%) brightness(1.25);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.75),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.25),
-    inset 0 28px 40px -30px rgba(255, 255, 255, 0.55),
-    0 24px 60px -22px rgba(3, 23, 13, 0.45);
+  background: linear-gradient(160deg, rgba(14, 59, 46, 0.62) 0%, rgba(3, 23, 13, 0.8) 100%);
+  border: 1px solid rgba(232, 217, 174, 0.16);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
 }
 #card-fundo::before {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 12%;
+  right: 12%;
   z-index: 1;
-  border-radius: inherit;
-  padding: 1.25px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.25) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.25) 75%, rgba(255, 255, 255, 0.8) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9A048 30%, #F0CF7A 50%, #C9A048 70%, transparent);
+  animation: fio-centro 1.4s cubic-bezier(0.16, 0.84, 0.32, 1) 1s both;
   pointer-events: none;
 }
+@keyframes fio-centro { from { transform: scaleX(0); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (max-width: 767px), (pointer: coarse) {
   #card-fundo {
-    -webkit-backdrop-filter: blur(5px) saturate(150%) brightness(1.2);
-    backdrop-filter: blur(5px) saturate(150%) brightness(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    backdrop-filter: blur(8px) saturate(140%);
   }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  #card-fundo { background: rgba(60, 74, 68, 0.78); }
+  #card-fundo { background: rgba(10, 36, 25, 0.92); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  #card-fundo { background: #0A2419; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #card-fundo::before { animation: none; }
 }
 /* Textos do card: branco com sombra escura bem curta, legível em qualquer quadro do vídeo. */
 #card-fundo #fundo-rotulo-texto,
@@ -598,6 +661,20 @@ html.aparelho-fraco .header-flutuante { -webkit-backdrop-filter: none; backdrop-
   border-bottom: 1px solid rgba(201, 160, 72, 0.35);
   box-shadow: 0 10px 28px -16px rgba(122, 92, 34, 0.4);
 }
+/* Ao rolar, um fio dourado com brilho no centro se desenha do meio para as pontas na base. */
+.header-home::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9A048 30%, #F0CF7A 50%, #C9A048 70%, transparent);
+  transition: transform 1s cubic-bezier(0.16, 0.84, 0.32, 1), opacity 0.6s ease;
+  pointer-events: none;
+}
+.header-flutuante.header-transparente.header-home::after { transform: scaleX(0); opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .header-home::after { transition: none; } }
 .header-home::before {
   content: "";
   position: absolute;
@@ -835,101 +912,311 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
 }
 
 /* ---------- Rodapés (fonte única em scripts/partials/, aplicada por npm run layout) ----------
-   Completo (.rodape): bege, com efeitos dourados (fio em degradê no alto, fios finos dourados entre
-   as faixas, títulos em dourado profundo, sublinhado dourado nos links e ícones que acendem em
-   dourado) — páginas públicas (início, termos, privacidade). Compacto (.rodape-compacto): uma
-   linha neve, no login e nas páginas internas. Textos do completo: 5:1 ou mais sobre o bege. */
+   Completo (.rodape): fechamento escuro em verde-noite, só nas páginas públicas (início, termos,
+   privacidade). Efeitos suaves e só de GPU (transform, opacity, background-position):
+   - aurora dourada que deriva devagar; pontinhos de luz que piscam como pisca-pisca ao longe;
+   - chamada em Fraunces que sobe linha a linha, fio dourado que se desenha, itens em cascata
+     e a assinatura "Shinatal" gigante em contorno, tudo preso à rolagem (animation-timeline:
+     view()). Sem suporte a isso, tudo aparece parado e visível;
+   - hover: sublinhado dourado que corre, seta que surge, ícones que se enchem de dourado.
+   Compacto (.rodape-compacto): uma linha neve no login e nas páginas internas.
+   Contraste do completo sobre #0A2419: creme 13:1, creme 78% 8:1, dourado dos títulos 8,9:1. */
 .rodape,
 .rodape-compacto {
   position: relative;
   z-index: 10;
 }
 .rodape {
+  --rodape-fundo: #0A2419;
+  --rodape-creme: #F3EAD3;
+  --rodape-texto: rgba(243, 234, 211, 0.78);
   overflow: hidden;
   isolation: isolate;
-  color: var(--shinatal-ink-muted);
-  background: #F1EBDD;
+  color: var(--rodape-texto);
+  background: var(--rodape-fundo);
   font-size: 0.9375rem;
   line-height: 1.6;
 }
+/* Emenda com a seção clara de cima: fio dourado com brilho no centro. */
 .rodape::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(201, 160, 72, 0.35) 0%, #C9A048 30%, #F0CF7A 50%, #C9A048 70%, rgba(201, 160, 72, 0.35) 100%);
+  z-index: 2;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 160, 72, 0.6) 25%, #F0CF7A 50%, rgba(201, 160, 72, 0.6) 75%, transparent);
   pointer-events: none;
 }
-/* :where() zera a especificidade: links "crus" herdam a cor do rodapé, sem vencer as cores
-   próprias dos botões que também ficam aqui dentro. */
 :where(.rodape, .rodape-compacto) :where(a) { color: inherit; }
-/* Faixa de chamada: frase em Space Grotesk à esquerda, ações à direita, separada por um fio. */
-.rodape-chamada {
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
-  padding: 4rem 0 2.75rem;
-  border-bottom: 1px solid rgba(201, 160, 72, 0.35);
+
+/* Aurora: duas luzes douradas e uma verde que derivam bem devagar. */
+.rodape-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 55% at 18% 8%, rgba(201, 160, 72, 0.2), transparent 70%),
+    radial-gradient(35% 50% at 82% 30%, rgba(240, 207, 122, 0.1), transparent 70%),
+    radial-gradient(60% 70% at 50% 110%, rgba(30, 91, 67, 0.55), transparent 70%);
+  background-size: 140% 140%;
+  animation: rodape-aurora 26s ease-in-out infinite alternate;
 }
-@media (min-width: 768px) {
-  .rodape-chamada { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 3rem; padding: 5.5rem 0 3.5rem; }
+@keyframes rodape-aurora { from { background-position: 0% 0%; } to { background-position: 100% 60%; } }
+.rodape-grade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(232, 217, 174, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232, 217, 174, 0.04) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent);
+  mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent);
+}
+.rodape-luzes { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.rodape-luzes i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #F0CF7A;
+  box-shadow: 0 0 10px 2px rgba(240, 207, 122, 0.55);
+  opacity: 0.15;
+  animation: rodape-pisca 5s ease-in-out var(--d) infinite;
+}
+@keyframes rodape-pisca { 0%, 100% { opacity: 0.12; transform: scale(0.8); } 50% { opacity: 0.85; transform: scale(1); } }
+
+/* Chamada: frase grande em Fraunces à esquerda, texto e ações à direita. */
+.rodape-chamada {
+  display: grid;
+  gap: 2rem;
+  padding: 4.5rem 0 2.75rem;
+  align-items: end;
+}
+@media (min-width: 900px) {
+  .rodape-chamada { grid-template-columns: 1.3fr 0.7fr; gap: 4rem; padding: 7.5rem 0 3.75rem; }
 }
 .rodape-chamada-titulo {
-  font-family: "Space Grotesk", "Inter", sans-serif;
-  font-weight: 600;
-  font-size: clamp(1.875rem, 1.2rem + 2.4vw, 3rem);
-  line-height: 1.06;
-  letter-spacing: -0.03em;
-  color: var(--shinatal-ink);
-  max-width: 18ch;
-  text-wrap: balance;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(2.25rem, 1.4rem + 3.6vw, 4.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  color: var(--rodape-creme);
 }
-.rodape-chamada-texto { margin-top: 1rem; max-width: 46ch; color: var(--shinatal-ink-muted); }
-.rodape-chamada-acoes { display: flex; flex-wrap: wrap; gap: 0.75rem; flex-shrink: 0; }
+.rodape-chamada-titulo em { font-style: italic; color: #E8D9AE; }
+.rodape-linha { display: block; overflow: hidden; padding-bottom: 0.06em; }
+.rodape-linha > span { display: block; }
+.rodape-chamada-texto { max-width: 38ch; color: var(--rodape-texto); text-wrap: pretty; }
+.rodape-chamada-acoes { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.75rem; }
+.rodape-fio {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, #C9A048, #F0CF7A 40%, rgba(201, 160, 72, 0.15));
+  transform-origin: left;
+}
+
+/* Colunas: marca + três listas. Duas colunas no celular, quatro a partir de 900 px. */
 .rodape-colunas {
   display: grid;
-  gap: 2.25rem;
-  padding: 3rem 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.5rem 1.5rem;
+  padding: 3rem 0 2rem;
 }
-.rodape-coluna-marca { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 1.1rem; }
+.rodape-coluna-marca { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+@media (min-width: 600px) {
+  .rodape-colunas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (min-width: 900px) {
-  .rodape-colunas { grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 3rem; }
+  .rodape-colunas { grid-template-columns: 1.5fr repeat(3, minmax(0, 1fr)); gap: 3.5rem; padding: 4rem 0 2.5rem; }
   .rodape-coluna-marca { grid-column: auto; }
 }
-.rodape-texto { max-width: 30ch; }
+.rodape-logo { height: 2.4rem; width: auto; filter: brightness(0) invert(1) sepia(0.12); }
+.rodape-texto { max-width: 30ch; color: rgba(243, 234, 211, 0.72); }
+.rodape-sociais { display: flex; gap: 0.65rem; }
 .rodape-titulo {
-  font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--shinatal-ouro-texto);
-  margin-bottom: 1rem;
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #D9C08A;
+  margin-bottom: 1.1rem;
 }
-.rodape-lista { display: flex; flex-direction: column; gap: 0.35rem; }
-.rodape-link {
-  display: inline-block;
-  padding: 0.15rem 0;
-  color: var(--shinatal-ink);
-  background-image: linear-gradient(90deg, #C9A048, #F0CF7A);
-  background-repeat: no-repeat;
-  background-position: right bottom;
-  background-size: 0 1px;
-  transition: color var(--transicao), background-size 0.45s cubic-bezier(0.16, 0.84, 0.32, 1);
+.rodape-lista { display: flex; flex-direction: column; gap: 0.55rem; }
+.rodape .rodape-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0;
+  color: rgba(243, 234, 211, 0.85);
+  transition: color 0.5s ease;
 }
-.rodape-link:hover { color: var(--shinatal-ink); background-position: left bottom; background-size: 100% 1px; }
+.rodape .rodape-link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, #C9A048, #F0CF7A);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.6s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.rodape .rodape-link svg {
+  flex-shrink: 0;
+  width: 0.8rem;
+  height: 0.8rem;
+  opacity: 0;
+  transform: translate(-4px, 4px);
+  transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.rodape .rodape-link:hover,
+.rodape .rodape-link:focus-visible { color: var(--rodape-creme); }
+.rodape .rodape-link:hover::before,
+.rodape .rodape-link:focus-visible::before { transform: scaleX(1); transform-origin: left; }
+.rodape .rodape-link:hover svg,
+.rodape .rodape-link:focus-visible svg { opacity: 1; transform: none; }
+
+/* Ícones sociais: vidro escuro com contorno dourado; no hover o dourado sobe e enche o círculo. */
+.footer-icone {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(201, 160, 72, 0.45);
+  color: #E8D9AE;
+  background: rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+  transition: transform 0.6s cubic-bezier(0.16, 0.84, 0.32, 1), border-color 0.6s ease, color 0.5s ease, box-shadow 0.6s ease;
+}
+.footer-icone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #F6E3B2, #C9A048);
+  transform: translateY(101%);
+  transition: transform 0.6s cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+a.footer-icone:hover,
+a.footer-icone:focus-visible {
+  transform: translateY(-2px);
+  color: #0A2419;
+  border-color: transparent;
+  box-shadow: 0 10px 26px -10px rgba(201, 160, 72, 0.75);
+}
+a.footer-icone:hover::before,
+a.footer-icone:focus-visible::before { transform: none; }
+
+/* Assinatura gigante: "Shinatal" em Fraunces itálico, só o contorno dourado, com um brilho lento. */
+.rodape-assinatura {
+  overflow: hidden;
+  padding-top: 0.5rem;
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent);
+  mask-image: linear-gradient(180deg, #000 62%, transparent);
+}
+.rodape-assinatura p {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(4.5rem, 21vw, 19rem);
+  line-height: 0.8;
+  letter-spacing: -0.03em;
+  text-align: center;
+  padding: 0 0.08em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(214, 178, 98, 0.5);
+  background: linear-gradient(100deg, rgba(201, 160, 72, 0.05) 30%, rgba(240, 207, 122, 0.3) 50%, rgba(201, 160, 72, 0.05) 70%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: rodape-assinatura-brilho 9s ease-in-out infinite;
+}
+@keyframes rodape-assinatura-brilho { 0%, 100% { background-position: 110% 0; } 50% { background-position: -10% 0; } }
+
 .rodape-base {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 1.5rem 0 calc(1.75rem + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(201, 160, 72, 0.35);
+  gap: 0.6rem;
+  padding: 1.4rem 0 calc(1.6rem + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(232, 217, 174, 0.14);
   font-size: 0.8125rem;
-  color: var(--shinatal-ink-muted);
+  color: rgba(243, 234, 211, 0.72);
 }
-@media (min-width: 640px) { .rodape-base { flex-direction: row; justify-content: space-between; } }
-.rodape-versao { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+@media (min-width: 900px) { .rodape-base { flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; } }
+.rodape-versao { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.rodape-topo { display: inline-flex; align-items: center; gap: 0.6rem; align-self: flex-start; color: rgba(243, 234, 211, 0.85); transition: color 0.5s ease; }
+.rodape-topo-circulo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(201, 160, 72, 0.45);
+  transition: border-color 0.5s ease, background-color 0.5s ease;
+}
+.rodape-topo svg { width: 0.95rem; height: 0.95rem; transition: transform 0.6s cubic-bezier(0.16, 0.84, 0.32, 1); }
+.rodape-topo:hover { color: var(--rodape-creme); }
+.rodape-topo:hover .rodape-topo-circulo { border-color: #C9A048; background: rgba(201, 160, 72, 0.12); }
+.rodape-topo:hover svg { transform: translateY(-3px); }
+@media (min-width: 900px) { .rodape-topo { align-self: auto; } }
+
+/* Revelações presas à rolagem: só onde o navegador sabe fazer, e só com movimento liberado. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .rodape-linha > span {
+      animation: rodape-linha-sobe linear both;
+      animation-timeline: view();
+      animation-range: entry 20% entry 80%;
+    }
+    .rodape-linha + .rodape-linha > span { animation-range: entry 35% entry 95%; }
+    .rodape-revela,
+    .rodape-lista li {
+      animation: rodape-revela linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+    .rodape-fio {
+      animation: rodape-desenha linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 70%;
+    }
+    .rodape-assinatura {
+      animation: rodape-assinatura-sobe linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+@keyframes rodape-linha-sobe { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes rodape-revela { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes rodape-desenha { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rodape-assinatura-sobe { from { opacity: 0.3; transform: translateY(30%); } to { opacity: 1; transform: none; } }
+
+/* "Pausar animações" (acessibilidade.js) e "reduzir movimento" param a aurora, as luzes e o brilho. */
+html.movimento-pausado :is(.rodape-aurora, .rodape-luzes i, .rodape-assinatura p) { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .rodape-aurora, .rodape-luzes i, .rodape-assinatura p { animation: none; }
+  .rodape-luzes i { opacity: 0.4; }
+}
+@media (forced-colors: active) {
+  .rodape-assinatura p { color: CanvasText; background: none; -webkit-text-stroke: 0; }
+  .rodape-luzes, .rodape-aurora { display: none; }
+}
+
 /* Compacto: uma linha neve (empilha no celular), fio dourado no topo. */
 .rodape-compacto {
   color: var(--shinatal-ink-muted);
@@ -950,26 +1237,18 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
 @media (min-width: 768px) {
   .rodape-compacto-linha { flex-direction: row; justify-content: space-between; text-align: left; }
 }
-/* Ícones sociais: contorno dourado fino; no hover se enchem de dourado e brilham. */
-.footer-icone {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(201, 160, 72, 0.6);
-  color: var(--shinatal-ouro-texto);
-  background: rgba(255, 255, 255, 0.55);
-  flex-shrink: 0;
-  transition: background-color var(--transicao), border-color var(--transicao), color var(--transicao), box-shadow 0.35s ease;
+.rodape-compacto .rodape-link {
+  display: inline-block;
+  padding: 0.15rem 0;
+  color: var(--shinatal-ink);
+  background-image: linear-gradient(90deg, #C9A048, #F0CF7A);
+  background-repeat: no-repeat;
+  background-position: right bottom;
+  background-size: 0 1px;
+  transition: background-size 0.45s cubic-bezier(0.16, 0.84, 0.32, 1);
 }
-a.footer-icone:hover {
-  background: linear-gradient(135deg, #F6E3B2, #C9A048);
-  border-color: #C9A048;
-  color: var(--shinatal-grafite);
-  box-shadow: 0 0 22px -4px rgba(201, 160, 72, 0.6);
-}
+.rodape-compacto .rodape-link:hover { background-position: left bottom; background-size: 100% 1px; }
+.rodape-compacto .rodape-versao { font-family: inherit; }
 .footer-logo-invertido { filter: brightness(0) invert(96%) sepia(8%) saturate(300%) hue-rotate(5deg); }
 
 /* Logo no vinho da marca (--shinatal-red). */
@@ -982,21 +1261,64 @@ a.footer-icone:hover {
 .header-flutuante.header-transparente .logo-vermelho {
   filter: brightness(0) invert(1) sepia(0.12) drop-shadow(0 2px 12px rgba(3, 23, 13, 0.45));
 }
-/* Moldura do texto do hero: fio dourado que se desenha de cima para baixo e sombra suave p/ leitura. */
-.moldura-texto-hero { position: relative; }
-.moldura-texto-hero::before {
+/* Texto do hero em "ritmo em par": frase principal em Fraunces creme, uma linha de apoio em Inter
+   e duas frases curtas em Fraunces itálico, separadas por um fio dourado curto que se desenha. */
+.texto-hero p { text-shadow: 0 1px 10px rgba(3, 23, 13, 0.5); }
+.texto-hero-lead {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 1.95rem);
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+  color: #F3EAD3;
+  text-wrap: balance;
+}
+.texto-hero-apoio { margin-top: 1rem; max-width: 38ch; color: rgba(255, 255, 255, 0.85); text-wrap: pretty; }
+.texto-hero-par { position: relative; display: grid; gap: 0.15rem; margin-top: 1.1rem; padding-top: 1.1rem; }
+.texto-hero-par::before {
   content: "";
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(180deg, var(--shinatal-gold), rgba(201, 160, 72, 0.15));
-  transform-origin: top;
-  animation: fio-vertical 1s cubic-bezier(0.16, 0.84, 0.32, 1) 0.9s both;
+  left: 0;
+  width: 3rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--shinatal-gold), transparent);
+  transform-origin: left;
+  animation: fio-horizontal 1.2s cubic-bezier(0.16, 0.84, 0.32, 1) 1.2s both;
 }
-.moldura-texto-hero p { text-shadow: 0 1px 10px rgba(3, 23, 13, 0.5); }
-@keyframes fio-vertical { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.texto-hero-par p {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1.0625rem, 0.95rem + 0.4vw, 1.1875rem);
+  line-height: 1.4;
+  color: #E8D9AE;
+}
+@keyframes fio-horizontal { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* Hero no computador (2 colunas, a partir de 1024 px): tamanhos e espaços fluidos, presos à largura
+   E à altura da janela (min(vw, vh)). Assim o hero inteiro, até o link "Como funciona", cabe na
+   primeira tela em qualquer notebook (1280×720, 1366×768 com a barra do navegador, 1440×900...) e
+   cresce até o tamanho cheio em telas grandes, sem saltos entre faixas. A estrutura não muda. */
+/* Celular e tablet (uma coluna): o respiro do alto também parte da altura do cabeçalho fixo. */
+@media (max-width: 1023px) {
+  .secao-hero-video .hero-video-conteudo { padding-top: calc(var(--altura-header, 3.5rem) + 1.75rem); padding-bottom: 3rem; }
+}
+@media (min-width: 1024px) {
+  /* O cabeçalho é fixo por cima do hero: o respiro do alto parte da altura dele. */
+  .secao-hero-video .hero-video-conteudo {
+    padding-top: calc(var(--altura-header, 3.5rem) + clamp(1rem, 5vh, 3.5rem));
+    padding-bottom: clamp(1.5rem, 6vh, 4.5rem);
+  }
+  .secao-hero-video h1 { margin-top: clamp(0.6rem, 2.2vh, 1.5rem); font-size: clamp(2.5rem, min(4.6vw, 7vh), 4rem); }
+  .secao-hero-video h1 img { height: clamp(2.75rem, min(5vw, 8vh), 4.5rem); margin-top: clamp(0.3rem, 1.2vh, 0.75rem); }
+  .texto-hero { margin-top: clamp(0.9rem, 3.2vh, 2rem); }
+  .texto-hero-lead { font-size: clamp(1.35rem, min(2.2vw, 3.6vh), 1.95rem); }
+  .texto-hero-apoio { margin-top: clamp(0.5rem, 1.6vh, 1rem); font-size: clamp(0.975rem, 2.4vh, 1.125rem); }
+  .texto-hero-par { margin-top: clamp(0.6rem, 1.8vh, 1.1rem); padding-top: clamp(0.6rem, 1.8vh, 1.1rem); }
+  .texto-hero-par p { font-size: clamp(0.975rem, 2.4vh, 1.1875rem); }
+  .texto-hero + div { margin-top: clamp(1.1rem, 4vh, 2.25rem); }
+  #card-fundo { min-height: clamp(250px, 44vh, 320px); padding: clamp(1.75rem, 4.5vh, 2.5rem); }
+  #card-fundo .text-gradiente-valor { font-size: clamp(2.25rem, min(3.6vw, 7vh), 3rem); }
+}
 /* Frase acima do título: cada palavra sobe de uma máscara e um brilho creme passa uma única vez. */
 .frase-abertura {
   font-size: 0.95rem;
@@ -1017,7 +1339,7 @@ a.footer-icone:hover {
 @keyframes palavra-sobe { from { transform: translateY(115%); opacity: 0.01; } to { transform: none; opacity: 1; } }
 @keyframes varre-frase { 0% { background-position: 100% 0; } 45%, 100% { background-position: 0% 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .moldura-texto-hero::before { animation: none; }
+  .texto-hero-par::before { animation: none; }
   .frase-abertura, .frase-abertura .w > i { animation: none; }
 }
 @media (forced-colors: active) {
@@ -1249,12 +1571,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
   --brilho: rgba(14, 59, 46, 0.45);
 }
 /* Fundo escuro: texto branco; o contorno continua vinho e verde-escuro. */
-:is(.secao-hero-video, .header-flutuante.header-transparente) .btn-contorno--vinho {
+:is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-contorno--vinho {
   --cor: #fff;
   --cor-borda: var(--shinatal-red);
   --brilho: rgba(217, 138, 151, 0.45);
 }
-:is(.secao-hero-video, .header-flutuante.header-transparente) .btn-contorno--verde {
+:is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-contorno--verde {
   --cor: #fff;
   --cor-borda: var(--shinatal-verde-escuro);
   --brilho: rgba(127, 192, 164, 0.4);
@@ -1404,7 +1726,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
 }
 
 /* Sobre fundo escuro */
-:is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula--vidro {
+:is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula--vidro {
   color: #fff;
   background-color: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.4);
@@ -1416,7 +1738,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
   text-shadow: 0 1px 2px rgba(3, 23, 13, 0.35);
 }
 @media (hover: hover) {
-  :is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula--vidro:hover {
+  :is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula--vidro:hover {
     background-color: rgba(255, 255, 255, 0.24);
     border-color: rgba(232, 217, 174, 0.75);
     transform: translateY(-2px);
@@ -1426,17 +1748,17 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
       0 0 0 4px rgba(232, 217, 174, 0.08);
   }
 }
-:is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula:focus-visible { outline-color: #fff; }
+:is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula:focus-visible { outline-color: #fff; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula--vidro { background-color: rgba(16, 20, 18, 0.55); }
+  :is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula--vidro { background-color: rgba(16, 20, 18, 0.55); }
 }
-html.aparelho-fraco :is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula--vidro { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(16, 20, 18, 0.55); }
+html.aparelho-fraco :is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula--vidro { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(16, 20, 18, 0.55); }
 @media (prefers-reduced-transparency: reduce) {
   /* Sem transparência real: véu grafite leve + aro claro, ainda lido como "vidro". */
-  :is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula--vidro { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(16, 24, 20, 0.42); border-color: rgba(255, 255, 255, 0.5); }
+  :is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula--vidro { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(16, 24, 20, 0.42); border-color: rgba(255, 255, 255, 0.5); }
 }
 @media (prefers-contrast: more) {
-  :is(.secao-hero-video, .header-flutuante.header-transparente) .btn-pilula--vidro { background-color: rgba(16, 20, 18, 0.85); border-color: #fff; }
+  :is(.secao-hero-video, .header-flutuante.header-transparente, .rodape) .btn-pilula--vidro { background-color: rgba(16, 20, 18, 0.85); border-color: #fff; }
 }
 
 /* Formulários e listas: largura total, estado ocupado (spinner do envio) e desabilitado. */
@@ -1470,21 +1792,62 @@ html.aparelho-fraco :is(.secao-hero-video, .header-flutuante.header-transparente
 /* Ícone do botão "Pausar animações": acessibilidade.js troca o aria-pressed. */
 .botao-movimento[aria-pressed="true"] .icone-pausar,
 .botao-movimento:not([aria-pressed="true"]) .icone-retomar { display: none; }
-/* Luz que segue o cursor no card do Fundo (posição posta pelo Hero.tsx em --mx/--my). */
-#card-fundo { --mx: 50%; --my: 30%; }
+/* Hover do card do Fundo (só com mouse; tudo em transform, opacity e background-position):
+   - o card sobe 4 px e ganha um halo dourado macio; a borda creme aquece para o dourado;
+   - uma luz dourada segue o cursor (--mx/--my, postos pelo Hero.tsx) e um aro de luz acompanha
+     o cursor pela borda (máscara no ::after);
+   - o fio dourado do alto se estende até as pontas;
+   - um brilho passa pelo valor e o gorro balança de leve.
+   As propriedades scale/rotate/translate somam com o transform das animações de entrada. */
+#card-fundo { --mx: 50%; --my: 30%; transition: border-color 0.7s ease, box-shadow 0.7s ease; }
 #card-fundo::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(420px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.45), transparent 65%);
+  background:
+    radial-gradient(380px circle at var(--mx) var(--my), rgba(240, 207, 122, 0.14), transparent 62%),
+    radial-gradient(160px circle at var(--mx) var(--my), rgba(255, 241, 201, 0.1), transparent 70%);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.6s ease;
   pointer-events: none;
 }
-#card-fundo:hover::after { opacity: 1; }
+.card-fundo-wrap { transition: translate 0.7s cubic-bezier(0.16, 0.84, 0.32, 1); }
+.card-fundo-wrap .card-fundo-aro {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 1rem;
+  padding: 1px;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgba(240, 207, 122, 0.85), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+#card-fundo::before { transition: scale 0.9s cubic-bezier(0.16, 0.84, 0.32, 1); }
+#card-fundo .text-gradiente-valor { background-size: 220% 100%; background-position: 100% 0; transition: background-position 1.4s cubic-bezier(0.45, 0, 0.25, 1), scale 0.7s cubic-bezier(0.16, 0.84, 0.32, 1); }
+#fundo-rotulo svg { transition: rotate 0.7s cubic-bezier(0.16, 0.84, 0.32, 1); }
+.card-gorro { transform-origin: 30% 80%; transition: rotate 0.8s cubic-bezier(0.16, 0.84, 0.32, 1), translate 0.8s cubic-bezier(0.16, 0.84, 0.32, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .card-fundo-wrap:hover { translate: 0 -4px; }
+  .card-fundo-wrap:hover #card-fundo {
+    border-color: rgba(201, 160, 72, 0.42);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 40px 70px -32px rgba(0, 0, 0, 0.7), 0 0 50px -18px rgba(201, 160, 72, 0.45);
+  }
+  .card-fundo-wrap:hover #card-fundo::after,
+  .card-fundo-wrap:hover .card-fundo-aro { opacity: 1; }
+  .card-fundo-wrap:hover #card-fundo::before { scale: 1.32 1; }
+  .card-fundo-wrap:hover #card-fundo .text-gradiente-valor { background-position: 0 0; scale: 1.03; }
+  .card-fundo-wrap:hover #fundo-rotulo svg { rotate: -12deg; }
+  .card-fundo-wrap:hover .card-gorro { rotate: -6deg; translate: 0 -3px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  #card-fundo::after { display: none; }
+  #card-fundo::after, .card-fundo-wrap .card-fundo-aro { display: none; }
+  .card-fundo-wrap, .card-fundo-wrap * { transition: none !important; }
+  .card-fundo-wrap:hover, .card-fundo-wrap:hover * { translate: none !important; rotate: none !important; scale: none !important; }
 }
 /* Link discreto sobre fundo escuro: dourado claro com sublinhado que se desenha no hover. */
 .link-claro {
