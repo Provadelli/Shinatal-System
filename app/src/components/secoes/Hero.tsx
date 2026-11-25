@@ -256,7 +256,7 @@ export function Hero() {
           initial={{ opacity: 0.01, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 1, ease: EASE_BRAND, delay: 0.35 }}
-          className="card-fundo-wrap relative w-full max-w-[30rem] mx-auto"
+          className="card-fundo-wrap relative w-full max-w-[30rem] lg:mx-auto"
         >
           <div ref={cardRef} id="card-fundo" className="glass-card-active rounded-2xl p-8 sm:p-10 relative overflow-hidden w-full min-h-[300px] text-center flex flex-col items-center justify-center">
             <span aria-hidden="true" className="card-fundo-aro" />

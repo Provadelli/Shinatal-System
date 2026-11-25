@@ -1289,32 +1289,30 @@ html.movimento-pausado :is(.rodape-aurora, .rodape-luzes i, .rodape-assinatura p
   color: #E8D9AE;
 }
 @keyframes fio-horizontal { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-/* Notebooks com tela baixa (1280×720, 1366×768, 1536×864 com escala): o hero inteiro, até o link
-   "Como funciona", cabe na primeira tela. Só aperta espaços e tamanhos; a estrutura não muda. */
-@media (min-width: 1024px) and (max-height: 820px) {
-  /* O cabeçalho é fixo por cima do hero: o respiro do alto parte da altura dele. */
-  .secao-hero-video .hero-video-conteudo { padding-top: calc(var(--altura-header, 3.5rem) + 1.75rem); padding-bottom: 2.75rem; }
-  .secao-hero-video h1 { margin-top: 1rem; font-size: 3.35rem; }
-  .secao-hero-video h1 img { height: 3.6rem; margin-top: 0.5rem; }
-  .texto-hero { margin-top: 1.25rem; }
-  .texto-hero-lead { font-size: 1.65rem; }
-  .texto-hero-apoio { margin-top: 0.75rem; }
-  .texto-hero-par { margin-top: 0.85rem; padding-top: 0.85rem; }
-  .texto-hero + div { margin-top: 1.6rem; }
-  #card-fundo { min-height: 280px; }
+/* Hero no computador (2 colunas, a partir de 1024 px): tamanhos e espaços fluidos, presos à largura
+   E à altura da janela (min(vw, vh)). Assim o hero inteiro, até o link "Como funciona", cabe na
+   primeira tela em qualquer notebook (1280×720, 1366×768 com a barra do navegador, 1440×900...) e
+   cresce até o tamanho cheio em telas grandes, sem saltos entre faixas. A estrutura não muda. */
+/* Celular e tablet (uma coluna): o respiro do alto também parte da altura do cabeçalho fixo. */
+@media (max-width: 1023px) {
+  .secao-hero-video .hero-video-conteudo { padding-top: calc(var(--altura-header, 3.5rem) + 1.75rem); padding-bottom: 3rem; }
 }
-/* Notebook 1366×768 com a barra do navegador (área útil ~1366×650) e telas parecidas. */
-@media (min-width: 1024px) and (max-height: 700px) {
-  .secao-hero-video .hero-video-conteudo { padding-top: calc(var(--altura-header, 3.5rem) + 1.25rem); padding-bottom: 1.75rem; row-gap: 2rem; }
-  .secao-hero-video h1 { margin-top: 0.75rem; font-size: 2.75rem; }
-  .secao-hero-video h1 img { height: 3rem; margin-top: 0.35rem; }
-  .texto-hero { margin-top: 1rem; }
-  .texto-hero-lead { font-size: 1.45rem; }
-  .texto-hero-apoio { margin-top: 0.6rem; font-size: 1rem; line-height: 1.6; }
-  .texto-hero-par { margin-top: 0.7rem; padding-top: 0.7rem; }
-  .texto-hero-par p { font-size: 1rem; }
-  .texto-hero + div { margin-top: 1.25rem; }
-  #card-fundo { min-height: 260px; padding: 2rem; }
+@media (min-width: 1024px) {
+  /* O cabeçalho é fixo por cima do hero: o respiro do alto parte da altura dele. */
+  .secao-hero-video .hero-video-conteudo {
+    padding-top: calc(var(--altura-header, 3.5rem) + clamp(1rem, 5vh, 3.5rem));
+    padding-bottom: clamp(1.5rem, 6vh, 4.5rem);
+  }
+  .secao-hero-video h1 { margin-top: clamp(0.6rem, 2.2vh, 1.5rem); font-size: clamp(2.5rem, min(4.6vw, 7vh), 4rem); }
+  .secao-hero-video h1 img { height: clamp(2.75rem, min(5vw, 8vh), 4.5rem); margin-top: clamp(0.3rem, 1.2vh, 0.75rem); }
+  .texto-hero { margin-top: clamp(0.9rem, 3.2vh, 2rem); }
+  .texto-hero-lead { font-size: clamp(1.35rem, min(2.2vw, 3.6vh), 1.95rem); }
+  .texto-hero-apoio { margin-top: clamp(0.5rem, 1.6vh, 1rem); font-size: clamp(0.975rem, 2.4vh, 1.125rem); }
+  .texto-hero-par { margin-top: clamp(0.6rem, 1.8vh, 1.1rem); padding-top: clamp(0.6rem, 1.8vh, 1.1rem); }
+  .texto-hero-par p { font-size: clamp(0.975rem, 2.4vh, 1.1875rem); }
+  .texto-hero + div { margin-top: clamp(1.1rem, 4vh, 2.25rem); }
+  #card-fundo { min-height: clamp(250px, 44vh, 320px); padding: clamp(1.75rem, 4.5vh, 2.5rem); }
+  #card-fundo .text-gradiente-valor { font-size: clamp(2.25rem, min(3.6vw, 7vh), 3rem); }
 }
 /* Frase acima do título: cada palavra sobe de uma máscara e um brilho creme passa uma única vez. */
 .frase-abertura {
