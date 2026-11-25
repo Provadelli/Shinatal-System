@@ -212,7 +212,9 @@ export function Hero() {
 
       <div className="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
         <motion.div variants={cascata(0.1, 0.1)} initial="oculto" animate="visivel" className="flex flex-col items-start">
-          <p className="frase-abertura">
+          {/* Cor creme inline: se o navegador ainda tiver o styles.css antigo em cache (até 5 min após
+              um deploy), a frase continua legível sobre o vídeo. Com o CSS novo, o brilho cobre esta cor. */}
+          <p className="frase-abertura" style={{ color: "#E8D9AE" }}>
             <span className="sr-only">{`Programa de premiação voluntária de ${ano}`}</span>
             <span aria-hidden="true">
               {`Programa de premiação voluntária de ${ano}`.split(" ").map((palavra, i) => (
