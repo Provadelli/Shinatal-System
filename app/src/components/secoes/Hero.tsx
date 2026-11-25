@@ -212,10 +212,17 @@ export function Hero() {
 
       <div className="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
         <motion.div variants={cascata(0.1, 0.1)} initial="oculto" animate="visivel" className="flex flex-col items-start">
-          <motion.p variants={surgir} className="selo-premiacao font-mono text-[11px] sm:text-xs font-medium uppercase tracking-[0.2em]">
-            <span aria-hidden="true" className="fio-selo h-px w-8 bg-current opacity-70" />
-            Programa de Premiação voluntária 2026
-          </motion.p>
+          <p className="frase-abertura">
+            <span className="sr-only">{`Programa de premiação voluntária de ${ano}`}</span>
+            <span aria-hidden="true">
+              {`Programa de premiação voluntária de ${ano}`.split(" ").map((palavra, i) => (
+                <span key={i}>
+                  {i > 0 && " "}
+                  <span className="w"><i style={{ "--n": i } as React.CSSProperties}>{palavra}</i></span>
+                </span>
+              ))}
+            </span>
+          </p>
 
           <TituloHero />
 
