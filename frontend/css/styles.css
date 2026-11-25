@@ -278,7 +278,7 @@ h1, h2, h3, .font-display {
 }
 
 
-/* Título do topo: um brilho dourado passa pelo "Bem-vindo ao" em ciclos de 6 s, depois que as palavras
+/* Título do topo: um brilho dourado passa uma única vez pelo "Bem-vindo ao", depois que as palavras
    sobem (ver TituloHero em app/src/components/secoes/Hero.tsx). Branco antes e depois; o
    dourado tem mais de 9:1 sobre o vídeo escurecido. */
 .titulo-brilho { color: #fff; }
@@ -290,7 +290,7 @@ h1, h2, h3, .font-display {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: titulo-brilho 6s cubic-bezier(0.45, 0, 0.25, 1) 1.5s infinite both;
+    animation: titulo-brilho 2.4s cubic-bezier(0.45, 0, 0.25, 1) 1.4s 1 both;
   }
 }
 @keyframes titulo-brilho {
@@ -976,6 +976,31 @@ a.footer-icone:hover {
 .logo-vermelho {
   filter: brightness(0) invert(20%) sepia(44%) saturate(557%) hue-rotate(303deg) brightness(120%) contrast(123%);
 }
+/* Sobre o vídeo (hero e header ainda transparente) o vinho some no verde escuro: o logo vira creme.
+   Ao rolar, o header perde .header-transparente e o logo volta ao vinho sobre o bege. */
+.secao-hero-video .logo-vermelho,
+.header-flutuante.header-transparente .logo-vermelho {
+  filter: brightness(0) invert(1) sepia(0.12) drop-shadow(0 2px 12px rgba(3, 23, 13, 0.45));
+}
+/* Moldura do texto do hero: fio dourado que se desenha de cima para baixo e sombra suave p/ leitura. */
+.moldura-texto-hero { position: relative; }
+.moldura-texto-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--shinatal-gold), rgba(201, 160, 72, 0.15));
+  transform-origin: top;
+  animation: fio-vertical 1s cubic-bezier(0.16, 0.84, 0.32, 1) 0.9s both;
+}
+.moldura-texto-hero p { text-shadow: 0 1px 10px rgba(3, 23, 13, 0.5); }
+.fio-selo { transform-origin: left; animation: entrada-fio 0.9s cubic-bezier(0.16, 0.84, 0.32, 1) 0.2s both; }
+@keyframes fio-vertical { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .moldura-texto-hero::before, .fio-selo { animation: none; }
+}
 /* ---------- Formulários ---------- */
 .input-shinatal {
   width: 100%;
@@ -1283,22 +1308,54 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-prima
 /* Ação principal: sólido */
 .btn-pilula--solido {
   color: #fff;
-  background-color: var(--natal-vermelho);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 55%);
-  border-color: rgba(122, 18, 26, 0.6);
+  background-color: #A63A45;
+  background-image: linear-gradient(180deg, #B2444F 0%, #A63A45 55%, #96313C 100%);
+  border-color: rgba(106, 28, 40, 0.55);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 1px 2px rgba(60, 8, 14, 0.25),
-    0 8px 24px -10px rgba(179, 38, 47, 0.6);
+    0 8px 24px -12px rgba(122, 40, 54, 0.55);
+  overflow: hidden;
+  isolation: isolate;
 }
+/* Luz suave no canto e um reflexo que cruza o botão (só transform, sem custo de layout). */
+.btn-pilula--solido::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.2), transparent 60%);
+}
+.btn-pilula--solido::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  transform: translateX(-130%) skewX(-18deg);
+}
+.secao-hero-video .btn-pilula--solido::after { animation: botao-reflexo 1.1s ease 2.2s 1 both; }
+@keyframes botao-reflexo { from { transform: translateX(-130%) skewX(-18deg); } to { transform: translateX(330%) skewX(-18deg); } }
+@keyframes botao-reflexo-hover { from { transform: translateX(-130%) skewX(-18deg); } to { transform: translateX(330%) skewX(-18deg); } }
 @media (hover: hover) {
   .btn-pilula--solido:hover {
-    background-color: #C22D37;
+    background-color: #AD404B;
+    background-image: linear-gradient(180deg, #BA4C57 0%, #AD404B 55%, #9C3742 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
       0 1px 2px rgba(60, 8, 14, 0.25),
-      0 14px 32px -12px rgba(179, 38, 47, 0.75);
+      0 14px 32px -14px rgba(122, 40, 54, 0.65);
   }
+  .btn-pilula--solido:hover::after { animation: botao-reflexo-hover 0.8s ease both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-pilula--solido::after { animation: none !important; }
 }
 
 /* Ação de apoio: vidro.
@@ -2547,14 +2604,15 @@ html:not([data-papel]) [data-papeis] { display: none !important; }
 
 .btn-primario {
   color: #fff;
-  background-color: var(--natal-vermelho);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 55%);
-  border-color: rgba(122, 18, 26, 0.6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 1px 2px rgba(60, 8, 14, 0.25), 0 8px 24px -10px rgba(179, 38, 47, 0.6);
+  background-color: #A63A45;
+  background-image: linear-gradient(180deg, #B2444F 0%, #A63A45 55%, #96313C 100%);
+  border-color: rgba(106, 28, 40, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(60, 8, 14, 0.25), 0 8px 24px -12px rgba(122, 40, 54, 0.55);
 }
 .btn-primario:hover:not(:disabled) {
-  background-color: #C22D37;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 2px rgba(60, 8, 14, 0.25), 0 14px 32px -12px rgba(179, 38, 47, 0.75);
+  background-color: #AD404B;
+  background-image: linear-gradient(180deg, #BA4C57 0%, #AD404B 55%, #9C3742 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(60, 8, 14, 0.25), 0 14px 32px -14px rgba(122, 40, 54, 0.65);
 }
 
 .btn-fantasma {
