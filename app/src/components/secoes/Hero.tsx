@@ -213,13 +213,13 @@ export function Hero() {
       <div className="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
         <motion.div variants={cascata(0.1, 0.1)} initial="oculto" animate="visivel" className="flex flex-col items-start">
           <motion.p variants={surgir} className="selo-premiacao font-mono text-[11px] sm:text-xs font-medium uppercase tracking-[0.2em]">
-            <span aria-hidden="true" className="h-px w-8 bg-current opacity-70" />
+            <span aria-hidden="true" className="fio-selo h-px w-8 bg-current opacity-70" />
             Programa de Premiação voluntária 2026
           </motion.p>
 
           <TituloHero />
 
-          <motion.div variants={surgir} className="mt-7 max-w-[34rem] border-l border-[#E8D9AE]/40 pl-5">
+          <motion.div variants={surgir} className="moldura-texto-hero mt-7 max-w-[34rem] pl-5">
             <p className={cn(TEXTO_ABERTURA, "font-display font-medium tracking-[-0.01em] text-white")}>
               Shinatal, o reconhecimento de quem faz a shine rio acontecer.
             </p>
