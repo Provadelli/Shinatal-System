@@ -468,7 +468,12 @@ h1, h2, h3, .font-display {
   top: 0;
   isolation: isolate;
   overflow: hidden;
-  min-height: calc(100dvh - var(--altura-header, 3.5rem));
+  /* O cabeçalho é fixo e fica POR CIMA do hero (não ocupa espaço acima dele): o hero precisa
+     ocupar a tela inteira, senão uma faixa da seção seguinte aparecia no pé da primeira tela.
+     svh (sem contar a barra do navegador que aparece/some) e não dvh, para o hero não mudar de
+     altura ao rolar no celular; o -1px fecha o sentinela de 1px que vem logo antes do hero. */
+  min-height: calc(100vh - 1px);
+  min-height: calc(100svh - 1px);
 }
 /* Celular em pé: pôster vertical (recorte do miolo, bem mais leve) — casa com hero-retrato-v3.mp4. */
 @media (max-aspect-ratio: 1/1) {
