@@ -5,7 +5,7 @@ import { ArrowDown, Pause, PiggyBank, Play, Users } from "lucide-react";
 import { firebaseConfig, FIRESTORE_REST } from "@legado/firebase-config.js";
 import { BotaoPilula } from "@/components/ui/botao-pilula";
 import { cascata, surgirTopo as surgir, EASE_BRAND } from "@/lib/movimento";
-import { TITULO_HERO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";
+import { TITULO_HERO, TEXTO_CORRIDO } from "@/lib/tipografia";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------------------------
@@ -210,7 +210,7 @@ export function Hero() {
         <span className="botao-movimento-texto">Pausar animações</span>
       </button>
 
-      <div className="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="hero-video-conteudo w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-14 md:py-24 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
         <motion.div variants={cascata(0.1, 0.1)} initial="oculto" animate="visivel" className="flex flex-col items-start">
           {/* Cor creme inline: se o navegador ainda tiver o styles.css antigo em cache (até 5 min após
               um deploy), a frase continua legível sobre o vídeo. Com o CSS novo, o brilho cobre esta cor. */}
@@ -228,13 +228,15 @@ export function Hero() {
 
           <TituloHero />
 
-          <motion.div variants={surgir} className="moldura-texto-hero mt-7 max-w-[34rem] pl-5">
-            <p className={cn(TEXTO_ABERTURA, "font-display font-medium tracking-[-0.01em] text-white")}>
-              Shinatal, o reconhecimento de quem faz a shine rio acontecer.
+          <motion.div variants={surgir} className="texto-hero mt-7 max-w-[33rem]">
+            <p className="texto-hero-lead">Shinatal, o reconhecimento de quem faz a Shine Rio acontecer.</p>
+            <p className={cn(TEXTO_CORRIDO, "texto-hero-apoio")}>
+              Na Shine Rio, o ano termina com reconhecimento, gratidão e uma premiação.
             </p>
-            <p className={cn(TEXTO_CORRIDO, "mt-3 text-white/85")}>
-              Na shine rio, o ano termina com reconhecimento, gratidão e uma premiação. Durante todo o ano, construímos juntos. No natal, compartilhamos juntos.
-            </p>
+            <div className="texto-hero-par">
+              <p>Durante todo o ano, construímos juntos.</p>
+              <p>No Natal, compartilhamos juntos.</p>
+            </div>
           </motion.div>
 
           <motion.div variants={surgir} className="mt-9 flex w-full flex-col items-start gap-4 sm:w-auto">
@@ -254,10 +256,10 @@ export function Hero() {
           initial={{ opacity: 0.01, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 1, ease: EASE_BRAND, delay: 0.35 }}
-          className="relative w-full max-w-2xl mx-auto"
+          className="card-fundo-wrap relative w-full max-w-[30rem] mx-auto"
         >
-          <div ref={cardRef} id="card-fundo" className="glass-card-active glow-gold rounded-xl p-10 sm:p-12 relative overflow-hidden w-full min-h-[340px] text-center flex flex-col items-center justify-center">
-            <div className="absolute top-0 left-0 right-0 h-1.5" style={{ background: "linear-gradient(90deg, var(--shinatal-red) 0%, var(--shinatal-red) 65%, var(--shinatal-gold) 100%)" }} />
+          <div ref={cardRef} id="card-fundo" className="glass-card-active rounded-2xl p-8 sm:p-10 relative overflow-hidden w-full min-h-[300px] text-center flex flex-col items-center justify-center">
+            <span aria-hidden="true" className="card-fundo-aro" />
             <p id="fundo-rotulo" className="font-premium text-on-surface-variant mb-5 relative flex items-center justify-center gap-2 text-base sm:text-lg">
               <PiggyBank className="h-5 w-5 text-festive-gold" aria-hidden="true" strokeWidth={1.75} />
               <span id="fundo-rotulo-texto">
@@ -312,7 +314,7 @@ export function Hero() {
             aria-hidden="true"
             width={240}
             height={240}
-            className="absolute -top-4 -right-3 sm:-top-8 sm:-right-6 md:-top-10 md:-right-9 w-14 sm:w-16 md:w-20 h-auto z-20 drop-shadow-lg pointer-events-none select-none"
+            className="card-gorro absolute -top-4 -right-3 sm:-top-8 sm:-right-6 md:-top-10 md:-right-9 w-14 sm:w-16 md:w-20 h-auto z-20 drop-shadow-lg pointer-events-none select-none"
           />
         </motion.div>
       </div>

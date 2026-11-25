@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { m as motion } from "framer-motion";
 import { Rotulo } from "@/components/ui/rotulo";
 import { aoEntrarNaTela, cascata, surgir } from "@/lib/movimento";
-import { TITULO_SECAO, TEXTO_ABERTURA, TEXTO_CORRIDO } from "@/lib/tipografia";
+import { TITULO_SECAO, FRASE_DESTAQUE, TEXTO_CORRIDO } from "@/lib/tipografia";
 import { cn } from "@/lib/utils";
 
 const FOTOS = [
@@ -97,7 +97,7 @@ export function SobreShinatal() {
           </motion.h2>
         </div>
         <div className="md:col-span-7 max-w-[40rem]">
-          <motion.p variants={surgir} className={cn(TEXTO_ABERTURA, "mb-5 text-white")}>
+          <motion.p variants={surgir} className={cn(FRASE_DESTAQUE, "mb-5 text-[#F3EAD3]")}>
             O Shinatal vai além da celebração entre nós. Todos os anos, levamos o espírito do Natal para comunidades
             carentes, proporcionando às crianças um dia de alegria, diversão, presentes e esperança.
           </motion.p>

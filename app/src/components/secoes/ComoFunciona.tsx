@@ -46,7 +46,10 @@ export function ComoFunciona() {
         <span aria-hidden="true" className="grade-pontos" />
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop relative">
           <CabecalhoSecao numero="03" titulo="Como funciona o programa" />
-          <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch gap-5 lg:gap-6">
+          <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="etapas-grade relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch gap-5 lg:gap-6">
+            {/* As etapas são uma sequência: no computador, um fio dourado passa na altura dos números
+                e liga um card ao outro (aparece nos vãos entre eles). */}
+            <span aria-hidden="true" className="etapas-fio" />
             {ETAPAS.map((etapa, i) => (
               <CardInfo key={etapa.texto} numero={numero(i)} icone={etapa.icone}>
                 {etapa.texto}
@@ -61,8 +64,9 @@ export function ComoFunciona() {
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
           <CabecalhoSecao numero="04" titulo="Nossos valores" />
           <motion.div {...aoEntrarNaTela} variants={cascata(0.08)} className="grid grid-cols-1 md:grid-cols-2 items-stretch gap-5 lg:gap-6">
-            {VALORES.map((valor, i) => (
-              <CardInfo key={valor.titulo} numero={numero(i)} icone={valor.icone} titulo={valor.titulo}>
+            {/* Valores não são uma sequência: sem numeração. */}
+            {VALORES.map((valor) => (
+              <CardInfo key={valor.titulo} icone={valor.icone} titulo={valor.titulo}>
                 {valor.texto}
               </CardInfo>
             ))}

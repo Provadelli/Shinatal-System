@@ -28,7 +28,7 @@ export function Rotulo({ numero, sobreEscuro = false, className, children }: Rot
           {numero}
         </span>
       )}
-      <span aria-hidden="true" className="fio-natal h-px w-9 shrink-0" />
+      <span aria-hidden="true" className="fio-natal rotulo-fio h-px w-9 shrink-0" />
       {children && <span>{children}</span>}
     </p>
   );

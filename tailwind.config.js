@@ -75,6 +75,8 @@ module.exports = {
       fontFamily: {
         display: ["Space Grotesk", "Inter", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        // Fraunces: frases de destaque da página inicial (hero, aberturas de seção, rodapé).
+        serif: ["Fraunces", "Georgia", "serif"],
         mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"]
       },
       transitionTimingFunction: {
