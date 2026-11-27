@@ -1382,6 +1382,49 @@ select.input-shinatal {
   background-position: right 0.85rem center;
 }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--shinatal-primary); }
+
+/* ---------- Filtros da aba Contratos ----------
+   A busca ocupa o espaço que sobra; o status é um controle segmentado (rádios nativos: setas do
+   teclado, leitor de tela e formulário de graça) com a contagem de cada status. No celular os dois
+   empilham e os segmentos viram uma grade 2×2, sem rolagem e sem texto cortado. */
+.filtros-contratos { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.busca-contratos { position: relative; flex: 1 1 22rem; min-width: 0; }
+.busca-contratos > .material-symbols-outlined {
+  position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
+  font-size: 1.25rem; color: var(--shinatal-ink-muted); pointer-events: none;
+}
+.busca-contratos .input-shinatal { padding-left: 2.6rem; min-height: 2.875rem; }
+.filtro-segmentado {
+  display: inline-flex; flex: 0 0 auto; gap: 0.25rem; margin: 0; padding: 0.25rem; border: 0;
+  background: rgba(14, 59, 46, 0.06); border-radius: calc(var(--raio-controle) + 0.25rem);
+}
+/* O segmento inteiro é a pílula; o rádio cobre a pílula (clique em qualquer ponto) e fica invisível. */
+.filtro-segmento {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+  min-height: 2.375rem; padding: 0 0.85rem; border-radius: var(--raio-controle);
+  font-size: 0.875rem; font-weight: 600; white-space: nowrap; color: var(--shinatal-ink-muted);
+  transition: background-color var(--transicao), color var(--transicao), box-shadow var(--transicao);
+}
+.filtro-segmento > input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.filtro-segmento:hover:not(:has(input:checked)) { color: var(--shinatal-ink); background: rgba(255, 255, 255, 0.55); }
+.filtro-segmento:has(input:checked) {
+  background: var(--shinatal-surface); color: var(--shinatal-primary);
+  box-shadow: 0 1px 2px rgba(31, 26, 20, 0.08), 0 0 0 1px rgba(14, 59, 46, 0.08);
+}
+.filtro-segmento:has(input:focus-visible) { outline: 2px solid var(--shinatal-primary); outline-offset: 2px; }
+.filtro-contagem {
+  min-width: 1.5rem; padding: 0.05rem 0.4rem; border-radius: 9999px; text-align: center; pointer-events: none;
+  font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: rgba(14, 59, 46, 0.08); color: var(--shinatal-ink-muted);
+}
+.filtro-contagem:empty { display: none; }
+.filtro-segmento:has(input:checked) .filtro-contagem { background: var(--shinatal-primary); color: #fff; }
+@media (max-width: 767px) {
+  .busca-contratos, .filtro-segmentado { flex-basis: 100%; }
+  .filtro-segmentado { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filtro-segmento { justify-content: space-between; min-height: 2.75rem; }
+}
+@media (max-width: 379px) { .filtro-segmento { font-size: 0.8125rem; padding: 0 0.65rem; } }
 .input-shinatal:disabled {
   background: rgba(0, 0, 0, 0.04);
   color: #7A7060;
