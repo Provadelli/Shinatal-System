@@ -16,11 +16,14 @@ export function calcularMedia(respostas) {
   return Math.round((soma * 10) / notas.length) / 10;
 }
 
-/** Faixas da média (0 a 10) para o conceito da Seção 11 (TABELA_AVALIACAO em calculo-shinatal.js). */
+/** Escala de cada nota: inteiros de 0 a NOTA_MAXIMA (notaValida em firestore.rules). */
+export const NOTA_MAXIMA = 5;
+
+/** Faixas da média (0 a 5) para o conceito da Seção 11 (TABELA_AVALIACAO em calculo-shinatal.js). */
 export function conceitoPorMedia(media) {
-  if (media >= 9) return "excelente";
-  if (media >= 7) return "bom";
-  if (media >= 5) return "regular";
+  if (media >= 4.5) return "excelente";
+  if (media >= 3.5) return "bom";
+  if (media >= 2.5) return "regular";
   return "insatisfatorio";
 }
 

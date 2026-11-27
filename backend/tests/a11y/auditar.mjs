@@ -225,8 +225,8 @@ async function semear() {
   await gravar(`ciclosAvaliacao/${ano}_${uid.bruno}`, ciclo(uid.bruno, uid.ana, uid.carla, {}));
   const avaliacao = (avaliador, papel, notas, comentario) => gravar(`respostasAvaliacao/${ano}_${uid.ana}_${papel}`,
     { ano, avaliadoUid: uid.ana, avaliadorUid: avaliador, papel, perguntas, notas, comentario, criadoEm: agora });
-  await avaliacao(uid.pres, "fixo", [9, 8, 9, 10, 8], "Entrega consistente e muito cuidado com os detalhes ao longo do ano.");
-  await avaliacao(uid.bruno, "escolhido", [8, 9, 10, 8, 7], "Sempre disponível para ajudar a equipe nos momentos de pico.");
+  await avaliacao(uid.pres, "fixo", [5, 4, 5, 5, 4], "Entrega consistente e muito cuidado com os detalhes ao longo do ano.");
+  await avaliacao(uid.bruno, "escolhido", [4, 5, 5, 4, 4], "Sempre disponível para ajudar a equipe nos momentos de pico.");
   await gravar(`respostasAoPresidente/${ano}_${uid.ana}`, { uid: uid.ana, ano, texto: "Concordo com as avaliações e quero melhorar a iniciativa.", criadoEm: agora });
   await gravar("solicitacoes/s1", {
     tipo: "avaliacao", descricao: "Avaliação de desempenho (excelente) para Bruno Lima", alvoUid: uid.bruno, alvoNome: "Bruno Lima",

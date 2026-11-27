@@ -3366,11 +3366,11 @@ input[type="checkbox"]#aceiteTermos { width: 1.5rem; height: 1.5rem; }
 .gestao-ciclo { border-bottom: 1px solid var(--shinatal-borda); }
 .gestao-numeros { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; }
 
-/* Modal de avaliação: escala de 0 a 10 com rádios nativos (setas do teclado de graça). */
+/* Modal de avaliação: escala de 0 a 5 com rádios nativos (setas do teclado de graça). */
 .pergunta-avaliacao { border: 0; padding: 0; margin: 0; min-width: 0; }
 .pergunta-avaliacao legend { display: flex; gap: 0.75rem; align-items: baseline; font-weight: 600; color: var(--shinatal-ink); line-height: 1.45; }
 .pergunta-numero { font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 0.75rem; letter-spacing: 0.12em; color: var(--natal-pinheiro); flex-shrink: 0; }
-.escala-nota { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 0.3rem; margin-top: 0.75rem; }
+.escala-nota { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.3rem; margin-top: 0.75rem; }
 .escala-opcao { position: relative; display: block; }
 .escala-opcao > span {
   display: grid;
@@ -3402,6 +3402,5 @@ input[type="checkbox"]#aceiteTermos { width: 1.5rem; height: 1.5rem; }
 .pergunta-avaliacao[data-invalida] .escala-opcao > span { border-color: rgba(110, 36, 48, 0.55); }
 .avaliar-rodape { background: var(--shinatal-bg); padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
 @media (max-width: 539px) {
-  .escala-nota { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .media-avaliacao-conceito { justify-items: start; text-align: left; }
 }

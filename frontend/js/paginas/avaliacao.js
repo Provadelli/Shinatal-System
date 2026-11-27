@@ -13,7 +13,7 @@ import { exigirAutenticacao } from "../auth.js";
 import { escaparHTML, mostrarToast, debounce, confirmarAcao, animarNumero, ativarRevelacaoAoRolar } from "../ui-utils.js";
 import { sincronizarDiretorio, assinarDiretorio } from "../diretorio-service.js";
 import {
-  PERGUNTAS_PADRAO, ROTULOS_PAPEL_AVALIADOR, ROTULOS_CONCEITO, PERCENTUAL_CONCEITO, COMENTARIO_MINIMO,
+  PERGUNTAS_PADRAO, NOTA_MAXIMA, ROTULOS_PAPEL_AVALIADOR, ROTULOS_CONCEITO, PERCENTUAL_CONCEITO, COMENTARIO_MINIMO,
   calcularMedia, conceitoPorMedia, formatarNota, avaliacoesConcluidas, passosDoCiclo, progressoDosPassos,
   calcularPendencias, assinarConfig, salvarConfig, assinarAvaliadoresFixos, assinarMeuCiclo, assinarCiclosVisiveis,
   escolherAvaliador, enviarResposta, buscarRespostas, enviarRespostaAoPresidente, buscarRespostaAoPresidente, darOk
@@ -135,7 +135,7 @@ function blocoResposta(papelAvaliador, resposta, ciclo) {
       ${resposta.perguntas.map((pergunta, i) => `
         <li class="nota-item">
           <span class="nota-pergunta">${escaparHTML(pergunta)}</span>
-          <span class="nota-barra" aria-hidden="true"><span style="--nota:${resposta.notas[i] / 10}"></span></span>
+          <span class="nota-barra" aria-hidden="true"><span style="--nota:${resposta.notas[i] / NOTA_MAXIMA}"></span></span>
           <span class="nota-valor"><span class="sr-only">Nota </span>${resposta.notas[i]}</span>
         </li>`).join("")}
     </ol>
@@ -205,8 +205,8 @@ function renderAvisos() {
     const [titulo, texto, botao, icone] = p.tipo === "ok"
       ? [`${nome} respondeu à avaliação`, "Leia a resposta enviada a você e dê o ok para finalizar.", "Revisar e dar ok", icones.ok]
       : p.papel === "escolhido"
-        ? [`Avalie ${nome}`, `${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} escolheu você para avaliá-lo(a) no ciclo ${p.ciclo.ano}. Notas de 0 a 10 e um parecer.`, "Avaliar", icones.avaliar]
-        : [`Avalie ${nome}`, `Você é o avaliador fixo de ${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} no ciclo ${p.ciclo.ano}. Notas de 0 a 10 e um parecer.`, "Avaliar", icones.avaliar];
+        ? [`Avalie ${nome}`, `${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} escolheu você para avaliá-lo(a) no ciclo ${p.ciclo.ano}. Notas de 0 a ${NOTA_MAXIMA} e um parecer.`, "Avaliar", icones.avaliar]
+        : [`Avalie ${nome}`, `Você é o avaliador fixo de ${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} no ciclo ${p.ciclo.ano}. Notas de 0 a ${NOTA_MAXIMA} e um parecer.`, "Avaliar", icones.avaliar];
     return `<li class="aviso-item" style="--i:${i}">
       <div class="flex items-start gap-3 min-w-0">
         <span class="aviso-icone" aria-hidden="true"><span class="material-symbols-outlined">${icone}</span></span>
@@ -429,7 +429,7 @@ function abrirAvaliacao(ciclo, papelAvaliador) {
     <fieldset class="pergunta-avaliacao">
       <legend><span class="pergunta-numero">${String(i + 1).padStart(2, "0")}</span>${escaparHTML(pergunta)}</legend>
       <div class="escala-nota">
-        ${Array.from({ length: 11 }, (_, n) => `
+        ${Array.from({ length: NOTA_MAXIMA + 1 }, (_, n) => `
           <label class="escala-opcao">
             <input type="radio" name="nota-${i}" value="${n}" class="sr-only" />
             <span>${n}</span>
@@ -462,7 +462,7 @@ function atualizarPrevia() {
   const respondidas = notas.filter((n) => n !== null);
   el("avaliar-media-previa").textContent = respondidas.length
     ? `${respondidas.length} de 5 respondidas · média ${formatarNota(calcularMedia([{ notas: respondidas }]))}`
-    : "Escolha uma nota de 0 a 10 para cada pergunta.";
+    : `Escolha uma nota de 0 a ${NOTA_MAXIMA} para cada pergunta.`;
 }
 el("form-avaliar").addEventListener("change", (e) => {
   if (e.target.matches('input[type="radio"]')) {
