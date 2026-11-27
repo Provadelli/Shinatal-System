@@ -12,6 +12,14 @@ import { calcularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11b";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
 import { ENCARREGADO, CONTROLADORA, linkEncarregado } from "./lgpd-config.js";
 import { gerarPdfMeusDados } from "./meus-dados-pdf.js";
+import { buscarRespostas, avaliacoesConcluidas } from "./avaliacao-service.js";
+
+/** Respostas sobre a própria pessoa num ciclo — só existem para ela depois das três avaliações. */
+async function buscarRespostasRecebidas(ciclo) {
+  if (!avaliacoesConcluidas(ciclo)) return [];
+  const respostas = await buscarRespostas(ciclo);
+  return Object.values(respostas).filter(Boolean);
+}
 import { getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
@@ -26,17 +34,15 @@ renderizarPerfilBasico(perfil);
 
 const dados = await carregarRegistrosDoColaborador(perfil.uid);
 
-// Mesmo padrão do dashboard.js: fundo/{ano} e condutaContagem/{uid} atualizam o mesmo bloco
-// "Perfil detalhado" de forma independente, cada um com seu próprio listener do Firestore.
+// Mesmo padrão do dashboard.js: fundo/{ano} atualiza o bloco "Perfil detalhado" ao vivo.
 let fundoAtual = { saldoDisponivel: 0, somaPesos: 0 };
 let resultadoAtual = null;
-let contagemCondutaAtual = null;
 
 function atualizarPerfilDetalhado() {
   if (!resultadoAtual) return;
   renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
     usuario: perfil, dados, resultado: resultadoAtual, somaPesos: fundoAtual.somaPesos || 0,
-    anoExercicio: ANO_EXERCICIO, contagemConduta: contagemCondutaAtual
+    anoExercicio: ANO_EXERCICIO
     // Sem tiposExcluiveis/aoExcluir: página de autoatendimento não expõe exclusão de lançamentos,
     // nem para admin/dp/rh/presidente vendo o próprio perfil.
   });
@@ -47,11 +53,6 @@ onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
   resultadoAtual = calcularCotaColaborador(
     perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO
   );
-  atualizarPerfilDetalhado();
-});
-
-onSnapshot(doc(db, "condutaContagem", perfil.uid), (snap) => {
-  contagemCondutaAtual = snap.exists() ? snap.data() : null;
   atualizarPerfilDetalhado();
 });
 
@@ -147,12 +148,19 @@ document.getElementById("btn-baixar-dados").addEventListener("click", async (e) 
   const btn = e.currentTarget;
   btn.disabled = true;
   try {
-    const [contratos, votosDados, contagemRecebida] = await Promise.all([
+    const docsDe = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const [contratos, votosDados, contagemRecebida, ciclos, respostasQueVoceDeu, respostasAoPresidente] = await Promise.all([
       buscarPorUid("contratos", perfil.uid),
-      getDocs(query(collection(db, "votosConduta"), where("avaliadorUid", "==", perfil.uid)))
-        .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))),
-      getDoc(doc(db, "condutaContagem", perfil.uid)).then((s) => (s.exists() ? s.data() : null))
+      getDocs(query(collection(db, "votosConduta"), where("avaliadorUid", "==", perfil.uid))).then(docsDe),
+      getDoc(doc(db, "condutaContagem", perfil.uid)).then((s) => (s.exists() ? s.data() : null)),
+      buscarPorUid("ciclosAvaliacao", perfil.uid).catch(() => []),
+      getDocs(query(collection(db, "respostasAvaliacao"), where("avaliadorUid", "==", perfil.uid))).then(docsDe).catch(() => []),
+      buscarPorUid("respostasAoPresidente", perfil.uid).catch(() => [])
     ]);
+    // Avaliações sobre a pessoa: as regras só liberam a leitura depois das duas avaliações.
+    const respostasRecebidas = (await Promise.all(ciclos.map((c) =>
+      buscarRespostasRecebidas(c).catch(() => [])
+    ))).flat();
     const { uid, ...dadosPerfil } = perfil;
     const exportacao = paraJson({
       sobre: {
@@ -169,6 +177,12 @@ document.getElementById("btn-baixar-dados").addEventListener("click", async (e) 
       advertencias: dados.advertencias,
       avaliacoesDeDesempenho: dados.avaliacoes,
       contratosIndividuais: contratos,
+      processoDeAvaliacao: {
+        ciclos,
+        respostasRecebidas,
+        respostasQueVoceDeu,
+        respostasAoPresidente
+      },
       avaliacaoDeConduta: {
         votosQueVoceDeu: votosDados,
         contagemRecebidaAnonima: contagemRecebida

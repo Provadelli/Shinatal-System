@@ -14,15 +14,10 @@ import {
 } from "./calculo-shinatal.js?v=v2-2026-11b";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
-import { criarSolicitacao } from "./solicitacoes-service.js";
-import {
-  sincronizarDiretorio, removerDoDiretorio, assinarFlagConduta, definirFlagConduta,
-  assinarMeusVotos, votarConduta, buscarContagemConduta
-} from "./conduta-service.js";
+import { sincronizarDiretorio, removerDoDiretorio } from "./diretorio-service.js";
 
 const ANO_EXERCICIO = new Date().getFullYear();
 const ROTULOS_ROLE = { admin: "Administrador", dp: "Departamento Pessoal", rh: "Recursos Humanos", presidente: "Presidente" };
-const EH_PRESIDENTE = () => perfil.role === "presidente";
 const EH_ADMIN_OU_PRESIDENTE = () => perfil.role === "admin" || perfil.role === "presidente";
 // DP e RH também podem abrir o perfil detalhado de qualquer colaborador (controle/auditoria) —
 // sem ganhar "editar"/"excluir colaborador", que continuam exclusivos de Admin/Presidente.
@@ -32,7 +27,7 @@ const perfil = await exigirAutenticacao(["admin", "dp", "rh", "presidente"]);
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();
 document.getElementById("fundo-titulo").textContent = `Fundo do Shinatal ${ANO_EXERCICIO}`;
-sincronizarDiretorio(perfil); // não faz nada para o Presidente (não participa da função)
+sincronizarDiretorio(perfil); // não faz nada para o Presidente (fica fora do diretório)
 
 
 const state = {
@@ -305,7 +300,6 @@ const CAMPOS_POR_TIPO = {
   falta: ["data-generica", "justificada", "motivo"],
   atraso: ["atraso-mes-ano", "atraso-quantidade"],
   advertencia: ["data-generica", "tipo-advertencia", "motivo"],
-  avaliacao: ["avaliacao", "motivo"],
   ativar_contrato: ["data-generica"],
   encerrar_contrato: ["contrato-ativo", "data-generica"],
   alterar_status_colaborador: ["data-generica", "status-colaborador", "motivo"],
@@ -313,7 +307,7 @@ const CAMPOS_POR_TIPO = {
 };
 
 function alternarCamposAcao(tipo) {
-  const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-mes-ano", "atraso-quantidade", "tipo-advertencia", "avaliacao", "role", "contrato-ativo", "status-colaborador"];
+  const todosOsCampos = ["data-generica", "justificada", "tipo-justificativa", "motivo", "atraso-mes-ano", "atraso-quantidade", "tipo-advertencia", "role", "contrato-ativo", "status-colaborador"];
   todosOsCampos.forEach((campo) => {
     document.querySelectorAll(`[data-campo="${campo}"]`).forEach((el) => el.classList.add("hidden"));
   });
@@ -365,7 +359,7 @@ const ROTULOS_STATUS_COLABORADOR_ACAO = {
 
 const TITULOS_ACAO = {
   falta: "Lançar falta", atraso: "Lançar atraso", advertencia: "Registrar advertência",
-  avaliacao: "Avaliação de desempenho", ativar_contrato: "Ativar contrato",
+  ativar_contrato: "Ativar contrato",
   encerrar_contrato: "Encerrar contrato", alterar_status_colaborador: "Alterar status do colaborador",
   role: "Alterar papel (role)"
 };
@@ -494,12 +488,10 @@ async function abrirPerfil(uidAlvo) {
     uidAlvo === perfil.uid ? "Meu perfil" : `Perfil de ${usuario.nome || usuario.email}`;
   const dados = state.mapaDados[uidAlvo] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
   const resultado = computarResultado(usuario);
-  // Presidente não participa da Avaliação de Conduta — nunca tem contagem pra buscar.
-  const contagemConduta = usuario.role === "presidente" ? null : await buscarContagemConduta(uidAlvo).catch(() => null);
   renderizarPerfilDetalhado(document.getElementById("perfil-detalhado"), {
     usuario, dados, resultado, somaPesos: state.fundo.somaPesos, anoExercicio: ANO_EXERCICIO,
     tiposExcluiveis: TIPOS_EXCLUIVEIS_POR_ROLE[perfil.role] || [],
-    aoExcluir: excluirRegistro, contagemConduta
+    aoExcluir: excluirRegistro
   });
   abrirModal("modal-perfil");
 }
@@ -666,11 +658,10 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
   const motivo = document.getElementById("acao-motivo").value.trim();
   const alvoNome = state.usuarios.find((u) => u.uid === uid)?.nome || null;
 
-  // Só avaliação passa pela fila de aprovação do Presidente. Contrato individual do
-  // colaborador (ativar/encerrar) e alteração de status/desligamento são dado interno de
-  // RH — gravam direto (ver firestore.rules: contratos/{id} e usuarios/{uid}).
-  const precisaAprovacao = !EH_PRESIDENTE() && tipo === "avaliacao";
-
+  // Tudo aqui grava direto: contrato individual do colaborador (ativar/encerrar) e alteração de
+  // status/desligamento são dado interno de RH (ver firestore.rules: contratos/{id} e
+  // usuarios/{uid}). A avaliação de desempenho, que antes passava pela fila do Presidente, saiu
+  // deste formulário: agora é o processo da página /avaliacao.
   try {
     if (tipo === "falta") {
       const justificada = document.getElementById("acao-justificada").checked;
@@ -696,59 +687,21 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
         registradoPor: perfil.uid, criadoEm: serverTimestamp()
       });
       await registrarLog("advertencia", `Advertência (${tipoAdvertencia}) registrada em ${data}`, uid, alvoNome);
-    } else if (tipo === "avaliacao") {
-      const dataAvaliacao = document.getElementById("acao-avaliacao-data").value;
-      const ano = dataAvaliacao ? new Date(dataAvaliacao + "T00:00:00").getFullYear() : ANO_EXERCICIO;
-      const conceito = document.getElementById("acao-conceito").value;
-      const dadosAvaliacao = {
-        uid, data: dataAvaliacao || null, ano,
-        conceito, justificativa: motivo,
-        validadoRH: true, avaliadoPor: perfil.uid, criadoEm: serverTimestamp()
-      };
-      const descricao = `Avaliação de desempenho (${conceito})${dataAvaliacao ? " em " + dataAvaliacao : ""} para ${alvoNome || uid}`;
-      if (precisaAprovacao) {
-        await criarSolicitacao(db, { tipo: "avaliacao", descricao, alvoUid: uid, alvoNome, dadosAcao: dadosAvaliacao, operador: perfil });
-      } else {
-        await addDoc(collection(db, "avaliacoes"), dadosAvaliacao);
-        await registrarLog("avaliacao", descricao, uid, alvoNome);
-      }
     } else if (tipo === "ativar_contrato") {
-      const dadosContrato = {
+      await addDoc(collection(db, "contratos"), {
         uid, dataAtivacao: data, dataEncerramento: null, valorCredito: 150, status: "ativo",
         registradoPor: perfil.uid, criadoEm: serverTimestamp()
-      };
-      const descricao = `Ativar contrato para ${alvoNome || uid} em ${data}`;
-      if (precisaAprovacao) {
-        await criarSolicitacao(db, { tipo: "ativar_contrato", descricao, alvoUid: uid, alvoNome, dadosAcao: dadosContrato, operador: perfil });
-      } else {
-        await addDoc(collection(db, "contratos"), dadosContrato);
-      }
+      });
     } else if (tipo === "encerrar_contrato") {
       const contratoId = document.getElementById("acao-contrato").value;
       if (!contratoId) return mostrarToast("Este colaborador não possui contrato ativo.", "erro");
-      const descricao = `Encerrar contrato de ${alvoNome || uid} em ${data}`;
-      if (precisaAprovacao) {
-        await criarSolicitacao(db, {
-          tipo: "encerrar_contrato", descricao, alvoUid: uid, alvoNome,
-          dadosAcao: { contratoId, campos: { status: "encerrado", dataEncerramento: data } },
-          operador: perfil
-        });
-      } else {
-        await updateDoc(doc(db, "contratos", contratoId), { status: "encerrado", dataEncerramento: data });
-      }
+      await updateDoc(doc(db, "contratos", contratoId), { status: "encerrado", dataEncerramento: data });
     } else if (tipo === "alterar_status_colaborador") {
       const novoStatus = document.getElementById("acao-status-colaborador").value;
       const campos = { ...MAPA_STATUS_COLABORADOR[novoStatus], dataDesligamento: novoStatus === "ativo" ? null : data };
       const descricao = `Status de ${alvoNome || uid} alterado para "${ROTULOS_STATUS_COLABORADOR_ACAO[novoStatus]}"${novoStatus !== "ativo" ? ` em ${data}` : ""}${motivo ? ` — ${motivo}` : ""}`;
-      if (precisaAprovacao) {
-        await criarSolicitacao(db, {
-          tipo: "alterar_status_colaborador", descricao, alvoUid: uid, alvoNome,
-          dadosAcao: { uid, campos }, operador: perfil
-        });
-      } else {
-        await updateDoc(doc(db, "usuarios", uid), campos);
-        await registrarLog("alterar_status_colaborador", descricao, uid, alvoNome);
-      }
+      await updateDoc(doc(db, "usuarios", uid), campos);
+      await registrarLog("alterar_status_colaborador", descricao, uid, alvoNome);
     } else if (tipo === "role") {
       const novoRole = document.getElementById("acao-role").value;
       await updateDoc(doc(db, "usuarios", uid), { role: novoRole });
@@ -757,10 +710,10 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
       await sincronizarDiretorio({ uid, nome: alvo?.nome, cargo: alvo?.cargo, role: novoRole });
     }
 
-    mostrarToast(precisaAprovacao ? "Solicitação enviada — aguardando aprovação do Presidente." : "Ação registrada com sucesso!", "sucesso");
+    mostrarToast("Ação registrada com sucesso!", "sucesso");
     fecharModal("modal-nova-acao");
     await carregarTudo();
-    if (!precisaAprovacao && ["ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo)) await recalcularEPublicarFundo();
+    if (["ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo)) await recalcularEPublicarFundo();
     renderTudo();
   } catch (erro) {
     console.error(erro);

@@ -16,7 +16,7 @@ Privacidade) e `frontend/termos.html` (Termos de Uso).
 | Aceite registrado | Caixa obrigatória no cadastro. O aceite fica em `usuarios/{uid}.aceiteTermos = { versao, aceitoEm }`, com a hora do servidor. |
 | Quem não aceitou | Contas antigas, convidados pelo Admin e todos depois de uma nova versão veem um diálogo bloqueante no login (`js/consentimento.js`): só seguem aceitando ou saindo. |
 | Prova do aceite | As `firestore.rules` só deixam o próprio titular gravar o aceite, com `aceitoEm == request.time`. Nem Admin nem Presidente gravam ou apagam o aceite de outra pessoa. |
-| Acesso e portabilidade (art. 18, II e V) | Perfil → "Meus dados" → **Baixar meus dados** (PDF no papel timbrado da Shine Rio com perfil, faltas, atrasos, advertências, avaliações, contratos e votos de conduta). |
+| Acesso e portabilidade (art. 18, II e V) | Perfil → "Meus dados" → **Baixar meus dados** (PDF no papel timbrado da Shine Rio com perfil, faltas, atrasos, advertências, avaliações, contratos, processo de avaliação de desempenho e o histórico da antiga avaliação de conduta). |
 | Consentimento da foto (art. 8º, §5º) | Foto opcional. **Remover minha foto** no Perfil revoga na hora. |
 | Demais direitos | Link de e-mail ao Encarregado com assunto pronto (Perfil → "Pedir correção ou exclusão"). |
 | Segurança (art. 46) | Acesso por papel nas `firestore.rules` (testadas em `backend/tests/rules`), e-mail institucional confirmado, CSP estrita, App Check, Turnstile, histórico das ações da gestão. |
@@ -30,8 +30,9 @@ Privacidade) e `frontend/termos.html` (Termos de Uso).
 | Foto | Identificação visual no sistema | Consentimento (art. 7º, I) | Titular; gestão | Google Firebase | Até remover ou fim do vínculo |
 | Faltas, atrasos, advertências, avaliações | Regras do Regulamento Interno | Contrato; obrigação legal (art. 7º, V e II) | Titular; gestão | Google Firebase | Vínculo + 5 anos |
 | Cota calculada | Pagamento do Shinatal | Contrato (art. 7º, V) | Titular; gestão | — (calculada no navegador) | Não é guardada; recalculada |
-| Votos de conduta | Avaliação social entre colegas (não entra na cota) | Legítimo interesse (art. 7º, IX) | Só o autor vê o próprio voto; contagem anônima ao avaliado e à gestão | Google Firebase | Vínculo |
-| Diretório (primeiro nome, cargo, papel) | Colegas se encontrarem na avaliação de conduta | Legítimo interesse | Colaboradores logados | Google Firebase | Vínculo |
+| Avaliação de desempenho (notas, pareceres dos avaliadores, resposta ao Presidente) | Conceito da Seção 11 do Regulamento | Contrato (art. 7º, V) | Notas e pareceres: Presidente, o avaliado (depois das duas avaliações) e cada avaliador a própria. Resposta ao Presidente: só o titular e o Presidente | Google Firebase | Vínculo + 5 anos |
+| Votos de conduta (histórico, desativado em 11/2026) | Avaliação social entre colegas (não entrava na cota) | Legítimo interesse (art. 7º, IX) | Só o autor vê o próprio voto; contagem ao avaliado e à gestão. Nada novo é gravado | Google Firebase | Vínculo |
+| Diretório (primeiro nome, cargo, papel) | Escolher o colega que vai avaliar na avaliação de desempenho | Legítimo interesse | Colaboradores logados | Google Firebase | Vínculo |
 | Histórico de ações da gestão | Auditoria e prestação de contas | Legítimo interesse; exercício de direitos (art. 7º, IX e VI) | Admin/Presidente | Google Firebase | 5 anos |
 | Aceite dos termos | Prova do aceite | Contrato; obrigação legal | Titular; gestão | Google Firebase | Vínculo + 5 anos |
 | IP, navegador, token antirrobô | Segurança do login e do cadastro | Legítimo interesse | Operadores | Google (Firebase, reCAPTCHA), Cloudflare (Turnstile, Workers) | Conforme cada operador |

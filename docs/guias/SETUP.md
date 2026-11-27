@@ -250,6 +250,16 @@ novas, falhariam essa sincronização **e** todo voto de conduta. Depois de publ
 `/gestao` uma vez com o Admin ou o Presidente: isso regrava o `diretorioPublico` de todos no
 formato novo (só o primeiro nome), removendo os nomes completos que estavam lá.
 
+**Avaliação de desempenho (11/2026, substitui a aba Conduta):** nesta ordem —
+1. `firebase deploy --only firestore:rules` (regras de `configuracoes/avaliadoresFixos`,
+   `ciclosAvaliacao`, `respostasAvaliacao` e `respostasAoPresidente`).
+2. Dentro de `backend/scripts`: `node avaliadores-fixos.mjs --simular`. Confira que as 11 linhas da
+   tabela foram resolvidas para o cadastro certo; se algum nome for ambíguo, informe o e-mail na
+   tabela (`lib/avaliadores-fixos.mjs`). Depois `node avaliadores-fixos.mjs --aplicar`.
+3. Publique o front. `/conduta` redireciona para `/avaliacao` (vercel.json).
+4. O Presidente abre o ciclo do ano em `/avaliacao` e, se quiser, ajusta as 5 perguntas.
+Não é preciso índice composto: as consultas da página são só de igualdade.
+
 ## 11. Ativar o App Check (reCAPTCHA / Fraud Defense)
 
 Com o App Check, o Firebase só aceita requisições que venham do nosso site (o reCAPTCHA atesta

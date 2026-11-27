@@ -136,8 +136,10 @@ erDiagram
   USUARIOS ||--o{ CONTRATOS : "tem"
   USUARIOS ||--|| DIRETORIO_PUBLICO : "espelha"
   USUARIOS ||--o{ SOLICITACOES : "abre"
-  USUARIOS ||--o{ VOTOS_CONDUTA : "vota"
-  USUARIOS ||--|| CONDUTA_CONTAGEM : "acumula"
+  USUARIOS ||--o{ CICLOS_AVALIACAO : "é avaliado (1 por ano)"
+  CICLOS_AVALIACAO ||--|{ RESPOSTAS_AVALIACAO : "fixo e escolhido"
+  CICLOS_AVALIACAO ||--o| RESPOSTAS_AO_PRESIDENTE : "resposta do avaliado"
+  CICLOS_AVALIACAO ||--o| AVALIACOES : "gera no ok do Presidente"
   CADASTROS_PENDENTES ||--o| USUARIOS : "vira, após confirmar o e-mail"
   CONTRATOS_EMPRESARIAIS }o--|| FUNDO : "alimenta (calculado)"
   FUNDO ||--|| ESTATISTICAS_PUBLICO : "resume"
@@ -241,7 +243,7 @@ flowchart LR
 - **Exercício:** o crédito inicial pertence ao ano do mês de referência da implantação. Saídas e entradas pertencem ao ano da própria data. Um contrato de 2025 com saída em 2026 só desconta em 2026.
 - **Ajuste manual:** uma entrada `{tipo: "ajuste_manual", efeito: "contribuicao_zero", motivo}` em `historicoMovimentacoes` faz o contrato contribuir com R$ 0,00. A régua não muda, e o card mostra quanto ela daria. Uma entrada `reversao_ajuste_manual` desfaz a exceção.
 - **Cota do colaborador:** peso = avos trabalhados ÷ 12 × percentual da jornada (Seções 4 e 6). Depois vêm no máximo dois redutores percentuais (Seção 16), o desconto de faltas (Seção 7) e os adicionais (Seções 10 e 11).
-- **Avaliação de conduta** entre colegas: é puramente social. Os votos são anônimos e nunca entram no cálculo.
+- **Avaliação de desempenho** (Seção 11, página `/avaliacao`): cada colaborador da tabela de avaliadores fixos (`configuracoes/avaliadoresFixos`, gravada só por `backend/scripts/avaliadores-fixos.mjs`) é avaliado pelo fixo e por um colega que ele escolhe. Cada um dá 5 notas de 0 a 10 e um parecer. O avaliado lê as duas avaliações e envia uma resposta que só o Presidente lê. No ok do Presidente, as regras recalculam a média (10 notas, 1 casa) e conferem a faixa do conceito; o ok cria `avaliacoes/desempenho_{ano}_{uid}`, que o motor de cálculo já usa. A antiga avaliação de conduta (votos anônimos) foi desativada em 11/2026; os dados ficam só para leitura do titular.
 
 ## 6. Fluxos principais
 

@@ -63,25 +63,10 @@ service cloud.firestore {
         && perfil().get('motivoPerdaIntegral', null) == null;
     }
 
-    // Avaliação de Conduta (entre colegas) — feature social/anônima, ver seção dedicada mais
-    // abaixo. Todo mundo participa (vota e é votado), MENOS o Presidente.
-    function podeParticiparConduta() {
-      return estaLogado() && papel() != 'presidente' && estaAtivo();
-    }
-    // Checa o papel de um uid arbitrário (não o do requisitante) — usado para garantir que o
-    // ALVO de um voto/presença de conduta também não seja o Presidente.
-    function ehPresidenteUid(uid) {
-      return get(/databases/$(database)/documents/usuarios/$(uid)).data.role == 'presidente';
-    }
-    // Perfil de um uid arbitrário — usado para validar o diretório contra a fonte real.
+    // Perfil de um uid arbitrário — usado para validar o diretório e o avaliador escolhido na
+    // Avaliação de desempenho contra a fonte real.
     function perfilDe(uid) {
       return get(/databases/$(database)/documents/usuarios/$(uid)).data;
-    }
-    // Estado do interruptor global da Avaliação de Conduta (Admin/Presidente). Se o doc nunca
-    // foi criado, get() falha e a regra nega por padrão — a função nasce desligada até alguém
-    // explicitamente ligá-la.
-    function avaliacaoCondutaAtiva() {
-      return get(/databases/$(database)/documents/configuracoes/avaliacaoConduta).data.ativo == true;
     }
 
     // E-mail institucional (defesa em profundidade — o token do Firebase Auth não pode ser
@@ -506,8 +491,9 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------
-    // avaliacoes/{id} — Seção 11. Criar/editar passa pela fila de solicitações — só o
-    // Presidente grava de verdade. Apagar um lançamento já existente (por engano) continua
+    // avaliacoes/{id} — Seção 11. Desde 11/2026 nasce do "ok" do Presidente no fim da Avaliação
+    // de desempenho (ciclosAvaliacao, no fim deste arquivo) — só o Presidente grava. Pedidos
+    // antigos da fila de solicitações ainda podem ser aprovados. Apagar um lançamento já existente (por engano) continua
     // liberado a quem participa do tópico (DP e RH), mas nunca a própria avaliação — ver
     // lancamentoDeTerceiro() acima.
     // -------------------------------------------------------------
@@ -716,41 +702,22 @@ service cloud.firestore {
       allow delete: if operadorValido() && ehAdminOuPresidente();
     }
 
-    // -------------------------------------------------------------
-    // Avaliação de Conduta (entre colegas) — feature social/anônima, TOTALMENTE separada de
-    // avaliacoes/{id} (Seção 11) e nunca lida por calculo-shinatal.js: não afeta cota nem fundo.
-    // Presidente nunca participa (nem como avaliador, nem como avaliado). Votos são anônimos:
-    // só o autor de um voto consegue lê-lo — nem o avaliado, nem Admin/Presidente conseguem
-    // ver quem votou o quê, só a contagem agregada.
-    // -------------------------------------------------------------
-
-    // Interruptor global — só Admin/Presidente ligam/desligam a função para todo mundo.
-    match /configuracoes/avaliacaoConduta {
-      allow read: if emailVerificado();
-      allow write: if operadorValido() && ehAdminOuPresidente()
-        && request.resource.data.keys().hasOnly(['ativo', 'atualizadoEm', 'atualizadoPor'])
-        && request.resource.data.get('ativo', null) is bool
-        // Antes `atualizadoPor` vinha do cliente sem checagem — atribuição falsificável.
-        && request.resource.data.get('atualizadoPor', null) == request.auth.uid;
-    }
-
-    // Diretório mínimo usado só para montar a lista de colaboradores avaliáveis no lado do
-    // colaborador comum — existe para NÃO precisar expandir a leitura de usuarios/{uid} (que tem
-    // e-mail, carga horária, motivo de desligamento etc.) para todo mundo. Cada um sincroniza o
-    // próprio doc ao logar; Admin/Presidente também sincronizam em nome de qualquer colaborador
-    // (ao criar/editar/trocar o papel de alguém, pelo painel de gestão), pra o diretório já nascer
-    // completo, sem depender daquele colaborador logar primeiro. Sempre validado contra o
-    // usuarios/{uid} real — nunca aceita um valor inventado pelo cliente.
+    // Diretório mínimo usado só para montar a lista de colegas no lado do colaborador comum (hoje:
+    // a escolha do avaliador na Avaliação de desempenho) — existe para NÃO precisar expandir a
+    // leitura de usuarios/{uid} (que tem e-mail, carga horária, motivo de desligamento etc.) para
+    // todo mundo. Cada um sincroniza o próprio doc ao logar; Admin/Presidente também sincronizam em
+    // nome de qualquer colaborador (ao criar/editar/trocar o papel de alguém, pelo painel de
+    // gestão), pra o diretório já nascer completo, sem depender daquele colaborador logar primeiro.
+    // Sempre validado contra o usuarios/{uid} real — nunca aceita um valor inventado pelo cliente.
     //
     // MINIMIZAÇÃO: guarda `primeiroNome`, não o nome completo. Esta coleção é legível por
-    // QUALQUER usuário verificado (é o que a aba Conduta precisa), então antes o nome completo de
-    // toda a empresa estava exposto a todo colaborador. Para escolher um colega na lista de
-    // votação, primeiro nome + cargo bastam. A regra confere que o valor é derivado do nome real
-    // (split no primeiro espaço), então o cliente não pode inventar um apelido.
+    // QUALQUER usuário verificado, então o nome completo de toda a empresa ficaria exposto a todo
+    // colaborador. Para escolher um colega, primeiro nome + cargo bastam. A regra confere que o
+    // valor é derivado do nome real (split no primeiro espaço), então o cliente não pode inventar
+    // um apelido.
     //
-    // `get('cargo', null)`: antes o acesso era direto a `.cargo`, e `cargo` não está no hasAll de
-    // usuarios/{uid} — um perfil legado sem esse campo fazia a regra ERRAR, negando a sincronia,
-    // e aquela pessoa nunca aparecia na lista de conduta.
+    // `get('cargo', null)`: o acesso direto a `.cargo` fazia a regra ERRAR num perfil legado sem
+    // esse campo, negando a sincronia, e aquela pessoa nunca aparecia na lista.
     match /diretorioPublico/{uid} {
       allow read: if emailVerificado();
       allow write: if emailVerificado()
@@ -765,91 +732,280 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------
-    // Voto e contagem andam JUNTOS — é isso que amarra o agregado anônimo aos votos reais.
-    //
-    // votarConduta() (conduta-service.js) grava as duas coisas numa única transação. As regras
-    // enxergam os dois lados dela: get()/exists() devolvem o estado ANTES da transação e
-    // getAfter() o estado DEPOIS. Então dá para exigir, conceito a conceito, que a contagem mude
-    // exatamente o que o voto deste avaliador mudou:
-    //
-    //   contagem_depois[c] - contagem_antes[c] == (voto_depois == c ? 1 : 0) - (voto_antes == c ? 1 : 0)
-    //
-    // A mesma condição é cobrada nos DOIS documentos, então nenhum deles pode ser gravado sozinho.
-    //
-    // O que isso fecha (a versão anterior limitava ±1 por escrita e checava se o voto do par JÁ
-    // existia, mas não se ele passava a existir):
-    //  - inflar a contagem sem votar: bastava gravar só a contagem, nunca o voto — como o voto
-    //    seguia inexistente, o "+1" era aceito indefinidamente;
-    //  - reescrever a distribuição com pares -1/+1 (tirar 'excelente', pôr 'insatisfatorio') sem
-    //    mexer no próprio voto;
-    //  - gravar o voto sem a contagem e depois "trocar de conceito", debitando o voto de outro.
+    // Legado da antiga "Avaliação de conduta" (votos anônimos entre colegas), substituída em
+    // 11/2026 pela Avaliação de desempenho abaixo. Nada mais grava aqui. A leitura continua no
+    // mesmo escopo de antes, porque a exportação LGPD (perfil.js) ainda entrega ao titular os
+    // votos que ele deu e a contagem que recebeu.
     // -------------------------------------------------------------
-    function deltaVoto(avaliadoUid, conceito) {
-      let caminho = /databases/$(database)/documents/votosConduta/$(request.auth.uid + '_' + avaliadoUid);
-      return (getAfter(caminho).data.conceito == conceito ? 1 : 0)
-        - ((exists(caminho) && get(caminho).data.conceito == conceito) ? 1 : 0);
-    }
-    function contagemAntes(avaliadoUid, conceito) {
-      let caminho = /databases/$(database)/documents/condutaContagem/$(avaliadoUid);
-      return exists(caminho) ? get(caminho).data[conceito] : 0;
-    }
-    function contagemAcompanhaVoto(avaliadoUid) {
-      let depois = getAfter(/databases/$(database)/documents/condutaContagem/$(avaliadoUid)).data;
-      return depois.excelente - contagemAntes(avaliadoUid, 'excelente') == deltaVoto(avaliadoUid, 'excelente')
-        && depois.bom - contagemAntes(avaliadoUid, 'bom') == deltaVoto(avaliadoUid, 'bom')
-        && depois.regular - contagemAntes(avaliadoUid, 'regular') == deltaVoto(avaliadoUid, 'regular')
-        && depois.insatisfatorio - contagemAntes(avaliadoUid, 'insatisfatorio') == deltaVoto(avaliadoUid, 'insatisfatorio');
-    }
-
-    // Voto individual (1 por par avaliador→avaliado, id determinístico). Só o autor lê o
-    // próprio voto — é essa regra, e não só a UI, que garante o anonimato.
     match /votosConduta/{votoId} {
-      // `resource == null ||` primeiro: a transação de votarConduta() sempre faz um tx.get()
-      // no próprio voto ANTES de criá-lo (pra saber se está criando ou editando), e nesse
-      // primeiro voto o documento ainda não existe — sem esse curto-circuito, acessar
-      // `resource.data` num documento inexistente é erro de avaliação, e a regra nega a leitura
-      // (não só devolve "não encontrado"), o que travava TODO primeiro voto de todo mundo.
-      allow read: if emailVerificado() && (resource == null || resource.data.avaliadorUid == request.auth.uid);
-      allow create, update: if emailVerificado()
-        && avaliacaoCondutaAtiva() && podeParticiparConduta()
-        && request.resource.data.keys().hasAll(['avaliadorUid', 'avaliadoUid', 'conceito'])
-        && request.resource.data.keys().hasOnly(['avaliadorUid', 'avaliadoUid', 'conceito', 'criadoEm', 'atualizadoEm'])
-        && request.resource.data.avaliadorUid == request.auth.uid
-        && request.resource.data.avaliadoUid is string
-        && request.resource.data.avaliadoUid != request.auth.uid
-        && !ehPresidenteUid(request.resource.data.avaliadoUid)
-        && votoId == request.resource.data.avaliadorUid + '_' + request.resource.data.avaliadoUid
-        && request.resource.data.conceito in conceitosValidos()
-        && contagemAcompanhaVoto(request.resource.data.avaliadoUid);
-      allow delete: if false;
+      allow read: if emailVerificado() && resource.data.avaliadorUid == request.auth.uid;
+      allow write: if false;
     }
-
-    // Contagem agregada e anônima por pessoa avaliada — o que aparece no perfil. Leitura no
-    // mesmo escopo de quem já pode ver o perfil detalhado de alguém (PODE_VER_PERFIL() no
-    // front-end = gestorAtivo() aqui). Escrita só como metade da transação do voto (ver
-    // contagemAcompanhaVoto acima).
-    function contagemBemFormada() {
-      let d = request.resource.data;
-      // hasAll antes de qualquer leitura: num documento sem um dos quatro campos, o acesso
-      // direto seria erro de avaliação em vez de reprovação limpa. `is int` e `>= 0`: sem eles,
-      // `{excelente: 1000000, bom: -999999, regular: 0, insatisfatorio: 0}` (soma 1) passava.
-      return d.keys().hasAll(['excelente', 'bom', 'regular', 'insatisfatorio'])
-        && d.keys().hasOnly(['excelente', 'bom', 'regular', 'insatisfatorio', 'atualizadoEm'])
-        && d.excelente is int && d.excelente >= 0
-        && d.bom is int && d.bom >= 0
-        && d.regular is int && d.regular >= 0
-        && d.insatisfatorio is int && d.insatisfatorio >= 0;
-    }
-
     match /condutaContagem/{avaliadoUid} {
       allow read: if emailVerificado() && (avaliadoUid == request.auth.uid || gestorAtivo());
+      allow write: if false;
+    }
 
-      allow create, update: if emailVerificado() && avaliacaoCondutaAtiva() && podeParticiparConduta()
-        && avaliadoUid != request.auth.uid && !ehPresidenteUid(avaliadoUid)
-        && contagemBemFormada()
-        && contagemAcompanhaVoto(avaliadoUid);
+    // -------------------------------------------------------------
+    // Avaliação de desempenho (Seção 11) — processo anual com dois avaliadores.
+    //
+    //   1. O Presidente abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
+    //   2. Cada colaborador da tabela de avaliadores fixos (configuracoes/avaliadoresFixos,
+    //      gravada só pelo script backend/scripts/avaliadores-fixos.mjs) cria o PRÓPRIO ciclo
+    //      (ciclosAvaliacao/{ano}_{uid}) com o fixo da tabela e um colega que ele escolhe —
+    //      pessoa ativa que não é Presidente, RH, ele mesmo nem o próprio avaliador fixo.
+    //   3. O fixo e o escolhido respondem 5 perguntas com notas inteiras de 0 a 10 e um parecer
+    //      (respostasAvaliacao/{ano}_{avaliado}_{papel}, papel fixo|escolhido, id determinístico,
+    //      imutável). A resposta e a marcação em `ciclo.concluidas` andam juntas na mesma escrita
+    //      em lote (getAfter/existsAfter amarram uma à outra).
+    //   4. Com as duas concluídas, o avaliado lê as respostas e escreve UMA resposta endereçada
+    //      só ao Presidente (respostasAoPresidente/{ano}_{uid}). O texto fica fora do ciclo,
+    //      porque os avaliadores leem o ciclo; o ciclo guarda só `respostaEnviadaEm`.
+    //   5. O Presidente dá o "ok": grava média e conceito no ciclo e cria a avaliacoes/{id} que o
+    //      motor de cálculo já lê. A REGRA recalcula a média a partir das respostas gravadas e
+    //      confere a faixa do conceito — ninguém consegue gravar um conceito diferente da nota.
+    //
+    // Sigilo: só o Presidente lê todas as avaliações e a resposta do avaliado. O avaliado só lê
+    // as avaliações sobre ele depois que as duas foram concluídas. Cada avaliador lê a própria.
+    // -------------------------------------------------------------
+    function configAvaliacao() {
+      return get(/databases/$(database)/documents/configuracoes/avaliacaoDesempenho).data;
+    }
+    // Se a configuração nunca foi criada, get() falha e a regra nega: o processo nasce fechado
+    // até o Presidente abri-lo.
+    function cicloAberto(ano) {
+      let c = configAvaliacao();
+      return c.ativo == true && c.ano == ano;
+    }
+    // Avaliador fixo de `uid` pela tabela oficial (null se a pessoa não está nela).
+    function fixoDe(uid) {
+      return get(/databases/$(database)/documents/configuracoes/avaliadoresFixos).data.pares.get(uid, null);
+    }
+    function caminhoCiclo(ano, uid) {
+      return /databases/$(database)/documents/ciclosAvaliacao/$(string(ano) + '_' + uid);
+    }
+    function caminhoResposta(ano, uid, papelAvaliador) {
+      return /databases/$(database)/documents/respostasAvaliacao/$(string(ano) + '_' + uid + '_' + papelAvaliador);
+    }
+    function caminhoRespostaAoPresidente(ano, uid) {
+      return /databases/$(database)/documents/respostasAoPresidente/$(string(ano) + '_' + uid);
+    }
+
+    function textoPergunta(v) { return v is string && v.size() >= 3 && v.size() <= 300; }
+    function perguntasValidas(p) {
+      return p is list && p.size() == 5
+        && textoPergunta(p[0]) && textoPergunta(p[1]) && textoPergunta(p[2])
+        && textoPergunta(p[3]) && textoPergunta(p[4]);
+    }
+    function notaValida(v) { return v is int && v >= 0 && v <= 10; }
+    function notasValidas(n) {
+      return n is list && n.size() == 5
+        && notaValida(n[0]) && notaValida(n[1]) && notaValida(n[2])
+        && notaValida(n[3]) && notaValida(n[4]);
+    }
+    function somaNotas(n) { return n[0] + n[1] + n[2] + n[3] + n[4]; }
+
+    // Mesmas faixas de conceitoPorMedia() em frontend/js/avaliacao-calculo.js.
+    function conceitoDaMedia(m) {
+      return m >= 9 ? 'excelente' : m >= 7 ? 'bom' : m >= 5 ? 'regular' : 'insatisfatorio';
+    }
+
+    // Média das 10 notas (2 avaliações × 5), arredondada a 1 casa — a mesma conta de
+    // calcularMedia() no cliente.
+    function mediaConfere(c, media) {
+      let f = get(caminhoResposta(c.ano, c.uid, 'fixo')).data.notas;
+      let e = get(caminhoResposta(c.ano, c.uid, 'escolhido')).data.notas;
+      let esperada = math.round((somaNotas(f) + somaNotas(e)) * 10.0 / 10) / 10.0;
+      return media is number && math.abs(media - esperada) < 0.001;
+    }
+
+    function avaliacoesConcluidas(c) {
+      return c.concluidas.fixo == true && c.concluidas.escolhido == true;
+    }
+
+    // O papel com que quem está logado avalia o ciclo `c` (ou null). Sem ambiguidade: o colega
+    // escolhido nunca é o avaliador fixo (escolhidoPermitido).
+    function papelDoAvaliador(c) {
+      return request.auth.uid == c.avaliadorFixoUid ? 'fixo'
+        : request.auth.uid == c.avaliadorEscolhidoUid ? 'escolhido'
+        : null;
+    }
+
+    // Colega escolhido: pessoa ativa, que não é Presidente, nem RH, nem o próprio avaliado,
+    // nem o avaliador fixo dele.
+    function escolhidoPermitido(escolhidoUid, avaliadoUid, fixoUid) {
+      let p = perfilDe(escolhidoUid);
+      return escolhidoUid is string && escolhidoUid != avaliadoUid && escolhidoUid != fixoUid
+        && !(p.get('role', 'colaborador') in ['presidente', 'rh'])
+        && p.get('status', 'ativo') == 'ativo'
+        && p.get('motivoPerdaIntegral', null) == null;
+    }
+
+    // Só a marcação do próprio papel muda, de false para true, e só se a resposta correspondente
+    // passa a existir na mesma escrita.
+    function soMarcaPapel(papelAvaliador) {
+      let antes = resource.data.concluidas;
+      let depois = request.resource.data.concluidas;
+      return depois.keys().hasOnly(['fixo', 'escolhido'])
+        && antes[papelAvaliador] == false && depois[papelAvaliador] == true
+        && (papelAvaliador == 'fixo' || depois.fixo == antes.fixo)
+        && (papelAvaliador == 'escolhido' || depois.escolhido == antes.escolhido)
+        && existsAfter(caminhoResposta(resource.data.ano, resource.data.uid, papelAvaliador));
+    }
+
+    function camposCiclo() {
+      return ['uid', 'ano', 'avaliadorFixoUid', 'avaliadorEscolhidoUid', 'concluidas', 'respostaEnviadaEm',
+              'okPresidenteEm', 'media', 'conceito', 'criadoEm', 'atualizadoEm'];
+    }
+
+    // Configuração do processo. O Presidente abre/fecha o ciclo e escolhe o ano; o Admin só edita
+    // o texto das perguntas (e, se for o primeiro a gravar, cria a configuração fechada).
+    match /configuracoes/avaliacaoDesempenho {
+      allow read: if emailVerificado();
+      allow create, update: if operadorValido() && ehAdminOuPresidente()
+        && request.resource.data.keys().hasAll(['ativo', 'ano', 'perguntas', 'atualizadoPor', 'atualizadoEm'])
+        && request.resource.data.keys().hasOnly(['ativo', 'ano', 'perguntas', 'atualizadoPor', 'atualizadoEm'])
+        && request.resource.data.ativo is bool
+        && request.resource.data.ano is int
+        && request.resource.data.ano >= request.time.year() - 1
+        && request.resource.data.ano <= request.time.year() + 1
+        && perguntasValidas(request.resource.data.perguntas)
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.atualizadoEm == request.time
+        && (ehPresidente()
+            || (resource == null && request.resource.data.ativo == false)
+            || (resource != null && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['perguntas', 'atualizadoPor', 'atualizadoEm'])));
+      allow delete: if false;
+    }
+
+    // Tabela oficial avaliado → avaliador fixo. Fica no código (backend/scripts/avaliadores-fixos.mjs),
+    // que a grava com o Admin SDK; nenhum cliente altera.
+    match /configuracoes/avaliadoresFixos {
+      allow read: if emailVerificado();
+      allow write: if false;
+    }
+
+    match /ciclosAvaliacao/{cicloId} {
+      // Ler o próprio ciclo antes de ele existir (o listener da página) não pode virar erro.
+      allow read: if emailVerificado() && (
+        resource == null
+          ? cicloId.matches('^[0-9]{4}_' + request.auth.uid + '$')
+          : (resource.data.uid == request.auth.uid
+              || resource.data.avaliadorFixoUid == request.auth.uid
+              || resource.data.avaliadorEscolhidoUid == request.auth.uid
+              || (ehPresidente() && estaAtivo()))
+      );
+
+      allow create: if operadorValido()
+        && request.resource.data.keys().hasAll(camposCiclo())
+        && request.resource.data.keys().hasOnly(camposCiclo())
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.ano is int
+        && cicloId == string(request.resource.data.ano) + '_' + request.auth.uid
+        && cicloAberto(request.resource.data.ano)
+        && fixoDe(request.auth.uid) != null
+        && request.resource.data.avaliadorFixoUid == fixoDe(request.auth.uid)
+        && escolhidoPermitido(request.resource.data.avaliadorEscolhidoUid, request.auth.uid, fixoDe(request.auth.uid))
+        && request.resource.data.concluidas == {'fixo': false, 'escolhido': false}
+        && request.resource.data.respostaEnviadaEm == null
+        && request.resource.data.okPresidenteEm == null
+        && request.resource.data.media == null
+        && request.resource.data.conceito == null
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
+
+      allow update: if operadorValido()
+        && request.resource.data.atualizadoEm == request.time
+        && (
+          // 1. O avaliado troca o colega escolhido enquanto ele ainda não avaliou.
+          (request.auth.uid == resource.data.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadorEscolhidoUid', 'atualizadoEm'])
+            && resource.data.concluidas.escolhido == false
+            && cicloAberto(resource.data.ano)
+            && escolhidoPermitido(request.resource.data.avaliadorEscolhidoUid, resource.data.uid, resource.data.avaliadorFixoUid))
+          ||
+          // 2. Um avaliador marca a PRÓPRIA avaliação como concluída, junto com a resposta.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['concluidas', 'atualizadoEm'])
+            && papelDoAvaliador(resource.data) != null
+            && soMarcaPapel(papelDoAvaliador(resource.data)))
+          ||
+          // 3. O avaliado envia (uma vez) a resposta ao Presidente, depois das duas avaliações.
+          (request.auth.uid == resource.data.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['respostaEnviadaEm', 'atualizadoEm'])
+            && resource.data.respostaEnviadaEm == null
+            && avaliacoesConcluidas(resource.data)
+            && request.resource.data.respostaEnviadaEm == request.time
+            && existsAfter(caminhoRespostaAoPresidente(resource.data.ano, resource.data.uid)))
+          ||
+          // 4. "Ok" do Presidente: média recalculada aqui e conceito conferido pela faixa.
+          (ehPresidente()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['okPresidenteEm', 'media', 'conceito', 'atualizadoEm'])
+            && resource.data.respostaEnviadaEm != null
+            && resource.data.okPresidenteEm == null
+            && request.resource.data.okPresidenteEm == request.time
+            && mediaConfere(resource.data, request.resource.data.media)
+            && request.resource.data.conceito == conceitoDaMedia(request.resource.data.media))
+        );
 
       allow delete: if false;
+    }
+
+    function respostaValida(respostaId) {
+      let d = request.resource.data;
+      let ciclo = get(caminhoCiclo(d.ano, d.avaliadoUid)).data;
+      return d.keys().hasAll(['ano', 'avaliadoUid', 'avaliadorUid', 'papel', 'perguntas', 'notas', 'comentario', 'criadoEm'])
+        && d.keys().hasOnly(['ano', 'avaliadoUid', 'avaliadorUid', 'papel', 'perguntas', 'notas', 'comentario', 'criadoEm'])
+        && d.avaliadorUid == request.auth.uid
+        && d.ano is int
+        && d.avaliadoUid is string
+        && d.avaliadoUid != request.auth.uid
+        && d.papel in ['fixo', 'escolhido']
+        && respostaId == string(d.ano) + '_' + d.avaliadoUid + '_' + d.papel
+        && cicloAberto(d.ano)
+        && d.papel == papelDoAvaliador(ciclo)
+        && getAfter(caminhoCiclo(d.ano, d.avaliadoUid)).data.concluidas[d.papel] == true
+        && perguntasValidas(d.perguntas)
+        && notasValidas(d.notas)
+        // Parecer do avaliador: obrigatório para os dois papéis.
+        && d.comentario is string
+        && d.comentario.size() >= 20
+        && d.comentario.size() <= 2000
+        && d.criadoEm == request.time;
+    }
+
+    match /respostasAvaliacao/{respostaId} {
+      allow read: if emailVerificado() && (
+        resource.data.avaliadorUid == request.auth.uid
+        || (ehPresidente() && estaAtivo())
+        || (resource.data.avaliadoUid == request.auth.uid
+            && avaliacoesConcluidas(get(caminhoCiclo(resource.data.ano, resource.data.avaliadoUid)).data))
+      );
+      allow create: if operadorValido() && respostaValida(respostaId);
+      allow update, delete: if false;
+    }
+
+    // Resposta do avaliado, endereçada só ao Presidente. Nem o avaliador fixo nem o colega
+    // escolhido leem (quando o fixo é o Presidente, ele lê por ser o Presidente).
+    match /respostasAoPresidente/{respostaId} {
+      allow read: if emailVerificado() && (
+        resource == null
+          ? respostaId.matches('^[0-9]{4}_' + request.auth.uid + '$')
+          : (resource.data.uid == request.auth.uid || (ehPresidente() && estaAtivo()))
+      );
+      allow create: if operadorValido()
+        && request.resource.data.keys().hasAll(['uid', 'ano', 'texto', 'criadoEm'])
+        && request.resource.data.keys().hasOnly(['uid', 'ano', 'texto', 'criadoEm'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.ano is int
+        && respostaId == string(request.resource.data.ano) + '_' + request.auth.uid
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() >= 1
+        && request.resource.data.texto.size() <= 2000
+        && request.resource.data.criadoEm == request.time
+        && avaliacoesConcluidas(get(caminhoCiclo(request.resource.data.ano, request.auth.uid)).data)
+        && getAfter(caminhoCiclo(request.resource.data.ano, request.auth.uid)).data.respostaEnviadaEm == request.time;
+      allow update, delete: if false;
     }
   }
 }

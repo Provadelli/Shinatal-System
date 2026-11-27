@@ -7,7 +7,7 @@
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-14f5f3ec3d.woff2" crossorigin />
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-a059654803.woff2" crossorigin />
 <link rel="stylesheet" href="css/fontes.css" />
 <!-- fontes:fim -->
 <link rel="stylesheet" href="/css/tailwind.css" />
@@ -45,7 +45,7 @@
       <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Contratos</a>
       <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Atividade</a>
       <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
-      <a href="/conduta" data-item="conduta" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Conduta</a>
+      <a href="/avaliacao" data-item="avaliacao" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Avaliação<span data-contador-avaliacao class="nav-contador" hidden>0</span></a>
       <a href="/regulamento" data-item="regulamento" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Regulamento</a>
     </nav>
 
@@ -73,7 +73,7 @@
     <a href="/contratos" data-item="contratos" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">apartment</span>Contratos</a>
     <a href="/atividade" data-item="atividade" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">history</span>Atividade</a>
     <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente"><span class="material-symbols-outlined" aria-hidden="true">inbox</span>Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
-    <a href="/conduta" data-item="conduta"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span>Conduta</a>
+    <a href="/avaliacao" data-item="avaliacao"><span class="material-symbols-outlined" aria-hidden="true">grading</span>Avaliação de desempenho<span data-contador-avaliacao class="nav-contador" hidden>0</span></a>
     <a href="/regulamento" data-item="regulamento"><span class="material-symbols-outlined" aria-hidden="true">gavel</span>Regulamento</a>
     <a href="/perfil" data-item="perfil"><span class="material-symbols-outlined" aria-hidden="true">person</span>Meu perfil</a>
     <button type="button" data-sair class="menu-sistema-sair"><span class="material-symbols-outlined" aria-hidden="true">logout</span>Sair da conta</button>
@@ -88,7 +88,7 @@
   <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">apartment</span><span>Contratos</span></a>
   <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">history</span><span>Atividade</span></a>
   <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">inbox</span><span>Pedidos</span><span data-contador-solicitacoes class="nav-contador dock-contador" hidden>0</span></a>
-  <a href="/conduta" data-item="conduta" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span><span>Conduta</span></a>
+  <a href="/avaliacao" data-item="avaliacao" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">grading</span><span>Avaliação</span><span data-contador-avaliacao class="nav-contador dock-contador" hidden>0</span></a>
   <a href="/regulamento" data-item="regulamento" data-papeis="colaborador dp rh" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">gavel</span><span>Regras</span></a>
 </nav>
 <!-- cabecalho:fim -->
@@ -133,9 +133,6 @@
         </button>
         <button data-nova-acao="advertencia" data-roles="dp,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-error-container hover:text-on-error-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-error">
           <span class="material-symbols-outlined text-2xl" aria-hidden="true">warning</span><span class="font-body text-label-sm text-center">Advertência</span>
-        </button>
-        <button data-nova-acao="avaliacao" data-roles="dp,rh,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-secondary-container hover:text-on-secondary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-secondary">
-          <span class="material-symbols-outlined text-2xl" aria-hidden="true">rate_review</span><span class="font-body text-label-sm text-center">Avaliação</span>
         </button>
         <button data-nova-acao="ativar_contrato" data-roles="rh,admin,presidente" class="acao-rapida bg-surface-container-highest hover:bg-primary-container hover:text-on-primary-container transition-colors p-4 rounded-lg flex flex-col items-center gap-2 border border-outline-variant hover:border-primary">
           <span class="material-symbols-outlined text-2xl" aria-hidden="true">contract</span><span class="font-body text-label-sm text-center">Ativar contrato</span>
@@ -343,7 +340,6 @@
           <option value="falta" data-roles="dp,admin,presidente">Lançar falta</option>
           <option value="atraso" data-roles="dp,admin,presidente">Lançar atraso</option>
           <option value="advertencia" data-roles="dp,admin,presidente">Advertência</option>
-          <option value="avaliacao" data-roles="dp,rh,admin,presidente">Avaliação de desempenho</option>
           <option value="ativar_contrato" data-roles="rh,admin,presidente">Ativar contrato</option>
           <option value="encerrar_contrato" data-roles="rh,admin,presidente">Encerrar contrato</option>
           <option value="alterar_status_colaborador" data-roles="rh,admin,presidente">Alterar status do colaborador</option>
@@ -408,21 +404,6 @@
           <option value="suspensao2">2ª suspensão (50%)</option>
           <option value="suspensao3">3ª suspensão (perda integral)</option>
         </select>
-      </div>
-      <div data-campo="avaliacao" class="hidden grid grid-cols-2 gap-3">
-        <div>
-          <label for="acao-avaliacao-data" class="label-shinatal">Data</label>
-          <input id="acao-avaliacao-data" class="input-shinatal !pl-3" type="date" />
-        </div>
-        <div>
-          <label for="acao-conceito" class="label-shinatal">Conceito</label>
-          <select id="acao-conceito" class="input-shinatal !pl-3">
-            <option value="excelente">Excelente (+2%)</option>
-            <option value="bom">Bom (0%)</option>
-            <option value="regular">Regular (−5%)</option>
-            <option value="insatisfatorio">Insatisfatório (−15%)</option>
-          </select>
-        </div>
       </div>
       <div data-campo="role" class="hidden">
         <label for="acao-role" class="label-shinatal">Novo papel</label>

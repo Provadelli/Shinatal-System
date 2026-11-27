@@ -43,7 +43,7 @@ async function principal() {
 
   if (uid) {
     // Além do perfil: o cadastro em espera (nome, e-mail, foto — dado pessoal) e a entrada no
-    // diretório de conduta, que também ficariam para trás.
+    // diretório de colegas (escolha na avaliação de desempenho), que também ficariam para trás.
     for (const colecao of ["usuarios", "cadastrosPendentes", "diretorioPublico"]) {
       const doc = admin.firestore().collection(colecao).doc(uid);
       if ((await doc.get()).exists) {

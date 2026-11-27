@@ -51,6 +51,27 @@ export function montarCabecalho(perfil, papel, painel, sair) {
     }, () => {});
   }
 
+  agendarContadorAvaliacao(perfil.uid, papel);
+
   sincronizarAlturaHeader();
   document.dispatchEvent(new CustomEvent("shinatal:pronto"));
+}
+
+/**
+ * Contador do item "Avaliação" na navegação: quantas avaliações a pessoa tem para fazer (e, para o
+ * Presidente, quantos pareceres esperam o ok). Carregado só quando o navegador fica ocioso, para
+ * não disputar a primeira pintura de nenhuma página.
+ */
+function agendarContadorAvaliacao(uid, papel) {
+  if (!document.querySelector("[data-contador-avaliacao]")) return;
+  const iniciar = () => import("./avaliacao-service.js").then(({ assinarPendencias }) => {
+    assinarPendencias(papel, uid, (pendencias) => {
+      document.querySelectorAll("[data-contador-avaliacao]").forEach((b) => {
+        b.textContent = String(pendencias.length);
+        b.hidden = pendencias.length === 0;
+      });
+    });
+  }).catch((erro) => console.error("[Shinatal] Falha ao carregar as pendências de avaliação:", erro));
+  if ("requestIdleCallback" in window) requestIdleCallback(iniciar, { timeout: 3000 });
+  else setTimeout(iniciar, 1200);
 }

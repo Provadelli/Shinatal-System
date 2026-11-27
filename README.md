@@ -68,7 +68,7 @@ Todo valor é **recalculado a partir das datas**. Nada em reais fica gravado por
 - Painel com o Fundo Shinatal do ano e a cota estimada
 - Simulador do impacto de faltas, atrasos e advertências
 - Perfil com histórico e download dos próprios dados (LGPD)
-- Avaliação de conduta entre colegas, anônima
+- Avaliação de desempenho: avaliador fixo + colega escolhido, com resposta ao Presidente
 - Regulamento sempre à mão
 
 </td>

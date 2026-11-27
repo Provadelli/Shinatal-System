@@ -18,7 +18,9 @@ import { fileURLToPath } from "node:url";
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "frontend");
 const PASTA_FONTES = path.join(FRONT, "assets", "fonts");
 const html = readdirSync(FRONT).filter((f) => f.endsWith(".html"));
-const js = readdirSync(path.join(FRONT, "js")).filter((f) => f.endsWith(".js")).map((f) => path.join("js", f));
+// js/ e js/paginas/ (os módulos de página também montam ícones em templates).
+const js = ["js", path.join("js", "paginas")].flatMap((pasta) =>
+  readdirSync(path.join(FRONT, pasta)).filter((f) => f.endsWith(".js")).map((f) => path.join(pasta, f)));
 const ler = (f) => readFileSync(path.join(FRONT, f), "utf8");
 
 /* ---------- 1. Quais ícones o site usa ---------- */
