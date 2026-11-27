@@ -1,5 +1,10 @@
 # Avaliação de desempenho Shinatal — plano
 
+> **Situação (27/11/2026): implementado na branch `feat/avaliacao-desempenho`.** Regras, serviço, página,
+> script da tabela de fixos e testes já seguem as revisões 1 a 3. Testes das regras (emulador) e de
+> cálculo passando; build sem erros. Falta: rodar o script da tabela em produção, publicar as regras e
+> testar o fluxo completo com contas reais. A seção "O que muda no WIP" abaixo é histórica.
+
 > **Revisão 3 (27/11/2026).** A resposta do avaliado vai apenas para o Presidente: os avaliadores não a leem.
 >
 > **Revisão 2 (27/11/2026).** O colega escolhido também escreve um parecer, obrigatório como o do avaliador fixo.
@@ -120,7 +125,7 @@ A média final vira o conceito que o motor de cálculo já usa.
   - tirar `dispensarRH`.
 - **`frontend/js/paginas/avaliacao.js`**: textos e etapas, mostrar o avaliador fixo, filtrar o seletor de colegas e as colunas novas no painel.
 - **Testes**:
-  - reescrever `docs/planos/avaliacao-desempenho/rascunho-testes-regras.mjs` para o novo esquema, cobrindo:
+  - reescrever os testes das regras (hoje em `backend/tests/rules/firestore-rules.test.mjs`) para o novo esquema, cobrindo:
     - fixo errado na criação;
     - escolher o próprio avaliador fixo;
     - fixo = Presidente;

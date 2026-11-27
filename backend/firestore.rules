@@ -747,23 +747,26 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------
-    // Avaliação de desempenho (Seção 11) — processo anual com três avaliadores.
+    // Avaliação de desempenho (Seção 11) — processo anual com dois avaliadores.
     //
     //   1. O Presidente abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
-    //   2. Cada colaborador cria o PRÓPRIO ciclo (ciclosAvaliacao/{ano}_{uid}) escolhendo um
-    //      colega para avaliá-lo — qualquer pessoa ativa, menos o Presidente, o RH e ele mesmo.
-    //   3. Presidente, RH e o colega escolhido respondem 5 perguntas com notas inteiras de 0 a 10
-    //      (respostasAvaliacao/{ano}_{avaliado}_{papel}, id determinístico, imutável). Comentário
-    //      obrigatório para Presidente e RH. A resposta e a marcação em `ciclo.concluidas` andam
-    //      juntas na mesma escrita em lote (getAfter/existsAfter amarram uma à outra).
-    //   4. Com as três concluídas, o avaliado lê as respostas e escreve um parecer (uma vez).
+    //   2. Cada colaborador da tabela de avaliadores fixos (configuracoes/avaliadoresFixos,
+    //      gravada só pelo script backend/scripts/avaliadores-fixos.mjs) cria o PRÓPRIO ciclo
+    //      (ciclosAvaliacao/{ano}_{uid}) com o fixo da tabela e um colega que ele escolhe —
+    //      pessoa ativa que não é Presidente, RH, ele mesmo nem o próprio avaliador fixo.
+    //   3. O fixo e o escolhido respondem 5 perguntas com notas inteiras de 0 a 10 e um parecer
+    //      (respostasAvaliacao/{ano}_{avaliado}_{papel}, papel fixo|escolhido, id determinístico,
+    //      imutável). A resposta e a marcação em `ciclo.concluidas` andam juntas na mesma escrita
+    //      em lote (getAfter/existsAfter amarram uma à outra).
+    //   4. Com as duas concluídas, o avaliado lê as respostas e escreve UMA resposta endereçada
+    //      só ao Presidente (respostasAoPresidente/{ano}_{uid}). O texto fica fora do ciclo,
+    //      porque os avaliadores leem o ciclo; o ciclo guarda só `respostaEnviadaEm`.
     //   5. O Presidente dá o "ok": grava média e conceito no ciclo e cria a avaliacoes/{id} que o
     //      motor de cálculo já lê. A REGRA recalcula a média a partir das respostas gravadas e
     //      confere a faixa do conceito — ninguém consegue gravar um conceito diferente da nota.
     //
-    // Sigilo: só o Presidente lê todas as respostas. O avaliado só lê as respostas sobre ele
-    // depois que as três avaliações foram concluídas. Cada avaliador lê a própria. O RH não lê a
-    // resposta de outro avaliador.
+    // Sigilo: só o Presidente lê todas as avaliações e a resposta do avaliado. O avaliado só lê
+    // as avaliações sobre ele depois que as duas foram concluídas. Cada avaliador lê a própria.
     // -------------------------------------------------------------
     function configAvaliacao() {
       return get(/databases/$(database)/documents/configuracoes/avaliacaoDesempenho).data;
@@ -774,11 +777,18 @@ service cloud.firestore {
       let c = configAvaliacao();
       return c.ativo == true && c.ano == ano;
     }
+    // Avaliador fixo de `uid` pela tabela oficial (null se a pessoa não está nela).
+    function fixoDe(uid) {
+      return get(/databases/$(database)/documents/configuracoes/avaliadoresFixos).data.pares.get(uid, null);
+    }
     function caminhoCiclo(ano, uid) {
       return /databases/$(database)/documents/ciclosAvaliacao/$(string(ano) + '_' + uid);
     }
     function caminhoResposta(ano, uid, papelAvaliador) {
       return /databases/$(database)/documents/respostasAvaliacao/$(string(ano) + '_' + uid + '_' + papelAvaliador);
+    }
+    function caminhoRespostaAoPresidente(ano, uid) {
+      return /databases/$(database)/documents/respostasAoPresidente/$(string(ano) + '_' + uid);
     }
 
     function textoPergunta(v) { return v is string && v.size() >= 3 && v.size() <= 300; }
@@ -795,40 +805,37 @@ service cloud.firestore {
     }
     function somaNotas(n) { return n[0] + n[1] + n[2] + n[3] + n[4]; }
 
-    // Mesmas faixas de conceitoPorMedia() em frontend/js/avaliacao-service.js.
+    // Mesmas faixas de conceitoPorMedia() em frontend/js/avaliacao-calculo.js.
     function conceitoDaMedia(m) {
       return m >= 9 ? 'excelente' : m >= 7 ? 'bom' : m >= 5 ? 'regular' : 'insatisfatorio';
     }
 
-    // Média de todas as notas (5 por avaliação), arredondada a 1 casa — a mesma conta de
-    // calcularMedia() no cliente. Com o RH dispensado, entram só 2 avaliações (10 notas).
+    // Média das 10 notas (2 avaliações × 5), arredondada a 1 casa — a mesma conta de
+    // calcularMedia() no cliente.
     function mediaConfere(c, media) {
-      let p = get(caminhoResposta(c.ano, c.uid, 'presidente')).data.notas;
-      let a = get(caminhoResposta(c.ano, c.uid, 'par')).data.notas;
-      let somaRh = c.rhDispensado ? 0 : somaNotas(get(caminhoResposta(c.ano, c.uid, 'rh')).data.notas);
-      let quantidade = c.rhDispensado ? 10 : 15;
-      let esperada = math.round((somaNotas(p) + somaNotas(a) + somaRh) * 10.0 / quantidade) / 10.0;
+      let f = get(caminhoResposta(c.ano, c.uid, 'fixo')).data.notas;
+      let e = get(caminhoResposta(c.ano, c.uid, 'escolhido')).data.notas;
+      let esperada = math.round((somaNotas(f) + somaNotas(e)) * 10.0 / 10) / 10.0;
       return media is number && math.abs(media - esperada) < 0.001;
     }
 
     function avaliacoesConcluidas(c) {
-      return c.concluidas.presidente == true && c.concluidas.par == true
-        && (c.concluidas.rh == true || c.rhDispensado == true);
+      return c.concluidas.fixo == true && c.concluidas.escolhido == true;
     }
 
     // O papel com que quem está logado avalia o ciclo `c` (ou null). Sem ambiguidade: o colega
-    // escolhido nunca é Presidente nem RH (avaliadorPermitido), e o RH não avalia a si mesmo.
+    // escolhido nunca é o avaliador fixo (escolhidoPermitido).
     function papelDoAvaliador(c) {
-      return ehPresidente() ? 'presidente'
-        : (papel() == 'rh' && request.auth.uid != c.uid) ? 'rh'
-        : request.auth.uid == c.avaliadorUid ? 'par'
+      return request.auth.uid == c.avaliadorFixoUid ? 'fixo'
+        : request.auth.uid == c.avaliadorEscolhidoUid ? 'escolhido'
         : null;
     }
 
-    // Colega escolhido: pessoa ativa, que não é Presidente, nem RH, nem o próprio avaliado.
-    function avaliadorPermitido(avaliadorUid, avaliadoUid) {
-      let p = perfilDe(avaliadorUid);
-      return avaliadorUid is string && avaliadorUid != avaliadoUid
+    // Colega escolhido: pessoa ativa, que não é Presidente, nem RH, nem o próprio avaliado,
+    // nem o avaliador fixo dele.
+    function escolhidoPermitido(escolhidoUid, avaliadoUid, fixoUid) {
+      let p = perfilDe(escolhidoUid);
+      return escolhidoUid is string && escolhidoUid != avaliadoUid && escolhidoUid != fixoUid
         && !(p.get('role', 'colaborador') in ['presidente', 'rh'])
         && p.get('status', 'ativo') == 'ativo'
         && p.get('motivoPerdaIntegral', null) == null;
@@ -839,16 +846,15 @@ service cloud.firestore {
     function soMarcaPapel(papelAvaliador) {
       let antes = resource.data.concluidas;
       let depois = request.resource.data.concluidas;
-      return depois.keys().hasOnly(['presidente', 'rh', 'par'])
+      return depois.keys().hasOnly(['fixo', 'escolhido'])
         && antes[papelAvaliador] == false && depois[papelAvaliador] == true
-        && (papelAvaliador == 'presidente' || depois.presidente == antes.presidente)
-        && (papelAvaliador == 'rh' || depois.rh == antes.rh)
-        && (papelAvaliador == 'par' || depois.par == antes.par)
+        && (papelAvaliador == 'fixo' || depois.fixo == antes.fixo)
+        && (papelAvaliador == 'escolhido' || depois.escolhido == antes.escolhido)
         && existsAfter(caminhoResposta(resource.data.ano, resource.data.uid, papelAvaliador));
     }
 
     function camposCiclo() {
-      return ['uid', 'ano', 'avaliadorUid', 'concluidas', 'rhDispensado', 'parecer', 'parecerEm',
+      return ['uid', 'ano', 'avaliadorFixoUid', 'avaliadorEscolhidoUid', 'concluidas', 'respostaEnviadaEm',
               'okPresidenteEm', 'media', 'conceito', 'criadoEm', 'atualizadoEm'];
     }
 
@@ -873,29 +879,36 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Tabela oficial avaliado → avaliador fixo. Fica no código (backend/scripts/avaliadores-fixos.mjs),
+    // que a grava com o Admin SDK; nenhum cliente altera.
+    match /configuracoes/avaliadoresFixos {
+      allow read: if emailVerificado();
+      allow write: if false;
+    }
+
     match /ciclosAvaliacao/{cicloId} {
       // Ler o próprio ciclo antes de ele existir (o listener da página) não pode virar erro.
       allow read: if emailVerificado() && (
         resource == null
           ? cicloId.matches('^[0-9]{4}_' + request.auth.uid + '$')
           : (resource.data.uid == request.auth.uid
-              || resource.data.avaliadorUid == request.auth.uid
-              || (papel() in ['presidente', 'rh'] && estaAtivo()))
+              || resource.data.avaliadorFixoUid == request.auth.uid
+              || resource.data.avaliadorEscolhidoUid == request.auth.uid
+              || (ehPresidente() && estaAtivo()))
       );
 
       allow create: if operadorValido()
-        && papel() != 'presidente'
         && request.resource.data.keys().hasAll(camposCiclo())
         && request.resource.data.keys().hasOnly(camposCiclo())
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.ano is int
         && cicloId == string(request.resource.data.ano) + '_' + request.auth.uid
         && cicloAberto(request.resource.data.ano)
-        && avaliadorPermitido(request.resource.data.avaliadorUid, request.auth.uid)
-        && request.resource.data.concluidas == {'presidente': false, 'rh': false, 'par': false}
-        && request.resource.data.rhDispensado == false
-        && request.resource.data.parecer == null
-        && request.resource.data.parecerEm == null
+        && fixoDe(request.auth.uid) != null
+        && request.resource.data.avaliadorFixoUid == fixoDe(request.auth.uid)
+        && escolhidoPermitido(request.resource.data.avaliadorEscolhidoUid, request.auth.uid, fixoDe(request.auth.uid))
+        && request.resource.data.concluidas == {'fixo': false, 'escolhido': false}
+        && request.resource.data.respostaEnviadaEm == null
         && request.resource.data.okPresidenteEm == null
         && request.resource.data.media == null
         && request.resource.data.conceito == null
@@ -907,37 +920,28 @@ service cloud.firestore {
         && (
           // 1. O avaliado troca o colega escolhido enquanto ele ainda não avaliou.
           (request.auth.uid == resource.data.uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadorUid', 'atualizadoEm'])
-            && resource.data.concluidas.par == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avaliadorEscolhidoUid', 'atualizadoEm'])
+            && resource.data.concluidas.escolhido == false
             && cicloAberto(resource.data.ano)
-            && avaliadorPermitido(request.resource.data.avaliadorUid, resource.data.uid))
+            && escolhidoPermitido(request.resource.data.avaliadorEscolhidoUid, resource.data.uid, resource.data.avaliadorFixoUid))
           ||
           // 2. Um avaliador marca a PRÓPRIA avaliação como concluída, junto com a resposta.
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['concluidas', 'atualizadoEm'])
             && papelDoAvaliador(resource.data) != null
             && soMarcaPapel(papelDoAvaliador(resource.data)))
           ||
-          // 3. O Presidente dispensa a etapa do RH quando o avaliado é do RH e não há outro.
-          (ehPresidente()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rhDispensado', 'atualizadoEm'])
-            && request.resource.data.rhDispensado == true
-            && resource.data.concluidas.rh == false
-            && perfilDe(resource.data.uid).role == 'rh')
-          ||
-          // 4. O avaliado responde (uma vez) depois das três avaliações.
+          // 3. O avaliado envia (uma vez) a resposta ao Presidente, depois das duas avaliações.
           (request.auth.uid == resource.data.uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parecer', 'parecerEm', 'atualizadoEm'])
-            && resource.data.parecer == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['respostaEnviadaEm', 'atualizadoEm'])
+            && resource.data.respostaEnviadaEm == null
             && avaliacoesConcluidas(resource.data)
-            && request.resource.data.parecer is string
-            && request.resource.data.parecer.size() >= 1
-            && request.resource.data.parecer.size() <= 2000
-            && request.resource.data.parecerEm == request.time)
+            && request.resource.data.respostaEnviadaEm == request.time
+            && existsAfter(caminhoRespostaAoPresidente(resource.data.ano, resource.data.uid)))
           ||
-          // 5. "Ok" do Presidente: média recalculada aqui e conceito conferido pela faixa.
+          // 4. "Ok" do Presidente: média recalculada aqui e conceito conferido pela faixa.
           (ehPresidente()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['okPresidenteEm', 'media', 'conceito', 'atualizadoEm'])
-            && resource.data.parecer != null
+            && resource.data.respostaEnviadaEm != null
             && resource.data.okPresidenteEm == null
             && request.resource.data.okPresidenteEm == request.time
             && mediaConfere(resource.data, request.resource.data.media)
@@ -956,17 +960,17 @@ service cloud.firestore {
         && d.ano is int
         && d.avaliadoUid is string
         && d.avaliadoUid != request.auth.uid
-        && d.papel in ['presidente', 'rh', 'par']
+        && d.papel in ['fixo', 'escolhido']
         && respostaId == string(d.ano) + '_' + d.avaliadoUid + '_' + d.papel
         && cicloAberto(d.ano)
         && d.papel == papelDoAvaliador(ciclo)
-        && (d.papel != 'rh' || ciclo.rhDispensado == false)
         && getAfter(caminhoCiclo(d.ano, d.avaliadoUid)).data.concluidas[d.papel] == true
         && perguntasValidas(d.perguntas)
         && notasValidas(d.notas)
+        // Parecer do avaliador: obrigatório para os dois papéis.
         && d.comentario is string
+        && d.comentario.size() >= 20
         && d.comentario.size() <= 2000
-        && (d.papel == 'par' || d.comentario.size() >= 20)
         && d.criadoEm == request.time;
     }
 
@@ -978,6 +982,29 @@ service cloud.firestore {
             && avaliacoesConcluidas(get(caminhoCiclo(resource.data.ano, resource.data.avaliadoUid)).data))
       );
       allow create: if operadorValido() && respostaValida(respostaId);
+      allow update, delete: if false;
+    }
+
+    // Resposta do avaliado, endereçada só ao Presidente. Nem o avaliador fixo nem o colega
+    // escolhido leem (quando o fixo é o Presidente, ele lê por ser o Presidente).
+    match /respostasAoPresidente/{respostaId} {
+      allow read: if emailVerificado() && (
+        resource == null
+          ? respostaId.matches('^[0-9]{4}_' + request.auth.uid + '$')
+          : (resource.data.uid == request.auth.uid || (ehPresidente() && estaAtivo()))
+      );
+      allow create: if operadorValido()
+        && request.resource.data.keys().hasAll(['uid', 'ano', 'texto', 'criadoEm'])
+        && request.resource.data.keys().hasOnly(['uid', 'ano', 'texto', 'criadoEm'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.ano is int
+        && respostaId == string(request.resource.data.ano) + '_' + request.auth.uid
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() >= 1
+        && request.resource.data.texto.size() <= 2000
+        && request.resource.data.criadoEm == request.time
+        && avaliacoesConcluidas(get(caminhoCiclo(request.resource.data.ano, request.auth.uid)).data)
+        && getAfter(caminhoCiclo(request.resource.data.ano, request.auth.uid)).data.respostaEnviadaEm == request.time;
       allow update, delete: if false;
     }
   }

@@ -30,31 +30,30 @@ export function formatarNota(valor) {
     : valor.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
+/** As duas avaliações (fixo e colega escolhido) foram enviadas. */
 export function avaliacoesConcluidas(ciclo) {
-  if (!ciclo) return false;
-  const c = ciclo.concluidas || {};
-  return !!(c.presidente && c.par && (c.rh || ciclo.rhDispensado));
+  const c = ciclo?.concluidas || {};
+  return !!(c.fixo && c.escolhido);
 }
 
 /**
- * Os 6 marcos do processo do colaborador, na ordem da linha do tempo.
+ * Os 5 marcos do processo do colaborador, na ordem da linha do tempo.
  * @returns {{chave:string, rotulo:string, feito:boolean}[]}
  */
 export function passosDoCiclo(ciclo) {
   const c = ciclo?.concluidas || {};
   return [
-    { chave: "escolha", rotulo: "Escolha do avaliador", feito: !!ciclo },
-    { chave: "presidente", rotulo: "Avaliação do Presidente", feito: !!c.presidente },
-    { chave: "rh", rotulo: ciclo?.rhDispensado ? "RH (dispensado)" : "Avaliação do RH", feito: !!(c.rh || ciclo?.rhDispensado) },
-    { chave: "par", rotulo: "Avaliação do colega", feito: !!c.par },
-    { chave: "parecer", rotulo: "Seu parecer", feito: !!ciclo?.parecer },
+    { chave: "escolha", rotulo: "Escolha do colega", feito: !!ciclo },
+    { chave: "fixo", rotulo: "Avaliador fixo", feito: !!c.fixo },
+    { chave: "escolhido", rotulo: "Colega escolhido", feito: !!c.escolhido },
+    { chave: "resposta", rotulo: "Sua resposta ao Presidente", feito: !!ciclo?.respostaEnviadaEm },
     { chave: "ok", rotulo: "Ok do Presidente", feito: !!ciclo?.okPresidenteEm }
   ];
 }
 
 /**
  * Fração da linha do tempo preenchida (0 a 1): vai até o último marco de uma sequência
- * contínua de marcos concluídos. As três avaliações podem chegar em qualquer ordem; um marco
+ * contínua de marcos concluídos. As duas avaliações podem chegar em qualquer ordem; um marco
  * concluído fora da sequência aparece marcado, mas a linha só avança quando a sequência fecha.
  */
 export function progressoDosPassos(passos) {
@@ -66,22 +65,20 @@ export function progressoDosPassos(passos) {
 
 /**
  * O que cada pessoa precisa fazer agora, a partir dos ciclos que ela enxerga.
+ * - Avaliador fixo ou colega escolhido: avaliar quem ainda não avaliou.
+ * - Presidente: dar o ok depois que o avaliado enviou a resposta (e avaliar, quando é o fixo).
  * @param {string} papel papel efetivo de quem está logado
  * @param {string} uid
  * @param {object[]} ciclos
- * @returns {{tipo:"avaliar"|"ok", papel?:string, ciclo:object}[]}
+ * @returns {{tipo:"avaliar"|"ok", papel?:"fixo"|"escolhido", ciclo:object}[]}
  */
 export function calcularPendencias(papel, uid, ciclos) {
   const pendencias = [];
   for (const ciclo of ciclos) {
     const c = ciclo.concluidas || {};
-    if (papel === "presidente") {
-      if (!c.presidente) pendencias.push({ tipo: "avaliar", papel: "presidente", ciclo });
-      if (ciclo.parecer && !ciclo.okPresidenteEm) pendencias.push({ tipo: "ok", ciclo });
-    } else if (papel === "rh" && ciclo.uid !== uid) {
-      if (!c.rh && !ciclo.rhDispensado) pendencias.push({ tipo: "avaliar", papel: "rh", ciclo });
-    }
-    if (ciclo.avaliadorUid === uid && !c.par) pendencias.push({ tipo: "avaliar", papel: "par", ciclo });
+    if (ciclo.avaliadorFixoUid === uid && !c.fixo) pendencias.push({ tipo: "avaliar", papel: "fixo", ciclo });
+    if (ciclo.avaliadorEscolhidoUid === uid && !c.escolhido) pendencias.push({ tipo: "avaliar", papel: "escolhido", ciclo });
+    if (papel === "presidente" && ciclo.respostaEnviadaEm && !ciclo.okPresidenteEm) pendencias.push({ tipo: "ok", ciclo });
   }
   return pendencias;
 }

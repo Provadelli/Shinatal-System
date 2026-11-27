@@ -1,10 +1,10 @@
 // Shinatal — página "Avaliação de desempenho" (todos os papéis).
 //
-// Três blocos, cada um só para quem precisa dele:
-//   - Avisos: o que a pessoa tem de fazer como avaliadora (Presidente, RH ou colega escolhido) e,
-//     para o Presidente, os pareceres esperando o "ok".
+// Quatro blocos, cada um só para quem precisa dele:
+//   - Avisos: o que a pessoa tem de fazer como avaliadora (avaliador fixo ou colega escolhido) e,
+//     para o Presidente, as respostas dos colaboradores esperando o "ok".
 //   - Meu processo: a linha do tempo da própria avaliação (não existe para o Presidente).
-//   - Gestão (Presidente): abrir/fechar o ciclo, situação de cada colaborador e respostas.
+//   - Gestão (Presidente): abrir/fechar o ciclo, situação de cada colaborador e avaliações.
 //   - Perguntas (Presidente e Admin): o texto das 5 perguntas.
 // As permissões de verdade estão em backend/firestore.rules; aqui só se monta a tela.
 import { db } from "../firebase-init.js";
@@ -15,8 +15,8 @@ import { sincronizarDiretorio, assinarDiretorio } from "../diretorio-service.js"
 import {
   PERGUNTAS_PADRAO, ROTULOS_PAPEL_AVALIADOR, ROTULOS_CONCEITO, PERCENTUAL_CONCEITO, COMENTARIO_MINIMO,
   calcularMedia, conceitoPorMedia, formatarNota, avaliacoesConcluidas, passosDoCiclo, progressoDosPassos,
-  calcularPendencias, assinarConfig, salvarConfig, assinarMeuCiclo, assinarCiclosVisiveis, escolherAvaliador,
-  enviarResposta, buscarRespostas, enviarParecer, dispensarRH, darOk
+  calcularPendencias, assinarConfig, salvarConfig, assinarAvaliadoresFixos, assinarMeuCiclo, assinarCiclosVisiveis,
+  escolherAvaliador, enviarResposta, buscarRespostas, enviarRespostaAoPresidente, buscarRespostaAoPresidente, darOk
 } from "../avaliacao-service.js";
 
 const perfil = await exigirAutenticacao(null);
@@ -33,10 +33,11 @@ const icones = { ok: "task_alt", avaliar: "rate_review", fechar: "lock", abrir: 
 const estado = {
   config: undefined,      // undefined = carregando; null = nunca configurado
   meuCiclo: undefined,    // undefined = carregando; null = ainda sem escolha
-  ciclos: [],             // ciclos que esta pessoa enxerga (todos, para Presidente e RH)
+  ciclos: [],             // ciclos que esta pessoa enxerga (todos, para o Presidente)
+  fixos: undefined,       // tabela avaliado → avaliador fixo; undefined = carregando
   diretorio: [],
   usuarios: new Map(),    // só gestores leem usuarios/{uid} (nome completo)
-  respostasMeuCiclo: null,
+  respostasMeuCiclo: null, // { fixo, escolhido, aoPresidente } — imutáveis, buscadas uma vez por etapa
   anoAssinado: null,
   trocandoAvaliador: false,
   avaliacaoAberta: null   // { ciclo, papel } no modal
@@ -63,6 +64,8 @@ function nomeDe(uid, { completo = true } = {}) {
 }
 
 assinarDiretorio((lista) => { estado.diretorio = lista; renderTudo(); });
+assinarAvaliadoresFixos((pares) => { estado.fixos = pares; renderProcesso(); renderGestao(); });
+const fixoDe = (uid) => estado.fixos?.[uid] || null;
 
 if (papel !== "colaborador") {
   try {
@@ -110,9 +113,11 @@ function avatar(uid) {
   return `<span class="avatar w-10 h-10 text-sm" aria-hidden="true">${escaparHTML(nomeDe(uid).slice(0, 1).toUpperCase() || "?")}</span>`;
 }
 
-/** Bloco com as notas de um avaliador: barra por pergunta (só transform) e o comentário. */
+const uidDoPapel = (ciclo, papelAvaliador) => papelAvaliador === "fixo" ? ciclo.avaliadorFixoUid : ciclo.avaliadorEscolhidoUid;
+
+/** Bloco com as notas de um avaliador: barra por pergunta (só transform) e o parecer dele. */
 function blocoResposta(papelAvaliador, resposta, ciclo) {
-  const quem = papelAvaliador === "par" ? `${ROTULOS_PAPEL_AVALIADOR.par} · ${escaparHTML(nomeDe(ciclo.avaliadorUid, { completo: false }))}` : ROTULOS_PAPEL_AVALIADOR[papelAvaliador];
+  const quem = `${ROTULOS_PAPEL_AVALIADOR[papelAvaliador]} · ${escaparHTML(nomeDe(uidDoPapel(ciclo, papelAvaliador), { completo: false }))}`;
   if (!resposta) {
     return `<article class="resposta-avaliacao resposta-avaliacao--pendente">
       <header class="resposta-avaliacao-cabecalho"><p class="registro-titulo">${quem}</p><span class="badge badge-neutro">Pendente</span></header>
@@ -158,12 +163,11 @@ function animarMedias(raiz) {
 function etapaDoCiclo(ciclo) {
   if (!ciclo) return { rotulo: "Aguardando escolha", classe: "badge-neutro" };
   if (ciclo.okPresidenteEm) return { rotulo: "Finalizada", classe: "badge-sucesso" };
-  if (ciclo.parecer) return { rotulo: "Aguardando seu ok", classe: "badge-atencao" };
-  if (avaliacoesConcluidas(ciclo)) return { rotulo: "Aguardando parecer", classe: "badge-info" };
+  if (ciclo.respostaEnviadaEm) return { rotulo: "Aguardando seu ok", classe: "badge-atencao" };
+  if (avaliacoesConcluidas(ciclo)) return { rotulo: "Aguardando resposta", classe: "badge-info" };
   const c = ciclo.concluidas || {};
-  const total = ciclo.rhDispensado ? 2 : 3;
-  const feitas = [c.presidente, c.par, !ciclo.rhDispensado && c.rh].filter(Boolean).length;
-  return { rotulo: `Em avaliação (${feitas}/${total})`, classe: "badge-info" };
+  const feitas = [c.fixo, c.escolhido].filter(Boolean).length;
+  return { rotulo: `Em avaliação (${feitas}/2)`, classe: "badge-info" };
 }
 
 function traduzirErro(erro, padrao) {
@@ -197,10 +201,10 @@ function renderAvisos() {
   el("lista-avisos").innerHTML = pendencias.map((p, i) => {
     const nome = escaparHTML(nomeDe(p.ciclo.uid));
     const [titulo, texto, botao, icone] = p.tipo === "ok"
-      ? [`${nome} enviou o parecer`, "Leia a resposta e dê o ok para finalizar a avaliação.", "Revisar e dar ok", icones.ok]
-      : p.papel === "par"
-        ? [`Avalie ${nome}`, `Você foi escolhido(a) para avaliar ${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} no ciclo ${p.ciclo.ano}.`, "Avaliar", icones.avaliar]
-        : [`Avaliação de ${nome}`, `Como ${ROTULOS_PAPEL_AVALIADOR[p.papel]}, sua avaliação é obrigatória e precisa de comentário.`, "Avaliar", icones.avaliar];
+      ? [`${nome} respondeu à avaliação`, "Leia a resposta enviada a você e dê o ok para finalizar.", "Revisar e dar ok", icones.ok]
+      : p.papel === "escolhido"
+        ? [`Avalie ${nome}`, `${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} escolheu você para avaliá-lo(a) no ciclo ${p.ciclo.ano}. Notas de 0 a 10 e um parecer.`, "Avaliar", icones.avaliar]
+        : [`Avalie ${nome}`, `Você é o avaliador fixo de ${escaparHTML(nomeDe(p.ciclo.uid, { completo: false }))} no ciclo ${p.ciclo.ano}. Notas de 0 a 10 e um parecer.`, "Avaliar", icones.avaliar];
     return `<li class="aviso-item" style="--i:${i}">
       <div class="flex items-start gap-3 min-w-0">
         <span class="aviso-icone" aria-hidden="true"><span class="material-symbols-outlined">${icone}</span></span>
@@ -245,23 +249,25 @@ function renderLinhaDoTempo(ciclo) {
   else requestAnimationFrame(() => requestAnimationFrame(aplicar));
 }
 
-function opcoesDeColegas(selecionado = "") {
+/** Colegas que podem ser escolhidos: ninguém que seja Presidente, RH, a própria pessoa ou o fixo dela. */
+function opcoesDeColegas(selecionado = "", fixoUid = null) {
   const colegas = estado.diretorio
-    .filter((u) => u.uid !== perfil.uid && !["presidente", "rh"].includes(u.role))
+    .filter((u) => u.uid !== perfil.uid && u.uid !== fixoUid && !["presidente", "rh"].includes(u.role))
     .sort((a, b) => (a.primeiroNome || "").localeCompare(b.primeiroNome || "", "pt-BR"));
   return `<option value="">Selecione um colega</option>` + colegas.map((u) =>
     `<option value="${escaparHTML(u.uid)}" ${u.uid === selecionado ? "selected" : ""}>${escaparHTML(u.primeiroNome || "Colega")}${u.cargo ? ` · ${escaparHTML(u.cargo)}` : ""}</option>`
   ).join("");
 }
 
-function formEscolha(ciclo) {
+function formEscolha(ciclo, fixoUid) {
   return `<form id="form-escolha" class="escolha-avaliador" novalidate>
-    <label for="escolha-colega" class="label-shinatal">${ciclo ? "Trocar o colega que vai avaliar você" : "Quem vai avaliar você?"}</label>
+    ${ciclo ? "" : `<p class="registro-detalhe !mt-0">Seu avaliador fixo: <strong>${escaparHTML(nomeDe(fixoUid, { completo: false }))}</strong>. Agora escolha um colega para também avaliar você.</p>`}
+    <label for="escolha-colega" class="label-shinatal">${ciclo ? "Trocar o colega que vai avaliar você" : "Quem mais vai avaliar você?"}</label>
     <div class="flex flex-col sm:flex-row gap-3">
-      <select id="escolha-colega" required class="input-shinatal !pl-3 flex-1">${opcoesDeColegas(ciclo?.avaliadorUid)}</select>
+      <select id="escolha-colega" required class="input-shinatal !pl-3 flex-1">${opcoesDeColegas(ciclo?.avaliadorEscolhidoUid, fixoUid)}</select>
       <button type="submit" class="btn-pilula btn-pilula--solido shrink-0">${ciclo ? "Salvar troca" : "Confirmar escolha"}</button>
     </div>
-    <p class="registro-detalhe">Qualquer colaborador pode ser escolhido, menos o Presidente e o RH, que já avaliam todo mundo. Dá para trocar enquanto o colega ainda não avaliou.</p>
+    <p class="registro-detalhe">Qualquer colega ativo pode ser escolhido, menos o Presidente, o RH e o seu avaliador fixo. Dá para trocar enquanto o colega ainda não avaliou.</p>
   </form>`;
 }
 
@@ -273,17 +279,16 @@ function resumoAvaliadores(ciclo) {
       <span class="badge ${feito ? "badge-sucesso" : "badge-neutro"}">${feito ? "Avaliou" : "Pendente"}</span>
     </li>`;
   return `<ul class="resumo-avaliadores">
-    ${linha("Presidente", c.presidente)}
-    ${ciclo.rhDispensado ? "" : linha("RH", c.rh)}
-    ${linha(`Colega: <strong>${escaparHTML(nomeDe(ciclo.avaliadorUid, { completo: false }))}</strong>`, c.par,
-      !c.par && cicloAberto() ? ` <button type="button" id="btn-trocar-colega" class="link-trocar">trocar</button>` : "")}
+    ${linha(`Avaliador fixo: <strong>${escaparHTML(nomeDe(ciclo.avaliadorFixoUid, { completo: false }))}</strong>`, c.fixo)}
+    ${linha(`Colega escolhido: <strong>${escaparHTML(nomeDe(ciclo.avaliadorEscolhidoUid, { completo: false }))}</strong>`, c.escolhido,
+      !c.escolhido && cicloAberto() ? ` <button type="button" id="btn-trocar-colega" class="link-trocar">trocar</button>` : "")}
   </ul>`;
 }
 
 async function renderProcesso() {
   const secao = el("secao-processo");
   if (EH_PRESIDENTE) { secao.hidden = true; return; }
-  if (estado.config === undefined || estado.meuCiclo === undefined) return;
+  if (estado.config === undefined || estado.meuCiclo === undefined || estado.fixos === undefined) return;
   secao.hidden = false;
   const ciclo = estado.meuCiclo;
   const conteudo = el("processo-conteudo");
@@ -291,54 +296,60 @@ async function renderProcesso() {
   renderLinhaDoTempo(ciclo);
 
   if (!ciclo) {
-    conteudo.innerHTML = cicloAberto()
-      ? formEscolha(null)
-      : vazio(icones.espera, "A avaliação ainda não foi aberta", "Quando o Presidente abrir o ciclo do ano, você escolhe aqui quem vai avaliar você.");
-    ligarFormEscolha(null);
+    const fixo = fixoDe(perfil.uid);
+    conteudo.innerHTML = !fixo
+      ? vazio(icones.ninguem, "Você ainda não está na tabela de avaliadores", "A tabela de avaliadores fixos é definida pela direção. Se você acha que deveria participar, fale com o RH.")
+      : cicloAberto()
+        ? formEscolha(null, fixo)
+        : vazio(icones.espera, "A avaliação ainda não foi aberta", "Quando o Presidente abrir o ciclo do ano, você escolhe aqui o colega que vai avaliar você.");
+    ligarFormEscolha(null, fixo);
     return;
   }
 
   if (!avaliacoesConcluidas(ciclo)) {
     conteudo.innerHTML = `<p class="registro-titulo">Suas avaliações estão em andamento</p>
-      <p class="registro-detalhe">As respostas aparecem aqui assim que os três avaliadores terminarem.</p>
+      <p class="registro-detalhe">As notas e os pareceres aparecem aqui assim que os dois avaliadores terminarem.</p>
       ${resumoAvaliadores(ciclo)}
-      ${estado.trocandoAvaliador ? formEscolha(ciclo) : ""}`;
+      ${estado.trocandoAvaliador ? formEscolha(ciclo, ciclo.avaliadorFixoUid) : ""}`;
     el("btn-trocar-colega")?.addEventListener("click", () => { estado.trocandoAvaliador = true; renderProcesso(); el("escolha-colega")?.focus(); });
-    ligarFormEscolha(ciclo);
+    ligarFormEscolha(ciclo, ciclo.avaliadorFixoUid);
     return;
   }
 
-  // Avaliações concluídas: busca as respostas uma vez (são imutáveis).
+  // Avaliações concluídas: busca uma vez por etapa (são imutáveis). A resposta ao Presidente
+  // só existe depois do envio.
   if (!estado.respostasMeuCiclo) {
     conteudo.innerHTML = `<div class="skeleton h-24 w-full"></div>`;
     try {
-      estado.respostasMeuCiclo = await buscarRespostas(ciclo);
+      const [avaliacoes, aoPresidente] = await Promise.all([
+        buscarRespostas(ciclo),
+        ciclo.respostaEnviadaEm ? buscarRespostaAoPresidente(ciclo) : null
+      ]);
+      estado.respostasMeuCiclo = { ...avaliacoes, aoPresidente };
     } catch (erro) {
       console.error(erro);
-      conteudo.innerHTML = vazio(icones.erro, "Não foi possível carregar as respostas", "Recarregue a página para tentar de novo.");
+      conteudo.innerHTML = vazio(icones.erro, "Não foi possível carregar as avaliações", "Recarregue a página para tentar de novo.");
       return;
     }
     if (estado.meuCiclo !== ciclo) return; // chegou um estado mais novo enquanto buscava
   }
   const respostas = estado.respostasMeuCiclo;
-  const media = ciclo.okPresidenteEm ? ciclo.media : calcularMedia(Object.values(respostas));
+  const media = ciclo.okPresidenteEm ? ciclo.media : calcularMedia([respostas.fixo, respostas.escolhido]);
   const conceito = ciclo.okPresidenteEm ? ciclo.conceito : conceitoPorMedia(media);
-  const blocos = ["presidente", "rh", "par"]
-    .filter((p) => !(p === "rh" && ciclo.rhDispensado))
-    .map((p) => blocoResposta(p, respostas[p], ciclo)).join("");
+  const blocos = ["fixo", "escolhido"].map((p) => blocoResposta(p, respostas[p], ciclo)).join("");
 
   let rodape;
-  if (!ciclo.parecer) {
-    rodape = `<form id="form-parecer" class="parecer" novalidate>
-      <label for="parecer-texto" class="label-shinatal">Seu parecer sobre a avaliação do Presidente</label>
-      <p class="registro-detalhe !mt-0 mb-2">Leia o comentário do Presidente acima e responda. Depois do envio, o Presidente dá o ok e a avaliação é finalizada.</p>
-      <textarea id="parecer-texto" required minlength="1" maxlength="2000" rows="4" class="input-shinatal !pl-3"></textarea>
-      <div class="flex justify-end mt-3"><button type="submit" class="btn-pilula btn-pilula--solido"><span class="material-symbols-outlined" aria-hidden="true">send</span>Enviar parecer</button></div>
+  if (!ciclo.respostaEnviadaEm) {
+    rodape = `<form id="form-resposta-presidente" class="parecer" novalidate>
+      <label for="resposta-presidente-texto" class="label-shinatal">Sua resposta ao Presidente</label>
+      <p class="registro-detalhe !mt-0 mb-2">Leia as avaliações acima e escreva o que pensa sobre elas. Só o Presidente lê esta resposta; seus avaliadores não têm acesso. Depois do envio, o Presidente dá o ok e a avaliação é finalizada.</p>
+      <textarea id="resposta-presidente-texto" required minlength="1" maxlength="2000" rows="4" class="input-shinatal !pl-3"></textarea>
+      <div class="flex justify-end mt-3"><button type="submit" class="btn-pilula btn-pilula--solido"><span class="material-symbols-outlined" aria-hidden="true">send</span>Enviar ao Presidente</button></div>
     </form>`;
   } else {
     rodape = `<div class="parecer parecer--enviado">
-      <p class="rotulo-secao">Seu parecer</p>
-      <blockquote class="resposta-comentario">${escaparHTML(ciclo.parecer)}</blockquote>
+      <p class="rotulo-secao">Sua resposta ao Presidente</p>
+      ${respostas.aoPresidente ? `<blockquote class="resposta-comentario">${escaparHTML(respostas.aoPresidente.texto)}</blockquote>` : ""}
       ${ciclo.okPresidenteEm
         ? `<p class="registro-detalhe flex items-center gap-1.5"><span class="material-symbols-outlined text-base text-[var(--natal-pinheiro)]" aria-hidden="true">verified</span>Avaliação finalizada pelo Presidente.</p>`
         : `<p class="registro-detalhe">Aguardando o ok do Presidente.</p>`}
@@ -350,39 +361,40 @@ async function renderProcesso() {
     ${rodape}`;
   animarMedias(conteudo);
 
-  el("form-parecer")?.addEventListener("submit", async (e) => {
+  el("form-resposta-presidente")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const texto = el("parecer-texto").value.trim();
-    if (!texto) { mostrarToast("Escreva o seu parecer antes de enviar.", "erro"); el("parecer-texto").focus(); return; }
-    const ok = await confirmarAcao({ titulo: "Enviar parecer", mensagem: "Depois de enviado, o parecer não pode ser alterado.", textoConfirmar: "Enviar" });
+    const campo = el("resposta-presidente-texto");
+    const texto = campo.value.trim();
+    if (!texto) { mostrarToast("Escreva a sua resposta antes de enviar.", "erro"); campo.focus(); return; }
+    const ok = await confirmarAcao({ titulo: "Enviar ao Presidente", mensagem: "Só o Presidente vai ler. Depois de enviada, a resposta não pode ser alterada.", textoConfirmar: "Enviar" });
     if (!ok) return;
-    const botao = e.submitter || e.currentTarget.querySelector("[type=submit]");
+    const botao = el("form-resposta-presidente").querySelector("[type=submit]");
     botao.disabled = true;
     try {
-      await enviarParecer(ciclo, texto);
-      mostrarToast("Parecer enviado. Agora é com o Presidente.", "sucesso");
+      await enviarRespostaAoPresidente(ciclo, texto);
+      mostrarToast("Resposta enviada. Agora é com o Presidente.", "sucesso");
     } catch (erro) {
       console.error(erro);
-      mostrarToast(traduzirErro(erro, "Não foi possível enviar o parecer."), "erro");
+      mostrarToast(traduzirErro(erro, "Não foi possível enviar a resposta."), "erro");
       botao.disabled = false;
     }
   });
 }
 
-function ligarFormEscolha(ciclo) {
+function ligarFormEscolha(ciclo, avaliadorFixoUid) {
   const form = el("form-escolha");
   if (!form) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const avaliadorUid = el("escolha-colega").value;
-    if (!avaliadorUid) { mostrarToast("Escolha um colega.", "erro"); el("escolha-colega").focus(); return; }
-    if (ciclo && avaliadorUid === ciclo.avaliadorUid) { estado.trocandoAvaliador = false; renderProcesso(); return; }
+    const avaliadorEscolhidoUid = el("escolha-colega").value;
+    if (!avaliadorEscolhidoUid) { mostrarToast("Escolha um colega.", "erro"); el("escolha-colega").focus(); return; }
+    if (ciclo && avaliadorEscolhidoUid === ciclo.avaliadorEscolhidoUid) { estado.trocandoAvaliador = false; renderProcesso(); return; }
     const botao = form.querySelector("[type=submit]");
     botao.disabled = true;
     try {
-      await escolherAvaliador({ ano: anoDoCiclo(), uid: perfil.uid, avaliadorUid, cicloExiste: !!ciclo });
+      await escolherAvaliador({ ano: anoDoCiclo(), uid: perfil.uid, avaliadorFixoUid, avaliadorEscolhidoUid, cicloExiste: !!ciclo });
       estado.trocandoAvaliador = false;
-      mostrarToast(`${nomeDe(avaliadorUid, { completo: false })} vai avaliar você.`, "sucesso");
+      mostrarToast(`${nomeDe(avaliadorEscolhidoUid, { completo: false })} vai avaliar você.`, "sucesso");
     } catch (erro) {
       console.error(erro);
       mostrarToast(traduzirErro(erro, "Não foi possível salvar a escolha. Confira se o colega está ativo."), "erro");
@@ -409,7 +421,6 @@ document.addEventListener("click", (e) => {
 
 function abrirAvaliacao(ciclo, papelAvaliador) {
   estado.avaliacaoAberta = { ciclo, papel: papelAvaliador };
-  const obrigatorio = papelAvaliador !== "par";
   el("avaliar-papel").innerHTML = `<span class="rotulo-numero" aria-hidden="true">${String(ciclo.ano).slice(-2)}</span><span class="fio-natal" aria-hidden="true"></span><span>Você avalia como ${escaparHTML(ROTULOS_PAPEL_AVALIADOR[papelAvaliador])}</span>`;
   el("avaliar-titulo").textContent = `Avaliação de ${nomeDe(ciclo.uid)}`;
   el("avaliar-perguntas").innerHTML = perguntasAtuais().map((pergunta, i) => `
@@ -426,12 +437,12 @@ function abrirAvaliacao(ciclo, papelAvaliador) {
     </fieldset>`).join("");
   const comentario = el("avaliar-comentario");
   comentario.value = "";
-  comentario.required = obrigatorio;
-  comentario.minLength = obrigatorio ? COMENTARIO_MINIMO : 0;
-  el("avaliar-comentario-rotulo").textContent = obrigatorio ? "Comentário (obrigatório)" : "Comentário (opcional)";
-  el("avaliar-comentario-ajuda").textContent = obrigatorio
-    ? `Mínimo de ${COMENTARIO_MINIMO} caracteres. ${papelAvaliador === "presidente" ? "O colaborador vai ler e responder a este texto." : "O colaborador vai ler este texto."}`
-    : "Se quiser, complemente as notas com um comentário. O colaborador vai ler.";
+  comentario.removeAttribute("aria-invalid");
+  comentario.required = true;
+  comentario.minLength = COMENTARIO_MINIMO;
+  el("avaliar-comentario-rotulo").textContent = "Seu parecer (obrigatório)";
+  el("avaliar-comentario-ajuda").textContent =
+    `Mínimo de ${COMENTARIO_MINIMO} caracteres. ${nomeDe(ciclo.uid, { completo: false })} vai ler este parecer junto com as notas.`;
   atualizarPrevia();
   el("form-avaliar").querySelector("[type=submit]").disabled = false;
   abrirModal("modal-avaliar");
@@ -472,10 +483,10 @@ el("form-avaliar").addEventListener("submit", async (e) => {
     return;
   }
   const comentario = el("avaliar-comentario").value.trim();
-  if (aberta.papel !== "par" && comentario.length < COMENTARIO_MINIMO) {
+  if (comentario.length < COMENTARIO_MINIMO) {
     el("avaliar-comentario").setAttribute("aria-invalid", "true");
     el("avaliar-comentario").focus();
-    mostrarToast(`O comentário é obrigatório (mínimo de ${COMENTARIO_MINIMO} caracteres).`, "erro");
+    mostrarToast(`O parecer é obrigatório (mínimo de ${COMENTARIO_MINIMO} caracteres).`, "erro");
     return;
   }
   const ok = await confirmarAcao({
@@ -484,7 +495,7 @@ el("form-avaliar").addEventListener("submit", async (e) => {
     textoConfirmar: "Enviar"
   });
   if (!ok) return;
-  const botao = e.currentTarget.querySelector("[type=submit]");
+  const botao = el("form-avaliar").querySelector("[type=submit]");
   botao.disabled = true;
   try {
     await enviarResposta({ ciclo: aberta.ciclo, papel: aberta.papel, avaliadorUid: perfil.uid, perguntas: perguntasAtuais(), notas, comentario });
@@ -515,13 +526,14 @@ function renderGestao() {
   const ano = anoDoCiclo();
   const pessoas = avaliaveis();
   const porUid = new Map(estado.ciclos.map((c) => [c.uid, c]));
+  const naTabela = pessoas.filter((u) => fixoDe(u.uid)).length;
   const escolheram = pessoas.filter((u) => porUid.has(u.uid)).length;
   const finalizadas = pessoas.filter((u) => porUid.get(u.uid)?.okPresidenteEm).length;
 
   el("gestao-ciclo").innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="gestao-numeros">
-        <div><p class="stat-rotulo">Colaboradores</p><p class="stat-valor">${pessoas.length}</p></div>
-        <div><p class="stat-rotulo">Escolheram o avaliador</p><p class="stat-valor">${escolheram}</p></div>
+        <div><p class="stat-rotulo">Na tabela</p><p class="stat-valor">${naTabela}</p></div>
+        <div><p class="stat-rotulo">Escolheram o colega</p><p class="stat-valor">${escolheram}</p></div>
         <div><p class="stat-rotulo">Finalizadas</p><p class="stat-valor">${finalizadas}</p></div>
       </div>
       <button type="button" id="btn-ciclo" class="btn-pilula ${cicloAberto() ? "btn-pilula--vidro" : "btn-pilula--solido"} btn-pilula--compacto shrink-0">
@@ -534,15 +546,22 @@ function renderGestao() {
   const linhas = pessoas.filter((u) => !termo || `${u.nome} ${u.cargo || ""}`.toLowerCase().includes(termo));
   el("corpo-gestao").innerHTML = linhas.length ? linhas.map((u) => {
     const ciclo = porUid.get(u.uid);
-    const etapa = etapaDoCiclo(ciclo);
+    const fixo = ciclo?.avaliadorFixoUid || fixoDe(u.uid);
+    const etapa = fixo ? etapaDoCiclo(ciclo) : { rotulo: "Sem avaliador fixo", classe: "badge-neutro" };
     const media = ciclo?.okPresidenteEm ? formatarNota(ciclo.media) : "—";
-    const presidentePendente = ciclo && !ciclo.concluidas?.presidente && cicloAberto();
+    // O Presidente avalia como fixo de quem está com ele na tabela.
+    const presidentePendente = ciclo && ciclo.avaliadorFixoUid === perfil.uid && !ciclo.concluidas?.fixo && cicloAberto();
+    const avaliadores = fixo
+      ? `<p class="registro-detalhe !mt-0 truncate">Fixo: ${escaparHTML(fixo === perfil.uid ? "você" : nomeDe(fixo))}</p>
+         <p class="registro-detalhe !mt-0 truncate">Colega: ${ciclo ? escaparHTML(nomeDe(ciclo.avaliadorEscolhidoUid)) : "ainda não escolhido"}</p>`
+      : `<p class="registro-detalhe !mt-0">—</p>`;
     return `<tr>
       <td class="celula-principal" data-rotulo="Colaborador">
         <div class="flex items-center gap-3 min-w-0">${avatar(u.uid)}
           <div class="min-w-0"><p class="registro-titulo truncate">${escaparHTML(u.nome)}</p><p class="registro-detalhe truncate">${escaparHTML(u.cargo || "Sem cargo")}</p></div>
         </div>
       </td>
+      <td data-rotulo="Avaliadores"><div class="min-w-0">${avaliadores}</div></td>
       <td data-rotulo="Etapa"><span class="badge ${etapa.classe}">${etapa.rotulo}</span></td>
       <td class="num" data-rotulo="Média">${media}</td>
       <td class="celula-acoes">
@@ -552,7 +571,7 @@ function renderGestao() {
         </div>
       </td>
     </tr>`;
-  }).join("") : `<tr><td colspan="4">${vazio(icones.ninguem, termo ? "Ninguém encontrado" : "Nenhum colaborador ativo")}</td></tr>`;
+  }).join("") : `<tr><td colspan="5">${vazio(icones.ninguem, termo ? "Ninguém encontrado" : "Nenhum colaborador ativo")}</td></tr>`;
 }
 
 el("busca-gestao").addEventListener("input", debounce(renderGestao, 150));
@@ -560,7 +579,7 @@ el("corpo-gestao").addEventListener("click", (e) => {
   const avaliar = e.target.closest("[data-avaliar]");
   if (avaliar) {
     const ciclo = estado.ciclos.find((c) => c.uid === avaliar.dataset.avaliar);
-    if (ciclo) abrirAvaliacao(ciclo, "presidente");
+    if (ciclo) abrirAvaliacao(ciclo, "fixo");
     return;
   }
   const ver = e.target.closest("[data-respostas]");
@@ -568,13 +587,13 @@ el("corpo-gestao").addEventListener("click", (e) => {
 });
 
 async function alternarCiclo(e) {
+  const botao = e.currentTarget; // capturado antes do await: depois dele o evento já não tem currentTarget
   const abrir = !cicloAberto();
   const ano = abrir ? ANO_CORRENTE : anoDoCiclo();
   const ok = await confirmarAcao(abrir
-    ? { titulo: `Abrir ciclo ${ano}`, mensagem: "Todos os colaboradores poderão escolher o avaliador, e as avaliações ficam liberadas.", textoConfirmar: "Abrir ciclo" }
-    : { titulo: `Fechar ciclo ${ano}`, mensagem: "Novas escolhas e avaliações ficam bloqueadas. Pareceres e oks continuam possíveis.", textoConfirmar: "Fechar ciclo", perigo: true });
+    ? { titulo: `Abrir ciclo ${ano}`, mensagem: "Os colaboradores da tabela poderão escolher o colega, e as avaliações ficam liberadas.", textoConfirmar: "Abrir ciclo" }
+    : { titulo: `Fechar ciclo ${ano}`, mensagem: "Novas escolhas e avaliações ficam bloqueadas. Respostas ao Presidente e oks continuam possíveis.", textoConfirmar: "Fechar ciclo", perigo: true });
   if (!ok) return;
-  const botao = e.currentTarget;
   botao.disabled = true;
   try {
     await salvarConfig({ ativo: abrir, ano, perguntas: perguntasAtuais() }, perfil.uid);
@@ -595,45 +614,43 @@ async function abrirRespostas(uid) {
   corpo.innerHTML = `<div class="skeleton h-24 w-full"></div>`;
   rodape.hidden = true;
   abrirModal("modal-respostas");
-  let respostas;
+  let respostas, aoPresidente;
   try {
-    respostas = await buscarRespostas(ciclo);
+    [respostas, aoPresidente] = await Promise.all([
+      buscarRespostas(ciclo),
+      ciclo.respostaEnviadaEm ? buscarRespostaAoPresidente(ciclo) : null
+    ]);
   } catch (erro) {
     console.error(erro);
-    corpo.innerHTML = vazio(icones.erro, "Não foi possível carregar as respostas");
+    corpo.innerHTML = vazio(icones.erro, "Não foi possível carregar as avaliações");
     return;
   }
-  const existentes = Object.values(respostas).filter(Boolean);
-  const media = ciclo.okPresidenteEm ? ciclo.media : calcularMedia(existentes);
+  const media = ciclo.okPresidenteEm ? ciclo.media : calcularMedia([respostas.fixo, respostas.escolhido]);
   const etapa = etapaDoCiclo(ciclo);
   corpo.innerHTML = `
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <span class="badge ${etapa.classe}">${etapa.rotulo}</span>
-      <span class="registro-detalhe !mt-0">Colega escolhido: <strong>${escaparHTML(nomeDe(ciclo.avaliadorUid))}</strong></span>
     </div>
     ${media !== null ? blocoMedia(media, ciclo.okPresidenteEm ? ciclo.conceito : conceitoPorMedia(media), { final: !!ciclo.okPresidenteEm }) : ""}
-    ${!avaliacoesConcluidas(ciclo) && media !== null ? `<p class="registro-detalhe mb-4">Média parcial: ainda faltam avaliações.</p>` : ""}
+    ${!avaliacoesConcluidas(ciclo) && media !== null ? `<p class="registro-detalhe mb-4">Média parcial: ainda falta uma avaliação.</p>` : ""}
     <div class="respostas-grade">
-      ${["presidente", "rh", "par"].filter((p) => !(p === "rh" && ciclo.rhDispensado)).map((p) => blocoResposta(p, respostas[p], ciclo)).join("")}
+      ${["fixo", "escolhido"].map((p) => blocoResposta(p, respostas[p], ciclo)).join("")}
     </div>
     <div class="parecer parecer--enviado">
-      <p class="rotulo-secao">Parecer do colaborador</p>
-      ${ciclo.parecer ? `<blockquote class="resposta-comentario">${escaparHTML(ciclo.parecer)}</blockquote>` : `<p class="registro-detalhe">Ainda não enviado.</p>`}
+      <p class="rotulo-secao">Resposta do colaborador a você</p>
+      ${aoPresidente ? `<blockquote class="resposta-comentario">${escaparHTML(aoPresidente.texto)}</blockquote>` : `<p class="registro-detalhe">Ainda não enviada.</p>`}
     </div>`;
   animarMedias(corpo);
 
   const acoes = [];
-  const avaliadoEhRh = estado.usuarios.get(uid)?.role === "rh";
-  if (avaliadoEhRh && !ciclo.concluidas?.rh && !ciclo.rhDispensado) {
-    acoes.push(`<button type="button" id="btn-dispensar-rh" class="btn-pilula btn-pilula--vidro">Dispensar etapa do RH</button>`);
-  }
-  if (ciclo.parecer && !ciclo.okPresidenteEm) {
+  if (ciclo.respostaEnviadaEm && !ciclo.okPresidenteEm) {
     acoes.push(`<button type="button" id="btn-dar-ok" class="btn-pilula btn-pilula--solido"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>Dar ok e finalizar</button>`);
   }
   rodape.hidden = !acoes.length;
   rodape.innerHTML = acoes.join("");
 
   el("btn-dar-ok")?.addEventListener("click", async (e) => {
+    const botao = e.currentTarget;
     const conceito = conceitoPorMedia(media);
     const ok = await confirmarAcao({
       titulo: "Finalizar avaliação",
@@ -641,7 +658,7 @@ async function abrirRespostas(uid) {
       textoConfirmar: "Dar ok"
     });
     if (!ok) return;
-    e.currentTarget.disabled = true;
+    botao.disabled = true;
     try {
       const resultado = await darOk(ciclo, perfil, nomeDe(uid));
       mostrarToast(`Avaliação finalizada: ${ROTULOS_CONCEITO[resultado.conceito]} (${formatarNota(resultado.media)}).`, "sucesso");
@@ -649,25 +666,7 @@ async function abrirRespostas(uid) {
     } catch (erro) {
       console.error(erro);
       mostrarToast(traduzirErro(erro, "Não foi possível finalizar a avaliação."), "erro");
-      e.currentTarget.disabled = false;
-    }
-  });
-  el("btn-dispensar-rh")?.addEventListener("click", async (e) => {
-    const ok = await confirmarAcao({
-      titulo: "Dispensar etapa do RH",
-      mensagem: "Use só quando não houver outra pessoa no RH para avaliar este colaborador. A média passa a usar duas avaliações.",
-      textoConfirmar: "Dispensar"
-    });
-    if (!ok) return;
-    e.currentTarget.disabled = true;
-    try {
-      await dispensarRH(ciclo);
-      mostrarToast("Etapa do RH dispensada.", "sucesso");
-      fecharModal("modal-respostas");
-    } catch (erro) {
-      console.error(erro);
-      mostrarToast("Não foi possível dispensar a etapa.", "erro");
-      e.currentTarget.disabled = false;
+      botao.disabled = false;
     }
   });
 }

@@ -22,7 +22,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, collection,
-  writeBatch, runTransaction, increment, serverTimestamp, Timestamp
+  writeBatch, runTransaction, increment, serverTimestamp, Timestamp, query, where
 } from "firebase/firestore";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -784,49 +784,6 @@ describe("logs/{id}", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Avaliação de Conduta (entre colegas) — feature social/anônima, separada de avaliacoes/{id}.
-// ---------------------------------------------------------------------------
-
-/** Liga o interruptor global direto (ignorando regras) — a maioria dos testes de voto/contagem
- * precisa da função já ativa para chegar a testar a regra que realmente querem exercitar. */
-async function ativarConduta() {
-  await semRegras((db) => setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true }));
-}
-
-describe("configuracoes/avaliacaoConduta", () => {
-  it("colaborador lê a flag mesmo desligada (sem doc = tratado como desligada pelo app)", async () => {
-    await seedUsuario("colabA", "colaborador");
-    const db = ctx("colabA").firestore();
-    await assertSucceeds(getDoc(doc(db, "configuracoes", "avaliacaoConduta")));
-  });
-
-  it("colaborador NÃO liga a função", async () => {
-    await seedUsuario("colabA", "colaborador");
-    const db = ctx("colabA").firestore();
-    await assertFails(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true, atualizadoPor: "colabA" }));
-  });
-
-  it("admin liga a função", async () => {
-    await seedUsuario("admin1", "admin");
-    const db = ctx("admin1").firestore();
-    await assertSucceeds(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true, atualizadoPor: "admin1" }));
-  });
-
-  it("presidente liga a função", async () => {
-    await seedUsuario("pres1", "presidente");
-    const db = ctx("pres1").firestore();
-    await assertSucceeds(setDoc(doc(db, "configuracoes", "avaliacaoConduta"), { ativo: true, atualizadoPor: "pres1" }));
-  });
-
-  it("DP/RH NÃO ligam a função", async () => {
-    await seedUsuario("dp1", "dp");
-    await seedUsuario("rh1", "rh");
-    await assertFails(setDoc(doc(ctx("dp1").firestore(), "configuracoes", "avaliacaoConduta"), { ativo: true, atualizadoPor: "dp1" }));
-    await assertFails(setDoc(doc(ctx("rh1").firestore(), "configuracoes", "avaliacaoConduta"), { ativo: true, atualizadoPor: "rh1" }));
-  });
-});
-
 describe("diretorioPublico/{uid}", () => {
   it("colaborador sincroniza a própria entrada", async () => {
     await seedUsuario("colabA", "colaborador", { nome: "Ana Souza", cargo: "Operações" });
@@ -941,312 +898,437 @@ describe("diretorioPublico/{uid}", () => {
   });
 });
 
-/* ------------------------------------------------------------------ */
-/* Voto + contagem: as regras exigem que as duas escritas venham JUNTAS */
-/* e que a contagem mude exatamente o que o voto mudou.                */
-/* ------------------------------------------------------------------ */
-
-function contagem(parcial = {}) {
-  return { excelente: 0, bom: 0, regular: 0, insatisfatorio: 0, ...parcial };
-}
-
-/** Voto e contagem na mesma escrita atômica, com a contagem final escolhida pelo teste — é assim
- * que um cliente adulterado tentaria gravar um agregado que não corresponde ao voto. */
-function gravarVotoEContagem(db, { avaliador, avaliado, conceito, contagemDepois, votoId = `${avaliador}_${avaliado}` }) {
-  const lote = writeBatch(db);
-  lote.set(doc(db, "votosConduta", votoId), {
-    avaliadorUid: avaliador, avaliadoUid: avaliado, conceito,
-    criadoEm: "placeholder", atualizadoEm: "placeholder"
+// ---------------------------------------------------------------------------
+// Legado da Avaliação de Conduta: nada mais grava; a leitura do próprio titular continua (LGPD).
+// ---------------------------------------------------------------------------
+describe("legado: votosConduta e condutaContagem", () => {
+  it("ninguém grava mais votos nem contagem", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("pres1", "presidente");
+    for (const uid of ["colabA", "pres1"]) {
+      const db = ctx(uid).firestore();
+      await assertFails(setDoc(doc(db, "votosConduta", `${uid}_colabB`), { avaliadorUid: uid, avaliadoUid: "colabB", conceito: "bom" }));
+      await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 0, bom: 1, regular: 0, insatisfatorio: 0 }));
+    }
   });
-  lote.set(doc(db, "condutaContagem", avaliado), { ...contagemDepois, atualizadoEm: "placeholder" });
-  return lote.commit();
-}
 
-/** Mesma sequência de votarConduta() em frontend/js/conduta-service.js: lê só o PRÓPRIO voto e
- * ajusta a contagem com increment(), sem lê-la. */
-function votarComoApp(db, avaliadorUid, avaliadoUid, conceito) {
-  const votoRef = doc(db, "votosConduta", `${avaliadorUid}_${avaliadoUid}`);
-  const contagemRef = doc(db, "condutaContagem", avaliadoUid);
-  return runTransaction(db, async (tx) => {
-    const votoSnap = await tx.get(votoRef);
-    const anterior = votoSnap.exists() ? votoSnap.data().conceito : null;
-    if (anterior === conceito) return;
-    const delta = contagem();
-    delta[conceito] += 1;
-    if (anterior in delta) delta[anterior] -= 1;
-    tx.set(votoRef, {
-      avaliadorUid, avaliadoUid, conceito,
-      criadoEm: (votoSnap.exists() ? votoSnap.data().criadoEm : null) ?? serverTimestamp(),
-      atualizadoEm: serverTimestamp()
+  it("o titular ainda lê o próprio voto e a própria contagem; outro colaborador não", async () => {
+    await seedUsuario("colabA", "colaborador");
+    await seedUsuario("colabB", "colaborador");
+    await semRegras(async (db) => {
+      await setDoc(doc(db, "votosConduta", "colabA_colabB"), { avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "bom" });
+      await setDoc(doc(db, "condutaContagem", "colabB"), { excelente: 0, bom: 1, regular: 0, insatisfatorio: 0 });
     });
-    tx.set(contagemRef, {
-      excelente: increment(delta.excelente), bom: increment(delta.bom),
-      regular: increment(delta.regular), insatisfatorio: increment(delta.insatisfatorio),
-      atualizadoEm: serverTimestamp()
-    }, { merge: true });
-  });
-}
-
-async function lerContagem(uid) {
-  let dados;
-  await semRegras(async (db) => { dados = (await getDoc(doc(db, "condutaContagem", uid))).data(); });
-  return dados;
-}
-
-/** Estado já existente: `avaliador` votou `conceito` em `avaliado`, e a contagem é `contagemAtual`. */
-async function seedVoto(avaliador, avaliado, conceito, contagemAtual) {
-  await semRegras(async (db) => {
-    await setDoc(doc(db, "votosConduta", `${avaliador}_${avaliado}`), { avaliadorUid: avaliador, avaliadoUid: avaliado, conceito });
-    await setDoc(doc(db, "condutaContagem", avaliado), contagemAtual);
-  });
-}
-
-describe("votosConduta/{votoId}", () => {
-  it("colaborador comum vota num colega pelo fluxo real do app (transação voto + contagem)", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertSucceeds(votarComoApp(ctx("colabA").firestore(), "colabA", "colabB", "excelente"));
-    const c = await lerContagem("colabB");
-    assert.deepEqual(
-      { excelente: c.excelente, bom: c.bom, regular: c.regular, insatisfatorio: c.insatisfatorio },
-      contagem({ excelente: 1 })
-    );
+    await assertSucceeds(getDoc(doc(ctx("colabA").firestore(), "votosConduta", "colabA_colabB")));
+    await assertFails(getDoc(doc(ctx("colabB").firestore(), "votosConduta", "colabA_colabB")));
+    await assertSucceeds(getDoc(doc(ctx("colabB").firestore(), "condutaContagem", "colabB")));
+    await assertFails(getDoc(doc(ctx("colabA").firestore(), "condutaContagem", "colabB")));
   });
 
-  it("trocar de conceito pelo fluxo real do app move 1 voto e preserva os votos dos outros", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await seedVoto("colabA", "colabB", "bom", contagem({ excelente: 2, bom: 1 }));
-    await assertSucceeds(votarComoApp(ctx("colabA").firestore(), "colabA", "colabB", "regular"));
-    const c = await lerContagem("colabB");
-    assert.deepEqual(
-      { excelente: c.excelente, bom: c.bom, regular: c.regular, insatisfatorio: c.insatisfatorio },
-      contagem({ excelente: 2, regular: 1 })
-    );
-  });
-
-  it("voto gravado SEM a contagem falha (as duas escritas têm de vir juntas)", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    const db = ctx("colabA").firestore();
-    await assertFails(setDoc(doc(db, "votosConduta", "colabA_colabB"), {
-      avaliadorUid: "colabA", avaliadoUid: "colabB", conceito: "excelente",
-      criadoEm: "placeholder", atualizadoEm: "placeholder"
-    }));
-  });
-
-  it("voto falha com a função desligada", async () => {
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "excelente", contagemDepois: contagem({ excelente: 1 })
-    }));
-  });
-
-  it("autovoto falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabA", conceito: "excelente", contagemDepois: contagem({ excelente: 1 })
-    }));
-  });
-
-  it("votar num uid de Presidente falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
+  it("a antiga configuração da conduta não é mais gravável", async () => {
     await seedUsuario("pres1", "presidente");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "pres1", conceito: "excelente", contagemDepois: contagem({ excelente: 1 })
-    }));
-  });
-
-  it("presidente votando falha (não participa)", async () => {
-    await ativarConduta();
-    await seedUsuario("pres1", "presidente");
-    await seedUsuario("colabA", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("pres1").firestore(), {
-      avaliador: "pres1", avaliado: "colabA", conceito: "excelente", contagemDepois: contagem({ excelente: 1 })
-    }));
-  });
-
-  it("colaborador desligado NÃO vota (vínculo ativo exigido)", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador", { status: "demitido", motivoPerdaIntegral: "demitido" });
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "insatisfatorio", contagemDepois: contagem({ insatisfatorio: 1 })
-    }));
-  });
-
-  it("id do documento que não bate com avaliadorUid_avaliadoUid falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "excelente",
-      contagemDepois: contagem({ excelente: 1 }), votoId: "id-qualquer"
-    }));
-  });
-
-  it("conceito fora do vocabulário falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "pessimo", contagemDepois: contagem({ excelente: 1 })
-    }));
-  });
-
-  it("BOLA: o avaliado NÃO lê o voto que recebeu (anonimato)", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await seedVoto("colabA", "colabB", "excelente", contagem({ excelente: 1 }));
-    const db = ctx("colabB").firestore();
-    await assertFails(getDoc(doc(db, "votosConduta", "colabA_colabB")));
-  });
-
-  it("o autor lê o próprio voto", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await seedVoto("colabA", "colabB", "excelente", contagem({ excelente: 1 }));
-    const db = ctx("colabA").firestore();
-    await assertSucceeds(getDoc(doc(db, "votosConduta", "colabA_colabB")));
-  });
-
-  it("ler o próprio voto ANTES de existir também é permitido (necessário pro tx.get() do primeiro voto)", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    const db = ctx("colabA").firestore();
-    await assertSucceeds(getDoc(doc(db, "votosConduta", "colabA_colabB")));
-  });
-
-  it("ninguém apaga um voto (allow delete: if false)", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await seedVoto("colabA", "colabB", "excelente", contagem({ excelente: 1 }));
-    const db = ctx("colabA").firestore();
-    await assertFails(deleteDoc(doc(db, "votosConduta", "colabA_colabB")));
+    await assertFails(setDoc(doc(ctx("pres1").firestore(), "configuracoes", "avaliacaoConduta"),
+      { ativo: true, atualizadoPor: "pres1", atualizadoEm: serverTimestamp() }));
   });
 });
 
-describe("condutaContagem/{avaliadoUid}", () => {
-  it("inflar sem votar: contagem gravada SEM o voto falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
+// ---------------------------------------------------------------------------
+// Avaliação de desempenho — configuração, tabela de fixos, ciclos, avaliações e resposta ao
+// Presidente. Cenário: colabA é avaliada pelo fixo `fixoA` (colaborador) e escolhe colabB;
+// colabP tem o Presidente como fixo; colabC é um terceiro; rh1 é do RH.
+// ---------------------------------------------------------------------------
+const ANO = new Date().getFullYear();
+const PERGUNTAS = ["Pergunta um", "Pergunta dois", "Pergunta três", "Pergunta quatro", "Pergunta cinco"];
+const PARECER = "Parecer com mais de vinte caracteres.";
+
+async function definirConfig({ ativo = true, ano = ANO } = {}) {
+  await semRegras((db) => setDoc(doc(db, "configuracoes", "avaliacaoDesempenho"),
+    { ativo, ano, perguntas: PERGUNTAS, atualizadoPor: "pres1", atualizadoEm: Timestamp.now() }));
+}
+
+async function cenarioAvaliacao({ ativo = true } = {}) {
+  for (const [uid, role] of [["pres1", "presidente"], ["rh1", "rh"], ["fixoA", "colaborador"], ["colabA", "colaborador"],
+    ["colabB", "colaborador"], ["colabC", "colaborador"], ["colabP", "colaborador"]]) {
+    await seedUsuario(uid, role);
+  }
+  await definirConfig({ ativo });
+  await semRegras((db) => setDoc(doc(db, "configuracoes", "avaliadoresFixos"),
+    { pares: { colabA: "fixoA", colabP: "pres1", rh1: "fixoA" } }));
+}
+
+/** Payload de escolherAvaliador() (frontend/js/avaliacao-service.js) na criação do ciclo. */
+function novoCiclo(uid, avaliadorFixoUid, avaliadorEscolhidoUid, extra = {}) {
+  return {
+    uid, ano: ANO, avaliadorFixoUid, avaliadorEscolhidoUid,
+    concluidas: { fixo: false, escolhido: false },
+    respostaEnviadaEm: null, okPresidenteEm: null, media: null, conceito: null,
+    criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra
+  };
+}
+async function semearCiclo(uid, fixo, escolhido, extra = {}) {
+  await semRegras((db) => setDoc(doc(db, "ciclosAvaliacao", `${ANO}_${uid}`),
+    { ...novoCiclo(uid, fixo, escolhido), criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now(), ...extra }));
+}
+function respostaDe(avaliadorUid, papel, avaliadoUid = "colabA", extra = {}) {
+  return {
+    ano: ANO, avaliadoUid, avaliadorUid, papel, perguntas: PERGUNTAS,
+    notas: [8, 8, 8, 8, 8], comentario: PARECER, criadoEm: serverTimestamp(), ...extra
+  };
+}
+/** Mesma escrita em lote de enviarResposta(): avaliação + marcação no ciclo. */
+function responder(db, papel, resposta, avaliadoUid = "colabA") {
+  const lote = writeBatch(db);
+  lote.set(doc(db, "respostasAvaliacao", `${ANO}_${avaliadoUid}_${papel}`), resposta);
+  lote.update(doc(db, "ciclosAvaliacao", `${ANO}_${avaliadoUid}`), { [`concluidas.${papel}`]: true, atualizadoEm: serverTimestamp() });
+  return lote.commit();
+}
+async function semearResposta(papel, avaliadorUid, notas, avaliadoUid = "colabA") {
+  await semRegras((db) => setDoc(doc(db, "respostasAvaliacao", `${ANO}_${avaliadoUid}_${papel}`),
+    { ...respostaDe(avaliadorUid, papel, avaliadoUid, { notas }), criadoEm: Timestamp.now() }));
+}
+/** As duas avaliações feitas: médias 10 e 6 → média 8,0 → "bom". */
+async function semearCicloConcluido(extra = {}) {
+  await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: true }, ...extra });
+  await semearResposta("fixo", "fixoA", [10, 10, 10, 10, 10]);
+  await semearResposta("escolhido", "colabB", [6, 6, 6, 6, 6]);
+}
+/** Mesma escrita de enviarRespostaAoPresidente(). */
+function enviarAoPresidente(db, texto = "Concordo com as avaliações.", uid = "colabA") {
+  const lote = writeBatch(db);
+  lote.set(doc(db, "respostasAoPresidente", `${ANO}_${uid}`), { uid, ano: ANO, texto, criadoEm: serverTimestamp() });
+  lote.update(doc(db, "ciclosAvaliacao", `${ANO}_${uid}`), { respostaEnviadaEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+  return lote.commit();
+}
+async function semearRespostaAoPresidente(uid = "colabA") {
+  await semRegras((db) => setDoc(doc(db, "respostasAoPresidente", `${ANO}_${uid}`),
+    { uid, ano: ANO, texto: "Concordo.", criadoEm: Timestamp.now() }));
+}
+/** Mesmas escritas de darOk(): fecha o ciclo e cria a avaliação lida pelo motor de cálculo. */
+function darOk(db, { media, conceito }) {
+  const lote = writeBatch(db);
+  lote.update(doc(db, "ciclosAvaliacao", `${ANO}_colabA`),
+    { okPresidenteEm: serverTimestamp(), media, conceito, atualizadoEm: serverTimestamp() });
+  lote.set(doc(db, "avaliacoes", `desempenho_${ANO}_colabA`), {
+    uid: "colabA", data: `${ANO}-11-27`, ano: ANO, conceito,
+    justificativa: `Média ${media} na Avaliação de desempenho ${ANO}`, validadoRH: true, avaliadoPor: "pres1",
+    criadoEm: serverTimestamp()
+  });
+  return lote.commit();
+}
+
+describe("configuracoes/avaliacaoDesempenho", () => {
+  const config = (uid, extra = {}) => ({ ativo: true, ano: ANO, perguntas: PERGUNTAS, atualizadoPor: uid, atualizadoEm: serverTimestamp(), ...extra });
+
+  it("Presidente abre e fecha o ciclo", async () => {
+    await seedUsuario("pres1", "presidente");
+    const ref = doc(ctx("pres1").firestore(), "configuracoes", "avaliacaoDesempenho");
+    await assertSucceeds(setDoc(ref, config("pres1")));
+    await assertSucceeds(setDoc(ref, config("pres1", { ativo: false })));
+  });
+
+  it("Admin edita só as perguntas: cria fechado, não abre o ciclo nem troca o ano", async () => {
+    await seedUsuario("admin1", "admin");
+    const ref = doc(ctx("admin1").firestore(), "configuracoes", "avaliacaoDesempenho");
+    await assertFails(setDoc(ref, config("admin1")));
+    await assertSucceeds(setDoc(ref, config("admin1", { ativo: false })));
+    await assertSucceeds(setDoc(ref, config("admin1", { ativo: false, perguntas: [...PERGUNTAS.slice(0, 4), "Nova pergunta"] })));
+    await assertFails(setDoc(ref, config("admin1", { ativo: true })));
+    await assertFails(setDoc(ref, config("admin1", { ativo: false, ano: ANO + 1 })));
+  });
+
+  it("colaborador, DP e RH não gravam; todos leem", async () => {
+    for (const [uid, role] of [["colabA", "colaborador"], ["dp1", "dp"], ["rh1", "rh"]]) {
+      await seedUsuario(uid, role);
+      await assertFails(setDoc(doc(ctx(uid).firestore(), "configuracoes", "avaliacaoDesempenho"), config(uid)));
+    }
+    await definirConfig();
+    await assertSucceeds(getDoc(doc(ctx("colabA").firestore(), "configuracoes", "avaliacaoDesempenho")));
+  });
+
+  it("perguntas fora do formato, autoria forjada, ano distante e campo extra falham", async () => {
+    await seedUsuario("pres1", "presidente");
+    const ref = doc(ctx("pres1").firestore(), "configuracoes", "avaliacaoDesempenho");
+    await assertFails(setDoc(ref, config("pres1", { perguntas: PERGUNTAS.slice(0, 4) })));
+    await assertFails(setDoc(ref, config("pres1", { perguntas: [...PERGUNTAS.slice(0, 4), ""] })));
+    await assertFails(setDoc(ref, config("pres1", { atualizadoPor: "outro" })));
+    await assertFails(setDoc(ref, config("pres1", { extra: 1 })));
+    await assertFails(setDoc(ref, config("pres1", { ano: ANO + 5 })));
+  });
+});
+
+describe("configuracoes/avaliadoresFixos", () => {
+  it("todos leem; ninguém grava pelo navegador, nem o Presidente", async () => {
+    await cenarioAvaliacao();
+    await assertSucceeds(getDoc(doc(ctx("colabA").firestore(), "configuracoes", "avaliadoresFixos")));
+    for (const uid of ["colabA", "pres1"]) {
+      await assertFails(setDoc(doc(ctx(uid).firestore(), "configuracoes", "avaliadoresFixos"), { pares: { colabA: "colabC" } }));
+    }
+  });
+});
+
+describe("ciclosAvaliacao: fixo da tabela e escolha do colega", () => {
+  it("colaborador da tabela cria o próprio ciclo com o fixo e um colega", async () => {
+    await cenarioAvaliacao();
+    await assertSucceeds(setDoc(doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`), novoCiclo("colabA", "fixoA", "colabB")));
+  });
+
+  it("o Presidente pode ser o fixo", async () => {
+    await cenarioAvaliacao();
+    await assertSucceeds(setDoc(doc(ctx("colabP").firestore(), "ciclosAvaliacao", `${ANO}_colabP`), novoCiclo("colabP", "pres1", "colabB")));
+  });
+
+  it("fixo diferente da tabela falha", async () => {
+    await cenarioAvaliacao();
+    const ref = doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`);
+    await assertFails(setDoc(ref, novoCiclo("colabA", "colabC", "colabB")));
+    await assertFails(setDoc(ref, novoCiclo("colabA", "pres1", "colabB")));
+  });
+
+  it("quem não está na tabela não cria ciclo", async () => {
+    await cenarioAvaliacao();
+    await assertFails(setDoc(doc(ctx("colabC").firestore(), "ciclosAvaliacao", `${ANO}_colabC`), novoCiclo("colabC", "fixoA", "colabB")));
+  });
+
+  it("o colega não pode ser o Presidente, o RH, a própria pessoa nem o próprio fixo", async () => {
+    await cenarioAvaliacao();
+    const ref = doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`);
+    for (const alvo of ["pres1", "rh1", "colabA", "fixoA"]) await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", alvo)));
+  });
+
+  it("não pode escolher colega desligado nem inexistente", async () => {
+    await cenarioAvaliacao();
+    await seedUsuario("colabD", "colaborador", { status: "demitido", motivoPerdaIntegral: "demitido" });
+    const ref = doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`);
+    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabD")));
+    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "fantasma")));
+  });
+
+  it("com o ciclo fechado, ninguém escolhe", async () => {
+    await cenarioAvaliacao({ ativo: false });
+    await assertFails(setDoc(doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`), novoCiclo("colabA", "fixoA", "colabB")));
+  });
+
+  it("não cria o ciclo de outra pessoa nem nasce com etapas concluídas ou nota", async () => {
+    await cenarioAvaliacao();
     const db = ctx("colabA").firestore();
-    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), {
-      ...contagem({ insatisfatorio: 1 }), atualizadoEm: "placeholder"
-    }));
+    await assertFails(setDoc(doc(db, "ciclosAvaliacao", `${ANO}_colabP`), novoCiclo("colabP", "pres1", "colabB")));
+    const ref = doc(db, "ciclosAvaliacao", `${ANO}_colabA`);
+    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: true } })));
+    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { media: 10, conceito: "excelente" })));
+    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { rhDispensado: false })));
   });
 
-  it("inflar depois de votar: +1 extra numa contagem já existente falha, com ou sem regravar o voto", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await seedVoto("colabA", "colabB", "insatisfatorio", contagem({ insatisfatorio: 1 }));
-    const db = ctx("colabA").firestore();
-    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), {
-      ...contagem({ insatisfatorio: 2 }), atualizadoEm: "placeholder"
-    }));
-    await assertFails(gravarVotoEContagem(db, {
-      avaliador: "colabA", avaliado: "colabB", conceito: "insatisfatorio", contagemDepois: contagem({ insatisfatorio: 2 })
-    }));
+  it("troca o colega só enquanto ele ainda não avaliou; o fixo não se troca", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    const ref = doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`);
+    await assertFails(updateDoc(ref, { avaliadorFixoUid: "colabC", atualizadoEm: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { avaliadorEscolhidoUid: "fixoA", atualizadoEm: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { avaliadorEscolhidoUid: "colabC", atualizadoEm: serverTimestamp() }));
+    await semearCiclo("colabA", "fixoA", "colabC", { concluidas: { fixo: false, escolhido: true } });
+    await assertFails(updateDoc(ref, { avaliadorEscolhidoUid: "colabB", atualizadoEm: serverTimestamp() }));
+  });
+});
+
+describe("respostasAvaliacao: envio", () => {
+  it("o fixo e o colega escolhido avaliam com parecer", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    await assertSucceeds(responder(ctx("fixoA").firestore(), "fixo", respostaDe("fixoA", "fixo")));
+    await assertSucceeds(responder(ctx("colabB").firestore(), "escolhido", respostaDe("colabB", "escolhido")));
   });
 
-  it("primeiro voto NÃO pode nascer com mais de 1 na contagem", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "excelente", contagemDepois: contagem({ excelente: 5 })
-    }));
+  it("o Presidente avalia como fixo de quem está com ele na tabela", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabP", "pres1", "colabB");
+    await assertSucceeds(responder(ctx("pres1").firestore(), "fixo", respostaDe("pres1", "fixo", "colabP"), "colabP"));
   });
 
-  it("valores absurdos com soma 1 (1000000 / -999999) falham", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "excelente",
-      contagemDepois: contagem({ excelente: 1000000, bom: -999999 })
-    }));
+  it("parecer obrigatório para os dois papéis (mínimo de 20 caracteres)", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    for (const comentario of ["", "curto demais"]) {
+      await assertFails(responder(ctx("colabB").firestore(), "escolhido", respostaDe("colabB", "escolhido", "colabA", { comentario })));
+      await assertFails(responder(ctx("fixoA").firestore(), "fixo", respostaDe("fixoA", "fixo", "colabA", { comentario })));
+    }
   });
 
-  it("o voto conta no conceito VOTADO: votar 'excelente' e creditar 'insatisfatorio' falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "excelente", contagemDepois: contagem({ insatisfatorio: 1 })
-    }));
+  it("ninguém avalia no papel do outro; Presidente e RH não avaliam quem não é deles", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    await assertFails(responder(ctx("colabB").firestore(), "fixo", respostaDe("colabB", "fixo")));
+    await assertFails(responder(ctx("fixoA").firestore(), "escolhido", respostaDe("fixoA", "escolhido")));
+    await assertFails(responder(ctx("colabC").firestore(), "escolhido", respostaDe("colabC", "escolhido")));
+    await assertFails(responder(ctx("pres1").firestore(), "fixo", respostaDe("pres1", "fixo")));
+    await assertFails(responder(ctx("rh1").firestore(), "fixo", respostaDe("rh1", "fixo")));
   });
 
-  it("redistribuir votos alheios (-1 'excelente', +1 'insatisfatorio') sem mudar o próprio voto falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    // colabA votou 'bom'; os 2 'excelente' são de outras pessoas.
-    await seedVoto("colabA", "colabB", "bom", contagem({ excelente: 2, bom: 1 }));
-    const db = ctx("colabA").firestore();
-    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), {
-      ...contagem({ excelente: 1, bom: 1, insatisfatorio: 1 }), atualizadoEm: "placeholder"
-    }));
-    await assertFails(gravarVotoEContagem(db, {
-      avaliador: "colabA", avaliado: "colabB", conceito: "bom",
-      contagemDepois: contagem({ excelente: 1, bom: 1, insatisfatorio: 1 })
-    }));
-  });
-
-  it("trocar de conceito debitando o conceito de OUTRA pessoa falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await seedVoto("colabA", "colabB", "bom", contagem({ excelente: 2, bom: 1 }));
-    // Troca bom -> regular, mas tira de 'excelente' (voto alheio) em vez de 'bom'.
-    await assertFails(gravarVotoEContagem(ctx("colabA").firestore(), {
-      avaliador: "colabA", avaliado: "colabB", conceito: "regular",
-      contagemDepois: contagem({ excelente: 1, bom: 1, regular: 1 })
-    }));
-  });
-
-  it("reduzir a soma total falha", async () => {
-    await ativarConduta();
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), contagem({ excelente: 1 })));
-    const db = ctx("colabA").firestore();
-    await assertFails(setDoc(doc(db, "condutaContagem", "colabB"), { ...contagem(), atualizadoEm: "placeholder" }));
-  });
-
-  it("o avaliado lê a própria contagem", async () => {
-    await seedUsuario("colabB", "colaborador");
-    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), contagem({ excelente: 1 })));
+  it("papéis antigos (presidente/rh/par) não existem mais", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
     const db = ctx("colabB").firestore();
-    await assertSucceeds(getDoc(doc(db, "condutaContagem", "colabB")));
+    const lote = writeBatch(db);
+    lote.set(doc(db, "respostasAvaliacao", `${ANO}_colabA_par`), respostaDe("colabB", "par"));
+    await assertFails(lote.commit());
   });
 
-  it("BOLA: colaborador qualquer NÃO lê a contagem de outro colaborador", async () => {
-    await seedUsuario("colabA", "colaborador");
-    await seedUsuario("colabB", "colaborador");
-    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), contagem({ excelente: 1 })));
+  it("notas: exatamente 5 inteiros de 0 a 10", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    const db = ctx("colabB").firestore();
+    for (const notas of [[8, 8, 8, 8, 11], [8, 8, 8, 8, -1], [8, 8, 8, 8, 7.5], [8, 8, 8, 8], [8, 8, 8, 8, "8"]]) {
+      await assertFails(responder(db, "escolhido", respostaDe("colabB", "escolhido", "colabA", { notas })));
+    }
+  });
+
+  it("avaliação e marcação no ciclo só passam juntas", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    const db = ctx("colabB").firestore();
+    await assertFails(setDoc(doc(db, "respostasAvaliacao", `${ANO}_colabA_escolhido`), respostaDe("colabB", "escolhido")));
+    await assertFails(updateDoc(doc(db, "ciclosAvaliacao", `${ANO}_colabA`), { "concluidas.escolhido": true, atualizadoEm: serverTimestamp() }));
+    // Marcar a etapa do outro avaliador junto com a própria avaliação também falha.
+    const lote = writeBatch(db);
+    lote.set(doc(db, "respostasAvaliacao", `${ANO}_colabA_escolhido`), respostaDe("colabB", "escolhido"));
+    lote.update(doc(db, "ciclosAvaliacao", `${ANO}_colabA`), { "concluidas.escolhido": true, "concluidas.fixo": true, atualizadoEm: serverTimestamp() });
+    await assertFails(lote.commit());
+  });
+
+  it("com o ciclo fechado não há novas avaliações", async () => {
+    await cenarioAvaliacao({ ativo: false });
+    await semearCiclo("colabA", "fixoA", "colabB");
+    await assertFails(responder(ctx("colabB").firestore(), "escolhido", respostaDe("colabB", "escolhido")));
+  });
+
+  it("avaliação enviada é imutável", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido();
+    const ref = (uid) => doc(ctx(uid).firestore(), "respostasAvaliacao", `${ANO}_colabA_escolhido`);
+    await assertFails(updateDoc(ref("colabB"), { notas: [10, 10, 10, 10, 10] }));
+    await assertFails(deleteDoc(ref("colabB")));
+    await assertFails(deleteDoc(ref("pres1")));
+  });
+});
+
+describe("respostasAvaliacao e ciclosAvaliacao: leitura", () => {
+  it("o avaliado só lê as avaliações depois das duas", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: false } });
+    await semearResposta("fixo", "fixoA", [9, 9, 9, 9, 9]);
     const db = ctx("colabA").firestore();
-    await assertFails(getDoc(doc(db, "condutaContagem", "colabB")));
+    await assertFails(getDoc(doc(db, "respostasAvaliacao", `${ANO}_colabA_fixo`)));
+    await semearCicloConcluido();
+    await assertSucceeds(getDoc(doc(db, "respostasAvaliacao", `${ANO}_colabA_fixo`)));
+    await assertSucceeds(getDoc(doc(db, "respostasAvaliacao", `${ANO}_colabA_escolhido`)));
   });
 
-  it("DP/RH/Admin/Presidente leem a contagem de qualquer colaborador (mesmo escopo de ver perfil)", async () => {
-    await seedUsuario("rh1", "rh");
-    await seedUsuario("colabB", "colaborador");
-    await semRegras((db) => setDoc(doc(db, "condutaContagem", "colabB"), contagem({ excelente: 1 })));
-    const db = ctx("rh1").firestore();
-    await assertSucceeds(getDoc(doc(db, "condutaContagem", "colabB")));
+  it("só o Presidente lê as duas; cada avaliador lê a própria; RH e terceiros não leem", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido();
+    const ler = (uid, papel) => getDoc(doc(ctx(uid).firestore(), "respostasAvaliacao", `${ANO}_colabA_${papel}`));
+    for (const p of ["fixo", "escolhido"]) await assertSucceeds(ler("pres1", p));
+    await assertSucceeds(ler("fixoA", "fixo"));
+    await assertFails(ler("fixoA", "escolhido"));
+    await assertSucceeds(ler("colabB", "escolhido"));
+    await assertFails(ler("colabB", "fixo"));
+    await assertFails(ler("rh1", "fixo"));
+    await assertFails(ler("colabC", "escolhido"));
+  });
+
+  it("ciclo: dono, fixo, escolhido e Presidente leem; RH e terceiro não", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    const id = `${ANO}_colabA`;
+    for (const uid of ["colabA", "fixoA", "colabB", "pres1"]) await assertSucceeds(getDoc(doc(ctx(uid).firestore(), "ciclosAvaliacao", id)));
+    for (const uid of ["rh1", "colabC"]) await assertFails(getDoc(doc(ctx(uid).firestore(), "ciclosAvaliacao", id)));
+    // O próprio ciclo, antes de existir, pode ser "lido" (o listener da página não falha).
+    await assertSucceeds(getDoc(doc(ctx("colabC").firestore(), "ciclosAvaliacao", `${ANO}_colabC`)));
+  });
+
+  it("consultas da página: Presidente vê o ano; avaliadores veem onde são fixo ou escolhido", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB");
+    const ciclos = (uid) => collection(ctx(uid).firestore(), "ciclosAvaliacao");
+    await assertSucceeds(getDocs(query(ciclos("pres1"), where("ano", "==", ANO))));
+    await assertFails(getDocs(query(ciclos("rh1"), where("ano", "==", ANO))));
+    await assertFails(getDocs(query(ciclos("colabC"), where("ano", "==", ANO))));
+    await assertSucceeds(getDocs(query(ciclos("fixoA"), where("ano", "==", ANO), where("avaliadorFixoUid", "==", "fixoA"))));
+    await assertSucceeds(getDocs(query(ciclos("colabB"), where("ano", "==", ANO), where("avaliadorEscolhidoUid", "==", "colabB"))));
+  });
+});
+
+describe("respostasAoPresidente e ok do Presidente", () => {
+  it("o avaliado responde só depois das duas avaliações, uma vez", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: false } });
+    await assertFails(enviarAoPresidente(ctx("colabA").firestore()));
+    await semearCicloConcluido();
+    await assertFails(enviarAoPresidente(ctx("colabA").firestore(), ""));
+    await assertSucceeds(enviarAoPresidente(ctx("colabA").firestore()));
+    await assertFails(enviarAoPresidente(ctx("colabA").firestore(), "Mudei de ideia."));
+  });
+
+  it("só o avaliado envia; resposta e marcação no ciclo só passam juntas", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido();
+    await assertFails(enviarAoPresidente(ctx("colabB").firestore()));
+    const db = ctx("colabA").firestore();
+    await assertFails(setDoc(doc(db, "respostasAoPresidente", `${ANO}_colabA`), { uid: "colabA", ano: ANO, texto: "Oi.", criadoEm: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db, "ciclosAvaliacao", `${ANO}_colabA`), { respostaEnviadaEm: serverTimestamp(), atualizadoEm: serverTimestamp() }));
+  });
+
+  it("a resposta vai só para o Presidente: avaliadores, RH e terceiros não leem", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
+    await semearRespostaAoPresidente();
+    const ler = (uid) => getDoc(doc(ctx(uid).firestore(), "respostasAoPresidente", `${ANO}_colabA`));
+    await assertSucceeds(ler("colabA"));
+    await assertSucceeds(ler("pres1"));
+    for (const uid of ["fixoA", "colabB", "rh1", "colabC"]) await assertFails(ler(uid));
+  });
+
+  it("resposta ao Presidente é imutável", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
+    await semearRespostaAoPresidente();
+    const ref = doc(ctx("colabA").firestore(), "respostasAoPresidente", `${ANO}_colabA`);
+    await assertFails(updateDoc(ref, { texto: "Outro texto." }));
+    await assertFails(deleteDoc(ref));
+  });
+
+  it("ok do Presidente com a média e o conceito certos (8,0 → bom)", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
+    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 8, conceito: "bom" }));
+  });
+
+  it("ok com conceito ou média adulterados falha", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
+    const db = ctx("pres1").firestore();
+    await assertFails(darOk(db, { media: 8, conceito: "excelente" }));
+    await assertFails(darOk(db, { media: 9.5, conceito: "excelente" }));
+  });
+
+  it("sem a resposta do avaliado não há ok; só o Presidente dá o ok, e uma vez", async () => {
+    await cenarioAvaliacao();
+    await semearCicloConcluido();
+    await assertFails(darOk(ctx("pres1").firestore(), { media: 8, conceito: "bom" }));
+    await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
+    await assertFails(darOk(ctx("fixoA").firestore(), { media: 8, conceito: "bom" }));
+    await assertFails(darOk(ctx("rh1").firestore(), { media: 8, conceito: "bom" }));
+    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 8, conceito: "bom" }));
+    await assertFails(updateDoc(doc(ctx("pres1").firestore(), "ciclosAvaliacao", `${ANO}_colabA`),
+      { okPresidenteEm: serverTimestamp(), media: 10, conceito: "excelente", atualizadoEm: serverTimestamp() }));
+  });
+
+  it("média com arredondamento: 89/10 = 8,9 → bom", async () => {
+    await cenarioAvaliacao();
+    await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: true }, respostaEnviadaEm: Timestamp.now() });
+    await semearResposta("fixo", "fixoA", [9, 9, 9, 9, 9]);
+    await semearResposta("escolhido", "colabB", [9, 9, 9, 9, 8]);
+    await assertFails(darOk(ctx("pres1").firestore(), { media: 9, conceito: "excelente" }));
+    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 8.9, conceito: "bom" }));
   });
 });
 
@@ -1848,24 +1930,6 @@ describe("estatisticas/publico: validação", () => {
     await semRegras((db) => setDoc(doc(db, "estatisticas", "publico"), { arrecadado: 1 }));
     const db = ctx("pres1").firestore();
     await assertFails(deleteDoc(doc(db, "estatisticas", "publico")));
-  });
-});
-
-describe("configuracoes/avaliacaoConduta: validação", () => {
-  it("payload real de definirFlagConduta() é aceito", async () => {
-    await seedUsuario("admin1", "admin");
-    const db = ctx("admin1").firestore();
-    await assertSucceeds(setDoc(doc(db, "configuracoes", "avaliacaoConduta"),
-      { ativo: false, atualizadoPor: "admin1", atualizadoEm: serverTimestamp() }));
-  });
-
-  it("autoria forjada, `ativo` não booleano ou campo extra falham", async () => {
-    await seedUsuario("admin1", "admin");
-    const db = ctx("admin1").firestore();
-    const ref = doc(db, "configuracoes", "avaliacaoConduta");
-    await assertFails(setDoc(ref, { ativo: true, atualizadoPor: "pres1" }));
-    await assertFails(setDoc(ref, { ativo: "sim", atualizadoPor: "admin1" }));
-    await assertFails(setDoc(ref, { ativo: true, atualizadoPor: "admin1", extra: 1 }));
   });
 });
 

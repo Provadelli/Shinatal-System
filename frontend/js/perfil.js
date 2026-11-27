@@ -149,14 +149,15 @@ document.getElementById("btn-baixar-dados").addEventListener("click", async (e) 
   btn.disabled = true;
   try {
     const docsDe = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const [contratos, votosDados, contagemRecebida, ciclos, respostasQueVoceDeu] = await Promise.all([
+    const [contratos, votosDados, contagemRecebida, ciclos, respostasQueVoceDeu, respostasAoPresidente] = await Promise.all([
       buscarPorUid("contratos", perfil.uid),
       getDocs(query(collection(db, "votosConduta"), where("avaliadorUid", "==", perfil.uid))).then(docsDe),
       getDoc(doc(db, "condutaContagem", perfil.uid)).then((s) => (s.exists() ? s.data() : null)),
       buscarPorUid("ciclosAvaliacao", perfil.uid).catch(() => []),
-      getDocs(query(collection(db, "respostasAvaliacao"), where("avaliadorUid", "==", perfil.uid))).then(docsDe).catch(() => [])
+      getDocs(query(collection(db, "respostasAvaliacao"), where("avaliadorUid", "==", perfil.uid))).then(docsDe).catch(() => []),
+      buscarPorUid("respostasAoPresidente", perfil.uid).catch(() => [])
     ]);
-    // Respostas sobre a pessoa: as regras só liberam a leitura depois das três avaliações.
+    // Avaliações sobre a pessoa: as regras só liberam a leitura depois das duas avaliações.
     const respostasRecebidas = (await Promise.all(ciclos.map((c) =>
       buscarRespostasRecebidas(c).catch(() => [])
     ))).flat();
@@ -179,7 +180,8 @@ document.getElementById("btn-baixar-dados").addEventListener("click", async (e) 
       processoDeAvaliacao: {
         ciclos,
         respostasRecebidas,
-        respostasQueVoceDeu
+        respostasQueVoceDeu,
+        respostasAoPresidente
       },
       avaliacaoDeConduta: {
         votosQueVoceDeu: votosDados,

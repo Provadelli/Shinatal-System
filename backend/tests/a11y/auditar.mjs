@@ -211,7 +211,23 @@ async function semear() {
 
   await gravar(`fundo/${ano}`, { arrecadado: 3000, estornos: 500, saldoDisponivel: 2500, somaPesos: 4, totalContratosAtivos: 1, totalContratosEncerrados: 1, atualizadoEm: agora, atualizadoPor: uid.pres });
   await gravar("estatisticas/publico", { arrecadado: 3000, colaboradores: 22, colaboradoresAnosAnteriores: 120, atualizadoEm: agora });
-  await gravar("configuracoes/avaliacaoConduta", { ativo: true, atualizadoPor: uid.pres, atualizadoEm: agora });
+  // Avaliação de desempenho: a Ana (fixo: Presidente, colega: Bruno) já tem as duas avaliações e
+  // respondeu ao Presidente — a página mostra média, notas e a resposta; o Bruno (fixo: Ana) está
+  // no começo — a Ana vê o aviso "Avalie Bruno".
+  const perguntas = ["Qualidade do trabalho", "Pontualidade", "Trabalho em equipe", "Comunicação", "Iniciativa"];
+  await gravar("configuracoes/avaliacaoDesempenho", { ativo: true, ano, perguntas, atualizadoPor: uid.pres, atualizadoEm: agora });
+  await gravar("configuracoes/avaliadoresFixos", { pares: { [uid.ana]: uid.pres, [uid.bruno]: uid.ana } });
+  const ciclo = (dono, fixo, escolhido, extra) => ({
+    uid: dono, ano, avaliadorFixoUid: fixo, avaliadorEscolhidoUid: escolhido, concluidas: { fixo: false, escolhido: false },
+    respostaEnviadaEm: null, okPresidenteEm: null, media: null, conceito: null, criadoEm: agora, atualizadoEm: agora, ...extra
+  });
+  await gravar(`ciclosAvaliacao/${ano}_${uid.ana}`, ciclo(uid.ana, uid.pres, uid.bruno, { concluidas: { fixo: true, escolhido: true }, respostaEnviadaEm: agora }));
+  await gravar(`ciclosAvaliacao/${ano}_${uid.bruno}`, ciclo(uid.bruno, uid.ana, uid.carla, {}));
+  const avaliacao = (avaliador, papel, notas, comentario) => gravar(`respostasAvaliacao/${ano}_${uid.ana}_${papel}`,
+    { ano, avaliadoUid: uid.ana, avaliadorUid: avaliador, papel, perguntas, notas, comentario, criadoEm: agora });
+  await avaliacao(uid.pres, "fixo", [9, 8, 9, 10, 8], "Entrega consistente e muito cuidado com os detalhes ao longo do ano.");
+  await avaliacao(uid.bruno, "escolhido", [8, 9, 10, 8, 7], "Sempre disponível para ajudar a equipe nos momentos de pico.");
+  await gravar(`respostasAoPresidente/${ano}_${uid.ana}`, { uid: uid.ana, ano, texto: "Concordo com as avaliações e quero melhorar a iniciativa.", criadoEm: agora });
   await gravar("solicitacoes/s1", {
     tipo: "avaliacao", descricao: "Avaliação de desempenho (excelente) para Bruno Lima", alvoUid: uid.bruno, alvoNome: "Bruno Lima",
     dadosAcao: { uid: uid.bruno, data: `${ano}-07-01`, ano, conceito: "excelente", justificativa: "Destaque do semestre", validadoRH: true, avaliadoPor: uid.dp, criadoEm: agora },
@@ -630,8 +646,8 @@ async function principal() {
     await pagina.setViewport(DESKTOP);
     await entrar(pagina, "ana@shinerio.com");
     await visitar(pagina, "/dashboard", "painel do colaborador (desktop)");
-    // Desde o redesign, faltas/advertências/regras/conduta são páginas próprias, não modais.
-    for (const p of ["faltas", "advertencias", "regulamento", "conduta"]) await visitar(pagina, `/${p}`, `colaborador · ${p}`);
+    // Desde o redesign, faltas/advertências/regras/avaliação são páginas próprias, não modais.
+    for (const p of ["faltas", "advertencias", "regulamento", "avaliacao"]) await visitar(pagina, `/${p}`, `colaborador · ${p}`);
     await visitar(pagina, "/dashboard", "painel do colaborador (de volta)");
     await clicarVisivel(pagina, "[aria-controls='conteudo-regras-resumo']");
     const sanfona = await pagina.evaluate(() => document.querySelector("[aria-controls='conteudo-regras-resumo']").getAttribute("aria-expanded"));
@@ -655,8 +671,8 @@ async function principal() {
     await capturar(pagina, "gestão · hover em linha da tabela");
     await auditarModal(pagina, "gestão · modal nova ação", `[data-nova-acao="falta"]`, "modal-nova-acao");
     await auditarModal(pagina, "gestão · modal novo colaborador", `[data-abrir-modal="modal-novo-colaborador"]`, "modal-novo-colaborador");
-    // Log, solicitações e conduta viraram páginas próprias.
-    for (const p of ["atividade", "solicitacoes", "conduta"]) await visitar(pagina, `/${p}`, `gestão · ${p}`);
+    // Log, solicitações e avaliação viraram páginas próprias.
+    for (const p of ["atividade", "solicitacoes", "avaliacao"]) await visitar(pagina, `/${p}`, `gestão · ${p}`);
     await visitar(pagina, "/gestao", "painel de gestão (de volta)");
     await auditarModal(pagina, "gestão · modal perfil", `[data-ver-perfil-uid]`, "modal-perfil");
     await auditarModal(pagina, "gestão · modal editar colaborador", `[data-editar-uid]`, "modal-editar-colaborador");

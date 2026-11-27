@@ -2,10 +2,12 @@
 //
 // Fluxo (cada passo é validado de verdade em backend/firestore.rules):
 //   1. O Presidente abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
-//   2. O colaborador escolhe um colega para avaliá-lo (cria ciclosAvaliacao/{ano}_{uid}).
-//   3. Presidente, RH e o colega respondem 5 perguntas, notas de 0 a 10
-//      (respostasAvaliacao/{ano}_{uid}_{papel}), junto com a marcação em ciclo.concluidas.
-//   4. Com as três concluídas, o colaborador lê as respostas e envia o parecer.
+//   2. O colaborador escolhe um colega para avaliá-lo (cria ciclosAvaliacao/{ano}_{uid}); o
+//      avaliador fixo vem da tabela oficial (configuracoes/avaliadoresFixos).
+//   3. O avaliador fixo e o colega escolhido respondem 5 perguntas, notas de 0 a 10, mais um
+//      parecer (respostasAvaliacao/{ano}_{uid}_{papel}), junto com a marcação em ciclo.concluidas.
+//   4. Com as duas concluídas, o colaborador lê as avaliações e envia uma resposta que só o
+//      Presidente lê (respostasAoPresidente/{ano}_{uid}).
 //   5. O Presidente dá o "ok": média e conceito vão para o ciclo e para avaliacoes/{id}, que o
 //      motor de cálculo (calculo-shinatal.js, TABELA_AVALIACAO) já transforma em percentual.
 import { db } from "./firebase-init.js";
@@ -27,8 +29,8 @@ const PERGUNTAS_PADRAO = [
   "Iniciativa e comprometimento com a Shine Rio"
 ];
 
-const PAPEIS_AVALIADOR = ["presidente", "rh", "par"];
-const ROTULOS_PAPEL_AVALIADOR = { presidente: "Presidente", rh: "RH", par: "Colega escolhido" };
+const PAPEIS_AVALIADOR = ["fixo", "escolhido"];
+const ROTULOS_PAPEL_AVALIADOR = { fixo: "Avaliador fixo", escolhido: "Colega escolhido" };
 const ROTULOS_CONCEITO = { excelente: "Excelente", bom: "Bom", regular: "Regular", insatisfatorio: "Insatisfatório" };
 const PERCENTUAL_CONCEITO = { excelente: "+2%", bom: "0%", regular: "−5%", insatisfatorio: "−15%" };
 const COMENTARIO_MINIMO = 20;
@@ -41,6 +43,7 @@ const refConfig = () => doc(db, "configuracoes", "avaliacaoDesempenho");
 const idCiclo = (ano, uid) => `${ano}_${uid}`;
 const refCiclo = (ano, uid) => doc(db, "ciclosAvaliacao", idCiclo(ano, uid));
 const refResposta = (ano, uid, papel) => doc(db, "respostasAvaliacao", `${ano}_${uid}_${papel}`);
+const refRespostaAoPresidente = (ano, uid) => doc(db, "respostasAoPresidente", idCiclo(ano, uid));
 const comId = (snap) => ({ id: snap.id, ...snap.data() });
 
 function avisarErro(contexto) {
@@ -59,6 +62,14 @@ async function salvarConfig({ ativo, ano, perguntas }, uid) {
   await setDoc(refConfig(), { ativo, ano, perguntas, atualizadoPor: uid, atualizadoEm: serverTimestamp() });
 }
 
+/** Tabela oficial avaliado → avaliador fixo ({} quando ainda não foi gravada pelo script). */
+function assinarAvaliadoresFixos(cb) {
+  return onSnapshot(doc(db, "configuracoes", "avaliadoresFixos"), (snap) => cb(snap.exists() ? snap.data().pares || {} : {}), (erro) => {
+    avisarErro("a tabela de avaliadores fixos")(erro);
+    cb({});
+  });
+}
+
 /** O próprio ciclo do ano (ou `null` enquanto o avaliador não foi escolhido). */
 function assinarMeuCiclo(ano, uid, cb) {
   return onSnapshot(refCiclo(ano, uid), (snap) => cb(snap.exists() ? comId(snap) : null), (erro) => {
@@ -67,29 +78,40 @@ function assinarMeuCiclo(ano, uid, cb) {
   });
 }
 
-/** Presidente e RH: todos os ciclos do ano. Demais: só os ciclos em que foram escolhidos. */
+/**
+ * Presidente: todos os ciclos do ano. Demais: os ciclos em que são o avaliador fixo ou o colega
+ * escolhido (duas consultas só de igualdade, sem índice composto, unidas aqui).
+ */
 function assinarCiclosVisiveis(ano, papel, uid, cb) {
   const ciclos = collection(db, "ciclosAvaliacao");
-  const q = papel === "presidente" || papel === "rh"
-    ? query(ciclos, where("ano", "==", ano))
-    : query(ciclos, where("ano", "==", ano), where("avaliadorUid", "==", uid));
-  return onSnapshot(q, (snap) => cb(snap.docs.map(comId)), (erro) => {
-    avisarErro("os ciclos de avaliação")(erro);
-    cb([]);
-  });
+  const erro = (e) => { avisarErro("os ciclos de avaliação")(e); cb([]); };
+  if (papel === "presidente") {
+    return onSnapshot(query(ciclos, where("ano", "==", ano)), (snap) => cb(snap.docs.map(comId)), erro);
+  }
+  const partes = { fixo: null, escolhido: null };
+  const emitir = () => {
+    if (!partes.fixo || !partes.escolhido) return;
+    const porId = new Map([...partes.fixo, ...partes.escolhido].map((c) => [c.id, c]));
+    cb([...porId.values()]);
+  };
+  const cancelar = ["fixo", "escolhido"].map((parte) => onSnapshot(
+    query(ciclos, where("ano", "==", ano), where(parte === "fixo" ? "avaliadorFixoUid" : "avaliadorEscolhidoUid", "==", uid)),
+    (snap) => { partes[parte] = snap.docs.map(comId); emitir(); },
+    erro
+  ));
+  return () => cancelar.forEach((c) => c());
 }
 
 /** Cria o ciclo (primeira escolha) ou troca o colega enquanto ele ainda não avaliou. */
-async function escolherAvaliador({ ano, uid, avaliadorUid, cicloExiste }) {
+async function escolherAvaliador({ ano, uid, avaliadorFixoUid, avaliadorEscolhidoUid, cicloExiste }) {
   if (cicloExiste) {
-    await updateDoc(refCiclo(ano, uid), { avaliadorUid, atualizadoEm: serverTimestamp() });
+    await updateDoc(refCiclo(ano, uid), { avaliadorEscolhidoUid, atualizadoEm: serverTimestamp() });
     return;
   }
   await setDoc(refCiclo(ano, uid), {
-    uid, ano, avaliadorUid,
-    concluidas: { presidente: false, rh: false, par: false },
-    rhDispensado: false,
-    parecer: null, parecerEm: null, okPresidenteEm: null, media: null, conceito: null,
+    uid, ano, avaliadorFixoUid, avaliadorEscolhidoUid,
+    concluidas: { fixo: false, escolhido: false },
+    respostaEnviadaEm: null, okPresidenteEm: null, media: null, conceito: null,
     criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp()
   });
 }
@@ -105,11 +127,10 @@ async function enviarResposta({ ciclo, papel, avaliadorUid, perguntas, notas, co
   await lote.commit();
 }
 
-/** As respostas sobre um ciclo concluído (Presidente, ou o próprio avaliado depois das três). */
+/** As avaliações sobre um ciclo (Presidente, ou o próprio avaliado depois das duas). */
 async function buscarRespostas(ciclo) {
-  const papeis = PAPEIS_AVALIADOR.filter((p) => !(p === "rh" && ciclo.rhDispensado));
-  const snaps = await Promise.all(papeis.map((p) => getDoc(refResposta(ciclo.ano, ciclo.uid, p))));
-  return Object.fromEntries(papeis.map((p, i) => [p, snaps[i].exists() ? snaps[i].data() : null]));
+  const snaps = await Promise.all(PAPEIS_AVALIADOR.map((p) => getDoc(refResposta(ciclo.ano, ciclo.uid, p))));
+  return Object.fromEntries(PAPEIS_AVALIADOR.map((p, i) => [p, snaps[i].exists() ? snaps[i].data() : null]));
 }
 
 /** Respostas que a própria pessoa escreveu (para reabrir o que já enviou e para a LGPD). */
@@ -118,12 +139,18 @@ async function buscarMinhaResposta(ciclo, papel) {
   return snap.exists() ? snap.data() : null;
 }
 
-async function enviarParecer(ciclo, parecer) {
-  await updateDoc(refCiclo(ciclo.ano, ciclo.uid), { parecer, parecerEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+/** Resposta do avaliado ao Presidente + marca no ciclo, na mesma escrita (a regra amarra as duas). */
+async function enviarRespostaAoPresidente(ciclo, texto) {
+  const lote = writeBatch(db);
+  lote.set(refRespostaAoPresidente(ciclo.ano, ciclo.uid), { uid: ciclo.uid, ano: ciclo.ano, texto, criadoEm: serverTimestamp() });
+  lote.update(refCiclo(ciclo.ano, ciclo.uid), { respostaEnviadaEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+  await lote.commit();
 }
 
-async function dispensarRH(ciclo) {
-  await updateDoc(refCiclo(ciclo.ano, ciclo.uid), { rhDispensado: true, atualizadoEm: serverTimestamp() });
+/** A resposta ao Presidente (só o próprio avaliado e o Presidente conseguem ler). */
+async function buscarRespostaAoPresidente(ciclo) {
+  const snap = await getDoc(refRespostaAoPresidente(ciclo.ano, ciclo.uid));
+  return snap.exists() ? snap.data() : null;
 }
 
 function hojeISO() {
@@ -138,9 +165,8 @@ function hojeISO() {
  * @returns {Promise<{media:number, conceito:string}>}
  */
 async function darOk(ciclo, presidente, alvoNome = null) {
-  const papeis = PAPEIS_AVALIADOR.filter((p) => !(p === "rh" && ciclo.rhDispensado));
   const resultado = await runTransaction(db, async (tx) => {
-    const snaps = await Promise.all(papeis.map((p) => tx.get(refResposta(ciclo.ano, ciclo.uid, p))));
+    const snaps = await Promise.all(PAPEIS_AVALIADOR.map((p) => tx.get(refResposta(ciclo.ano, ciclo.uid, p))));
     if (snaps.some((s) => !s.exists())) throw new Error("Avaliações incompletas.");
     const media = calcularMedia(snaps.map((s) => s.data()));
     const conceito = conceitoPorMedia(media);
@@ -201,6 +227,7 @@ function assinarPendencias(papel, uid, cb) {
 export {
   PERGUNTAS_PADRAO, PAPEIS_AVALIADOR, ROTULOS_PAPEL_AVALIADOR, ROTULOS_CONCEITO, PERCENTUAL_CONCEITO, COMENTARIO_MINIMO,
   calcularMedia, conceitoPorMedia, formatarNota, avaliacoesConcluidas, passosDoCiclo, progressoDosPassos, calcularPendencias,
-  assinarConfig, salvarConfig, assinarMeuCiclo, assinarCiclosVisiveis, escolherAvaliador, enviarResposta,
-  buscarRespostas, buscarMinhaResposta, enviarParecer, dispensarRH, darOk, assinarPendencias
+  assinarConfig, salvarConfig, assinarAvaliadoresFixos, assinarMeuCiclo, assinarCiclosVisiveis, escolherAvaliador,
+  enviarResposta, buscarRespostas, buscarMinhaResposta, enviarRespostaAoPresidente, buscarRespostaAoPresidente,
+  darOk, assinarPendencias
 };

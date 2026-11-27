@@ -99,7 +99,7 @@
     <div>
       <p class="rotulo"><span class="rotulo-numero" aria-hidden="true">04</span><span class="fio-natal" aria-hidden="true"></span><span>Desempenho</span></p>
       <h1>Avaliação de desempenho</h1>
-      <p class="titulo-pagina-texto">O Presidente, o RH e um colega escolhido por você avaliam o seu ano em 5 perguntas, com notas de 0 a 10. A média final define o percentual da Seção 11 no seu Shinatal.</p>
+      <p class="titulo-pagina-texto">Seu avaliador fixo e um colega escolhido por você avaliam o seu ano em 5 perguntas, com notas de 0 a 10 e um parecer. A média final define o percentual da Seção 11 no seu Shinatal.</p>
     </div>
     <span id="selo-ciclo" class="badge badge-neutro" hidden></span>
   </header>
@@ -139,8 +139,8 @@
       <div class="overflow-x-auto">
         <table class="tabela tabela-empilhada">
           <caption class="sr-only">Situação da avaliação de cada colaborador</caption>
-          <thead><tr><th scope="col">Colaborador</th><th scope="col">Etapa</th><th scope="col" class="num">Média</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
-          <tbody id="corpo-gestao"><tr><td colspan="4"><div class="skeleton h-5 w-full"></div></td></tr></tbody>
+          <thead><tr><th scope="col">Colaborador</th><th scope="col">Avaliadores</th><th scope="col">Etapa</th><th scope="col" class="num">Média</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+          <tbody id="corpo-gestao"><tr><td colspan="5"><div class="skeleton h-5 w-full"></div></td></tr></tbody>
         </table>
       </div>
     </section>
@@ -174,7 +174,7 @@
       <div id="avaliar-perguntas" class="p-5 overflow-y-auto space-y-6 flex-1"></div>
       <div class="p-5 border-t border-outline-variant/30 shrink-0 space-y-4 avaliar-rodape">
         <div>
-          <label for="avaliar-comentario" id="avaliar-comentario-rotulo" class="label-shinatal">Comentário</label>
+          <label for="avaliar-comentario" id="avaliar-comentario-rotulo" class="label-shinatal">Seu parecer</label>
           <textarea id="avaliar-comentario" class="input-shinatal !pl-3" rows="3" maxlength="2000" aria-describedby="avaliar-comentario-ajuda"></textarea>
           <p id="avaliar-comentario-ajuda" class="registro-detalhe"></p>
         </div>

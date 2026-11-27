@@ -3178,6 +3178,7 @@ input[type="checkbox"]#aceiteTermos { width: 1.5rem; height: 1.5rem; }
 /* Linha do tempo: vertical no celular, horizontal a partir de 640 px. */
 .linha-processo {
   --progresso: 0;
+  --passos: 5; /* marcos da linha do tempo (passosDoCiclo em avaliacao-calculo.js) */
   --marco: 2.25rem;
   position: relative;
   display: grid;
@@ -3237,13 +3238,13 @@ input[type="checkbox"]#aceiteTermos { width: 1.5rem; height: 1.5rem; }
   to { transform: scale(1.65); opacity: 0; }
 }
 @media (min-width: 640px) {
-  .linha-processo { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
+  .linha-processo { grid-template-columns: repeat(var(--passos), minmax(0, 1fr)); gap: 0; }
   .linha-processo::before,
   .linha-processo::after {
     top: calc(var(--marco) / 2 - 1px);
     bottom: auto;
-    left: calc(100% / 12);
-    right: calc(100% / 12);
+    left: calc(100% / (2 * var(--passos)));
+    right: calc(100% / (2 * var(--passos)));
     width: auto;
     height: 2px;
   }
