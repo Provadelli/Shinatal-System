@@ -646,17 +646,21 @@ function calcularVisaoSemestral(contratosEmpresariais = [], anoExercicio, hojeIS
  * Agregados publicados no banco (`fundo/{ano}` e `estatisticas/publico`). Mesma função para a
  * interface e para o script de migração — o que o banco guarda é sempre o que as telas calculam.
  */
-function montarAgregadosFundo(contratosEmpresariais = [], usuarios = [], anoExercicio, hojeISO) {
+function montarAgregadosFundo(contratosEmpresariais = [], usuarios = [], anoExercicio, hojeISO, mapaDados = null) {
   const { arrecadado, estornos, saldoDisponivel } = calcularFundo(contratosEmpresariais, anoExercicio, hojeISO);
   const somaPesos = usuarios
     .filter((u) => verificarElegibilidade(u).elegivel)
     .reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
+  // Só com os lançamentos (faltas, atrasos, advertências, avaliações) dá para saber o peso ajustado.
+  const extra = mapaDados
+    ? { somaPesosAjustados: calcularDistribuicaoFundo(usuarios, mapaDados, saldoDisponivel, anoExercicio).somaPesosAjustados }
+    : {};
   const colaboradores = contratosEmpresariais.reduce(
     (soma, ce) => soma + calcularResumoContratoEmpresarial(ce, hojeISO).qtdAtual, 0
   );
   return {
     fundo: {
-      arrecadado, estornos, saldoDisponivel, somaPesos,
+      arrecadado, estornos, saldoDisponivel, somaPesos, ...extra,
       totalContratosAtivos: contratosEmpresariais.filter((c) => c.status === "ativo").length,
       totalContratosEncerrados: contratosEmpresariais.filter((c) => c.status === "encerrado").length
     },
@@ -837,8 +841,12 @@ function limitarRedutoresADoisIndices(percentuais) {
  * @param {number} saldoFundo saldo disponível do fundo no exercício
  * @param {number} somaPesos soma de calcularPesoIndividual() de todos os elegíveis
  * @param {number} anoExercicio
+ * @param {number} [somaPesosAjustados] soma de `pesoAjustado` de todos os elegíveis (ver
+ *   calcularDistribuicaoFundo). Com ela, a cota final é a fatia do fundo pelo peso ajustado e a
+ *   soma das cotas de todos fecha com o saldo. Sem ela (documento do fundo ainda não
+ *   republicado), a cota final é a calculada sem rateio.
  */
-function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExercicio) {
+function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExercicio, somaPesosAjustados = 0) {
   const elegibilidade = verificarElegibilidade(usuario);
   const resultado = {
     elegivel: elegibilidade.elegivel,
@@ -853,6 +861,9 @@ function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExerc
     disciplinar: { percentual: 0, perdaIntegral: false, ocorrencias: [] },
     avaliacao: { percentual: 0, conceito: null },
     bonusExcelencia: 0,
+    pesoAjustado: 0,
+    cotaCalculada: 0,
+    ajusteRateio: 0,
     cotaFinal: 0,
     detalhamento: []
   };
@@ -908,10 +919,76 @@ function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExerc
   const percentualAdicionais = bonus + percentualAvaliacaoPositiva;
   resultado.percentualAdicionais = percentualAdicionais;
 
-  const cotaFinal = cotaAposFaltas * (1 + percentualAdicionais);
-  resultado.cotaFinal = Math.max(0, cotaFinal);
+  const cotaCalculada = Math.max(0, cotaAposFaltas * (1 + percentualAdicionais));
+  resultado.cotaCalculada = cotaCalculada;
+
+  // 6) Rateio (Seções 2 e 6): o fundo é um valor fechado. Redutores, faltas e adicionais mudam o
+  // PESO de cada um; o saldo é dividido pelos pesos ajustados, então a soma das cotas é o saldo.
+  resultado.pesoAjustado = peso * (1 - percentualRedutores) * Math.max(0, 1 - numeroFaltas / 30) * (1 + percentualAdicionais);
+  resultado.cotaFinal = somaPesosAjustados > 0
+    ? arredondarCentavos((resultado.pesoAjustado / somaPesosAjustados) * saldoFundo)
+    : cotaCalculada;
+  resultado.ajusteRateio = resultado.cotaFinal - cotaCalculada;
 
   return resultado;
+}
+
+/** Arredonda para centavos (meio para cima), sem o erro de ponto flutuante de 1.005 etc. */
+function arredondarCentavos(valor) {
+  return Math.round((valor + Number.EPSILON) * 100) / 100;
+}
+
+const DADOS_VAZIOS = Object.freeze({ faltas: [], atrasos: [], advertencias: [], avaliacoes: [] });
+
+/**
+ * Distribuição completa do fundo entre os colaboradores (Seções 2, 6 e 16). A soma das cotas é
+ * EXATAMENTE o saldo, em centavos: cada um recebe a fatia do seu peso ajustado; os centavos que o
+ * arredondamento deixa sobrar vão, um a um, para quem teve a maior fração cortada (maiores
+ * restos), com desempate pelo uid — o resultado não depende da ordem da lista.
+ * @param {object[]} usuarios docs de `usuarios` (com `uid`)
+ * @param {Record<string, object>} mapaDados { [uid]: { faltas, atrasos, advertencias, avaliacoes } }
+ * @returns {{porUid: Record<string, object>, somaPesos:number, somaPesosAjustados:number, totalDistribuido:number}}
+ */
+function calcularDistribuicaoFundo(usuarios = [], mapaDados = {}, saldoFundo = 0, anoExercicio) {
+  const elegiveis = usuarios.filter((u) => verificarElegibilidade(u).elegivel);
+  const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
+  const brutos = usuarios.map((u) => [u, calcularCotaColaborador(u, mapaDados[u.uid] || DADOS_VAZIOS, saldoFundo, somaPesos, anoExercicio)]);
+  const somaPesosAjustados = brutos.reduce((soma, [, r]) => soma + r.pesoAjustado, 0);
+
+  const porUid = {};
+  const restos = [];
+  let distribuidoCentavos = 0;
+  for (const [u, bruto] of brutos) {
+    const exatoCentavos = somaPesosAjustados > 0 ? (bruto.pesoAjustado / somaPesosAjustados) * saldoFundo * 100 : 0;
+    const centavos = Math.floor(exatoCentavos + 1e-9);
+    distribuidoCentavos += centavos;
+    porUid[u.uid] = { ...bruto, cotaFinal: centavos };
+    if (bruto.pesoAjustado > 0) restos.push({ uid: u.uid, resto: exatoCentavos - centavos });
+  }
+  let sobra = somaPesosAjustados > 0 ? Math.round(saldoFundo * 100) - distribuidoCentavos : 0;
+  restos.sort((a, b) => b.resto - a.resto || (a.uid < b.uid ? -1 : 1));
+  for (let i = 0; sobra > 0 && restos.length; i = (i + 1) % restos.length, sobra--) porUid[restos[i].uid].cotaFinal += 1;
+
+  let totalCentavos = 0;
+  for (const r of Object.values(porUid)) {
+    totalCentavos += r.cotaFinal;
+    r.cotaFinal /= 100;
+    r.ajusteRateio = r.cotaFinal - r.cotaCalculada;
+  }
+  return { porUid, somaPesos, somaPesosAjustados, totalDistribuido: totalCentavos / 100 };
+}
+
+/**
+ * Simulador ("e se eu tiver mais uma falta?"): mudar os dados de uma pessoa muda o peso ajustado
+ * dela e, portanto, a soma de todos. Troca só a parcela dela na soma publicada e refaz as duas cotas.
+ * @returns {{atual: object, simulado: object}}
+ */
+function simularCotaColaborador(usuario, dadosAtuais, dadosSimulados, saldoFundo, somaPesos, anoExercicio, somaPesosAjustados = 0) {
+  const atual = calcularCotaColaborador(usuario, dadosAtuais, saldoFundo, somaPesos, anoExercicio, somaPesosAjustados);
+  const brutoSimulado = calcularCotaColaborador(usuario, dadosSimulados, saldoFundo, somaPesos, anoExercicio);
+  const somaSimulada = somaPesosAjustados > 0 ? somaPesosAjustados - atual.pesoAjustado + brutoSimulado.pesoAjustado : 0;
+  const simulado = calcularCotaColaborador(usuario, dadosSimulados, saldoFundo, somaPesos, anoExercicio, somaSimulada);
+  return { atual, simulado };
 }
 
 /**
@@ -920,14 +997,8 @@ function calcularCotaColaborador(usuario, dados, saldoFundo, somaPesos, anoExerc
  */
 function calcularCotaComContexto(uidAlvo, todosUsuarios, mapaDados, contratosEmpresariais, anoExercicio) {
   const { saldoDisponivel } = calcularFundo(contratosEmpresariais, anoExercicio);
-  const elegiveis = todosUsuarios.filter((u) => verificarElegibilidade(u).elegivel);
-  const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, anoExercicio), 0);
-
-  const usuarioAlvo = todosUsuarios.find((u) => u.uid === uidAlvo);
-  if (!usuarioAlvo) return null;
-
-  const dados = mapaDados[uidAlvo] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
-  return calcularCotaColaborador(usuarioAlvo, dados, saldoDisponivel, somaPesos, anoExercicio);
+  if (!todosUsuarios.some((u) => u.uid === uidAlvo)) return null;
+  return calcularDistribuicaoFundo(todosUsuarios, mapaDados, saldoDisponivel, anoExercicio).porUid[uidAlvo];
 }
 
 // Exportações ES Module (consumidas via <script type="module"> e pelos testes/scripts em Node).
@@ -959,6 +1030,9 @@ export {
   limitarRedutoresADoisIndices,
   calcularCotaColaborador,
   calcularCotaComContexto,
+  calcularDistribuicaoFundo,
+  simularCotaColaborador,
+  arredondarCentavos,
   normalizarCNPJ,
   formatarCNPJ,
   validarCNPJ,

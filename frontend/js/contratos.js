@@ -5,7 +5,7 @@
 // no documento do contrato — nenhum funcionário precisa ser nomeado, só contado e datado.
 import { db } from "./firebase-init.js";
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao, fazerLogout } from "./auth.js";
 import { formatarMoeda, formatarData, formatarDataHora, mostrarToast, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
@@ -13,9 +13,9 @@ import {
   normalizarCNPJ, formatarCNPJ, validarCNPJ, MESES_ANO, CREDITO_POR_CONTRATO,
   calcularDuracaoMesesPrevista, calcularMesesVigentesContrato, calcularResumoContratoEmpresarial,
   quantidadeDoRegistro, calcularMesReferenciaImplantacao, formatarMesReferencia,
-  montarPausasAposTransicao, calcularContribuicaoNoAno, calcularVisaoSemestral, montarAgregadosFundo, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO,
+  montarPausasAposTransicao, calcularContribuicaoNoAno, calcularVisaoSemestral, hojeISOLocal, partesISO, VERSAO_REGRA_CALCULO,
   detalharRegistroFuncionarios, faixaMesesContabilizados
-} from "./calculo-shinatal.js?v=v2-2026-11b";
+} from "./calculo-shinatal.js?v=v2-2026-11c";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { buscarCNPJReceitaFederal } from "./cnpj-service.js";
 import { criarSolicitacao } from "./solicitacoes-service.js";
@@ -85,26 +85,15 @@ async function recalcularEPublicarFundo() {
   });
 }
 
-/** Os totais publicados (`fundo/{ano}` e `estatisticas/publico`) só são regravados quando um
- * contrato muda. Se a regra de cálculo mudar (ex.: régua v2), os valores salvos ficam
- * desatualizados — então, ao abrir a página, compara com o recálculo (mesmo montador que grava,
- * `montarAgregadosFundo`) e republica só se houver diferença. Assim a tela nunca mostra um
- * número e o banco outro. */
+/** Ao abrir a página, confere o fundo publicado (`fundo/{ano}` e `estatisticas/publico`) com o
+ * recálculo — saldo, soma dos pesos e soma dos pesos ajustados, que é o que faz a soma das cotas
+ * fechar com o fundo — e só regrava se houver diferença. Assim a tela nunca mostra um número e o
+ * banco outro, mesmo que a regra de cálculo ou um lançamento tenha mudado em outro lugar. */
 async function sincronizarFundoPublicado() {
   if (!state.contratosEmpresariais.length) return;
-  const esperado = montarAgregadosFundo(state.contratosEmpresariais, state.usuarios, ANO_EXERCICIO);
-  const [fundoSnap, publicoSnap] = await Promise.all([
-    getDoc(doc(db, "fundo", String(ANO_EXERCICIO))),
-    getDoc(doc(db, "estatisticas", "publico"))
-  ]);
-  const difere = (a, b) => Math.abs((Number(a) || 0) - b) >= 0.005;
-  const fundo = fundoSnap.exists() ? fundoSnap.data() : null;
-  const publico = publicoSnap.exists() ? publicoSnap.data() : null;
-  const desatualizado = !fundo
-    || ["arrecadado", "estornos", "saldoDisponivel"].some((k) => difere(fundo[k], esperado.fundo[k]))
-    || difere(publico?.arrecadado, esperado.publico.arrecadado)
-    || difere(publico?.colaboradores, esperado.publico.colaboradores);
-  if (desatualizado) await recalcularEPublicarFundo();
+  await publicarFundo({
+    usuarios: state.usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid, soSeMudou: true
+  });
 }
 
 /* ------------------------------------------------------------------ */

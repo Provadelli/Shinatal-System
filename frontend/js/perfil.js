@@ -8,7 +8,7 @@ import {
   formatarData, formatarJornadaSemanal, mostrarToast, iniciarContagemReenvio,
   ativarRevelacaoAoRolar, sincronizarAlturaHeader, construirAvatarHTML, redimensionarImagemParaBase64
 } from "./ui-utils.js";
-import { calcularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11b";
+import { calcularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11c";
 import { renderizarPerfilDetalhado } from "./perfil-view.js";
 import { ENCARREGADO, CONTROLADORA, linkEncarregado } from "./lgpd-config.js";
 import { gerarPdfMeusDados } from "./meus-dados-pdf.js";
@@ -51,7 +51,7 @@ function atualizarPerfilDetalhado() {
 onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
   fundoAtual = snap.exists() ? snap.data() : { saldoDisponivel: 0, somaPesos: 0 };
   resultadoAtual = calcularCotaColaborador(
-    perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO
+    perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO, fundoAtual.somaPesosAjustados || 0
   );
   atualizarPerfilDetalhado();
 });

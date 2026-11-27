@@ -6,7 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { exigirAutenticacao } from "../auth.js";
 import { escaparHTML, formatarDataHora, formatarMoeda, mostrarToast, debounce } from "../ui-utils.js";
-import { calcularResumoContratoEmpresarial } from "../calculo-shinatal.js?v=v2-2026-11b";
+import { calcularResumoContratoEmpresarial } from "../calculo-shinatal.js?v=v2-2026-11c";
 import { recalcularEPublicarFundo } from "../fundo-service.js";
 import { registrarLog } from "../log-service.js";
 
@@ -125,7 +125,7 @@ lista.addEventListener("click", async (e) => {
       await registrarLog(perfil, sol.tipo, `Solicitação aceita: ${sol.descricao}`, sol.alvoUid, sol.alvoNome);
       // Mesma regra do painel de gestão: toda mudança aceita recalcula e publica o fundo.
       const usuarios = (await getDocs(collection(db, "usuarios"))).docs.map((d) => ({ uid: d.id, ...d.data() }));
-      const resultado = await recalcularEPublicarFundo({ usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid });
+      const resultado = await recalcularEPublicarFundo({ usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid, soSeMudou: true });
       contratosEmpresariais = resultado.contratosEmpresariais;
       mostrarToast("Solicitação aceita e aplicada.", "sucesso");
     } else {

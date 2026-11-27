@@ -9,9 +9,10 @@ import {
 import { exigirAutenticacao, fazerLogout, traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { formatarMoeda, formatarData, formatarMesAno, formatarDataHora, mostrarToast, animarNumero, confirmarAcao, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader, formatarJornadaSemanal, construirAvatarHTML, preencherAvatarLink, debounce } from "./ui-utils.js";
 import {
-  calcularCotaColaborador, calcularFundo, calcularPesoIndividual, verificarElegibilidade, calcularResumoContratoEmpresarial,
+  calcularCotaColaborador, calcularFundo, calcularResumoContratoEmpresarial,
+  calcularDistribuicaoFundo, simularCotaColaborador,
   calcularContribuicaoNoAno, hojeISOLocal
-} from "./calculo-shinatal.js?v=v2-2026-11b";
+} from "./calculo-shinatal.js?v=v2-2026-11c";
 import { recalcularEPublicarFundo as publicarFundo } from "./fundo-service.js";
 import { renderizarPerfilDetalhado, ROTULOS_CONCEITO } from "./perfil-view.js";
 import { sincronizarDiretorio, removerDoDiretorio } from "./diretorio-service.js";
@@ -32,6 +33,7 @@ sincronizarDiretorio(perfil); // não faz nada para o Presidente (fica fora do d
 
 const state = {
   usuarios: [], contratos: [], contratosEmpresariais: [], mapaDados: {}, estatisticasPublico: {},
+  distribuicao: { porUid: {}, somaPesos: 0, somaPesosAjustados: 0, totalDistribuido: 0 },
   fundo: { saldoDisponivel: 0, somaPesos: 0, totalContratosAtivos: null, totalContratosEncerrados: null, estornos: null }
 };
 
@@ -40,7 +42,9 @@ const state = {
 try {
   await carregarTudo();
   renderTudo();
-  await recalcularEPublicarFundo(); // também publica os números públicos da landing page
+  // Corrige sozinho o fundo publicado se algo mudou desde a última gravação (contrato, lançamento,
+  // regra de cálculo). Também publica os números públicos da landing page.
+  await recalcularEPublicarFundo();
   // Preenche o diretório público para quem ainda não tem entrada (colaboradores cadastrados
   // antes desta feature existir, ou que nunca logaram desde então) — sem isto, o lado do
   // colaborador comum (dashboard.js, que não pode ler usuarios/{uid} de terceiros) ficaria com
@@ -96,18 +100,25 @@ async function carregarTudo() {
   }
 
   const { saldoDisponivel } = calcularFundo(state.contratosEmpresariais, ANO_EXERCICIO);
-  const elegiveis = state.usuarios.filter((u) => verificarElegibilidade(u).elegivel);
-  const somaPesos = elegiveis.reduce((soma, u) => soma + calcularPesoIndividual(u, ANO_EXERCICIO), 0);
-  state.fundo = { saldoDisponivel, somaPesos };
+  state.fundo = { ...state.fundo, saldoDisponivel };
+  recalcularDistribuicao();
+}
+
+/** Divide o saldo entre todos (Seções 2, 6 e 16): a soma das cotas é exatamente o saldo. */
+function recalcularDistribuicao() {
+  state.distribuicao = calcularDistribuicaoFundo(state.usuarios, state.mapaDados, state.fundo.saldoDisponivel, ANO_EXERCICIO);
+  state.fundo.somaPesos = state.distribuicao.somaPesos;
 }
 
 /** Recalcula e publica o agregado do fundo em `fundo/{ano}` para os dashboards dos colaboradores. */
 async function recalcularEPublicarFundo() {
   const resultado = await publicarFundo({
-    usuarios: state.usuarios, anoExercicio: ANO_EXERCICIO, atualizadoPorUid: perfil.uid
+    usuarios: state.usuarios, mapaDados: state.mapaDados, anoExercicio: ANO_EXERCICIO,
+    atualizadoPorUid: perfil.uid, soSeMudou: true
   });
-  state.fundo = { saldoDisponivel: resultado.saldoDisponivel, somaPesos: resultado.somaPesos };
+  state.fundo = { ...state.fundo, saldoDisponivel: resultado.saldoDisponivel };
   state.contratosEmpresariais = resultado.contratosEmpresariais;
+  recalcularDistribuicao();
 }
 
 /* ------------------------------------------------------------------ */
@@ -128,12 +139,15 @@ function renderFundoCard() {
   el.classList.remove("skeleton", "w-40", "h-9");
   animarNumero(el, state.fundo.saldoDisponivel, { formatador: formatarMoeda });
   const ativos = state.contratosEmpresariais.filter((c) => c.status === "ativo").length;
-  document.getElementById("fundo-detalhe").textContent = `${ativos} contratos ativos · Exercício ${ANO_EXERCICIO}`;
+  const distribuido = formatarMoeda(state.distribuicao.totalDistribuido);
+  document.getElementById("fundo-detalhe").textContent = `${ativos} contratos ativos · Exercício ${ANO_EXERCICIO} · Soma das cotas: ${distribuido}`;
 }
 
 function computarResultado(usuario) {
+  const daDistribuicao = state.distribuicao.porUid[usuario.uid];
+  if (daDistribuicao) return daDistribuicao;
   const dados = state.mapaDados[usuario.uid] || { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
-  return calcularCotaColaborador(usuario, dados, state.fundo.saldoDisponivel, state.fundo.somaPesos, ANO_EXERCICIO);
+  return calcularCotaColaborador(usuario, dados, state.fundo.saldoDisponivel, state.fundo.somaPesos, ANO_EXERCICIO, state.distribuicao.somaPesosAjustados);
 }
 
 function renderDiretorio(filtro = "") {
@@ -157,12 +171,9 @@ function renderDiretorio(filtro = "") {
     const cotaLabel = resultado.elegivel ? formatarMoeda(resultado.cotaFinal) : "Inelegível";
     const totalFaltas = (state.mapaDados[u.uid]?.faltas || []).length;
     const totalAdvertencias = (state.mapaDados[u.uid]?.advertencias || []).length;
-    // Participação = peso individual ÷ soma de pesos de todos os elegíveis (Seção 6). Mostrar
-    // isso aqui é o jeito mais rápido de auditar por que alguém está "levando" a maior parte do
-    // fundo: se o percentual estiver muito acima do esperado, o problema está nos dados de
-    // admissão/jornada de OUTROS colaboradores (peso zerado ou ano de admissão errado), não na
-    // fórmula — a divisão em si (cotaBase = peso/somaPesos × saldo) segue a Seção 6 à risca.
-    const participacaoPct = state.fundo.somaPesos > 0 ? (resultado.pesoIndividual / state.fundo.somaPesos) * 100 : 0;
+    // Participação = fatia real do fundo: peso ajustado (avos × jornada × redutores, faltas e
+    // adicionais) ÷ soma dos pesos ajustados de todos. As participações somam 100%.
+    const participacaoPct = participacaoNoFundo(resultado);
     return `
       <tr data-uid="${u.uid}" class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/60 transition-colors">
         <td class="py-3 px-3">
@@ -206,13 +217,22 @@ function renderDiretorio(filtro = "") {
    participação de cada linha já renderizada precisam de um novo valor. Se uma busca estiver
    filtrando a tabela, linhas fora do filtro simplesmente não têm `tr[data-uid]` no DOM e são
    ignoradas — o full-render (renderDiretorio) continua sendo quem decide QUAIS linhas aparecem. */
+function participacaoNoFundo(resultado) {
+  const soma = state.distribuicao.somaPesosAjustados;
+  return soma > 0 ? (resultado.pesoAjustado / soma) * 100 : 0;
+}
+
+function tituloParticipacao(resultado) {
+  return `Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} · peso ajustado: ${resultado.pesoAjustado.toFixed(3)} de ${state.distribuicao.somaPesosAjustados.toFixed(3)}`;
+}
+
 function patchDiretorio() {
   for (const u of state.usuarios) {
     const linha = document.querySelector(`#corpo-diretorio tr[data-uid="${u.uid}"]`);
     if (!linha) continue;
     const resultado = computarResultado(u);
     const cotaLabel = resultado.elegivel ? formatarMoeda(resultado.cotaFinal) : "Inelegível";
-    const participacaoPct = state.fundo.somaPesos > 0 ? (resultado.pesoIndividual / state.fundo.somaPesos) * 100 : 0;
+    const participacaoPct = participacaoNoFundo(resultado);
 
     const celCota = linha.querySelector(".cel-cota");
     celCota.textContent = cotaLabel;
@@ -221,7 +241,7 @@ function patchDiretorio() {
 
     const celParticipacao = linha.querySelector(".cel-participacao");
     celParticipacao.textContent = `${participacaoPct.toFixed(1)}%`;
-    celParticipacao.title = `Peso bruto: ${resultado.pesoIndividual.toFixed(3)} de ${state.fundo.somaPesos.toFixed(3)} no total`;
+    celParticipacao.title = tituloParticipacao(resultado);
   }
 }
 
@@ -424,6 +444,7 @@ async function excluirRegistro(tipo, id, uidAlvo = perfilAbertoUid) {
     await deleteDoc(doc(db, COLECAO_POR_TIPO_REGISTRO[tipo], id));
     await registrarLog(tipo, `Lançamento de ${tipo} removido (correção)`, uidAlvo, null);
     await carregarTudo();
+    await recalcularEPublicarFundo();
     renderTudo();
     if (perfilAbertoUid) abrirPerfil(perfilAbertoUid);
     renderLancamentosExistentesAcao();
@@ -521,6 +542,7 @@ onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), debounce((snap) => {
     totalContratosEncerrados: dados.totalContratosEncerrados ?? 0,
     estornos: dados.estornos || 0
   };
+  recalcularDistribuicao(); // saldo novo (contrato entrou/saiu em outra aba) → nova divisão
   renderFundoCard();
   renderContratosResumo();
   patchDiretorio();
@@ -713,7 +735,7 @@ document.getElementById("form-nova-acao").addEventListener("submit", async (e) =
     mostrarToast("Ação registrada com sucesso!", "sucesso");
     fecharModal("modal-nova-acao");
     await carregarTudo();
-    if (["ativar_contrato", "encerrar_contrato", "alterar_status_colaborador"].includes(tipo)) await recalcularEPublicarFundo();
+    await recalcularEPublicarFundo(); // qualquer lançamento muda o peso ajustado de alguém
     renderTudo();
   } catch (erro) {
     console.error(erro);
@@ -822,8 +844,10 @@ function simular() {
     dadosSimulados.atrasos.push({ mesAno: `${ANO_EXERCICIO}-${mm}`, quantidadeAtrasos: 6 });
   }
 
-  const atual = calcularCotaColaborador(usuario, dadosReais, state.fundo.saldoDisponivel, state.fundo.somaPesos, ANO_EXERCICIO);
-  const simulado = calcularCotaColaborador(usuario, dadosSimulados, state.fundo.saldoDisponivel, state.fundo.somaPesos, ANO_EXERCICIO);
+  const { atual, simulado } = simularCotaColaborador(
+    usuario, dadosReais, dadosSimulados, state.fundo.saldoDisponivel, state.fundo.somaPesos, ANO_EXERCICIO,
+    state.distribuicao.somaPesosAjustados
+  );
 
   document.getElementById("sim-atual").textContent = formatarMoeda(atual.cotaFinal);
   document.getElementById("sim-simulada").textContent = formatarMoeda(simulado.cotaFinal);
