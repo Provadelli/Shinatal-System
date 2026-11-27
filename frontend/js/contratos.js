@@ -100,15 +100,22 @@ async function sincronizarFundoPublicado() {
 /* Tabela de contratos                                                 */
 /* ------------------------------------------------------------------ */
 
-/** Atualiza o texto das opções de status do filtro com a contagem real de contratos cadastrados
- * em cada status — sem mexer no "value" da option, pra não perder o filtro já selecionado. */
+/** Mostra em cada opção do filtro de status quantos contratos existem nele (e o total em
+ * "Todos"). O número também entra no nome acessível do rádio, via aria-label. */
 function atualizarContadoresFiltroStatus() {
-  const contagens = { ativo: 0, pausado: 0, encerrado: 0 };
+  const contagens = { todos: state.contratosEmpresariais.length, ativo: 0, pausado: 0, encerrado: 0 };
   state.contratosEmpresariais.forEach((c) => { if (contagens[c.status] !== undefined) contagens[c.status]++; });
-  const select = document.getElementById("filtro-status-contrato");
-  select.querySelector('option[value="ativo"]').textContent = `Somente ativos (${contagens.ativo})`;
-  select.querySelector('option[value="pausado"]').textContent = `Somente pausados (${contagens.pausado})`;
-  select.querySelector('option[value="encerrado"]').textContent = `Somente encerrados (${contagens.encerrado})`;
+  document.querySelectorAll("[data-contagem-status]").forEach((el) => {
+    const n = contagens[el.dataset.contagemStatus] ?? 0;
+    el.textContent = String(n);
+    const radio = el.closest("label").querySelector("input");
+    radio.setAttribute("aria-label", `${el.previousElementSibling.textContent} (${n})`);
+  });
+}
+
+/** Valor do status escolhido no filtro segmentado ("" = todos). */
+function statusSelecionado() {
+  return document.querySelector('input[name="filtro-status-contrato"]:checked')?.value || "";
 }
 
 /** "X de Y meses (mm/aaaa a mm/aaaa)" — meses do contrato já contabilizados pela régua v2. */
@@ -179,7 +186,7 @@ function renderTabela() {
   atualizarContadoresFiltroStatus();
   renderVisaoSemestral();
   const termo = document.getElementById("busca-contratos").value.trim().toLowerCase();
-  const statusFiltro = document.getElementById("filtro-status-contrato").value;
+  const statusFiltro = statusSelecionado();
 
   const contratos = state.contratosEmpresariais
     .filter((c) => {

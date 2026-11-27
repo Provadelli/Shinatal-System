@@ -114,18 +114,31 @@
   </section>
 
   <!-- Filtros -->
-  <div class="glass-panel rounded-xl p-5 mb-gutter">
-    <div data-reveal class="flex flex-col md:flex-row gap-3 md:items-center">
-      <div class="relative flex-1">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl" aria-hidden="true">search</span>
-        <input id="busca-contratos" aria-label="Buscar contrato por empresa ou CNPJ" class="input-shinatal !pl-10" type="search" placeholder="Buscar por nome da empresa ou CNPJ..." />
+  <div class="glass-panel rounded-xl p-4 md:p-5 mb-gutter">
+    <div data-reveal class="filtros-contratos">
+      <div class="busca-contratos">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        <input id="busca-contratos" aria-label="Buscar contrato por empresa ou CNPJ" class="input-shinatal" type="search" placeholder="Buscar empresa ou CNPJ" autocomplete="off" />
       </div>
-      <select id="filtro-status-contrato" aria-label="Filtrar contratos por status" class="input-shinatal !pl-3 md:w-56">
-        <option value="">Todos os status</option>
-        <option value="ativo">Somente ativos</option>
-        <option value="pausado">Somente pausados</option>
-        <option value="encerrado">Somente encerrados</option>
-      </select>
+      <fieldset id="filtro-status-contrato" class="filtro-segmentado">
+        <legend class="sr-only">Filtrar contratos por status</legend>
+        <label class="filtro-segmento">
+          <input type="radio" name="filtro-status-contrato" value="" checked />
+          <span>Todos</span><span class="filtro-contagem" data-contagem-status="todos" aria-hidden="true"></span>
+        </label>
+        <label class="filtro-segmento">
+          <input type="radio" name="filtro-status-contrato" value="ativo" />
+          <span>Ativos</span><span class="filtro-contagem" data-contagem-status="ativo" aria-hidden="true"></span>
+        </label>
+        <label class="filtro-segmento">
+          <input type="radio" name="filtro-status-contrato" value="pausado" />
+          <span>Pausados</span><span class="filtro-contagem" data-contagem-status="pausado" aria-hidden="true"></span>
+        </label>
+        <label class="filtro-segmento">
+          <input type="radio" name="filtro-status-contrato" value="encerrado" />
+          <span>Encerrados</span><span class="filtro-contagem" data-contagem-status="encerrado" aria-hidden="true"></span>
+        </label>
+      </fieldset>
     </div>
   </div>
 
