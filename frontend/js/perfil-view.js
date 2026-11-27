@@ -127,7 +127,6 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
           ${resultado.percentualRedutoresAplicados ? `<div class="flex justify-between text-christmas-red"><span>Redutores (atraso/disciplina/avaliação)</span><span>-${(resultado.percentualRedutoresAplicados * 100).toFixed(0)}%</span></div>` : ""}
           ${resultado.descontoFaltas ? `<div class="flex justify-between text-christmas-red"><span>Desconto por faltas</span><span>-${formatarMoeda(resultado.descontoFaltas)}</span></div>` : ""}
           ${resultado.percentualAdicionais ? `<div class="flex justify-between text-secondary"><span>Bônus/avaliação positiva</span><span>+${(resultado.percentualAdicionais * 100).toFixed(0)}%</span></div>` : ""}
-          ${Math.abs(resultado.ajusteRateio || 0) >= 0.005 ? `<div class="flex justify-between text-on-surface-variant" title="O fundo é um valor fechado: redutores e bônus de todos mudam a fatia de cada um, e a soma das cotas é igual ao fundo (Seções 2 e 6)."><span>Ajuste do rateio (fecha com o fundo)</span><span>${resultado.ajusteRateio > 0 ? "+" : "−"}${formatarMoeda(Math.abs(resultado.ajusteRateio))}</span></div>` : ""}
           <div class="flex justify-between font-bold text-on-surface pt-1 border-t border-outline-variant/20"><span>Cota final estimada</span><span>${resultado.elegivel ? formatarMoeda(resultado.cotaFinal) : "Inelegível"}</span></div>
         </div>
         ${!resultado.elegivel ? `<p class="font-body text-label-sm text-christmas-red mt-2">${resultado.motivoInelegibilidade}</p>` : ""}
