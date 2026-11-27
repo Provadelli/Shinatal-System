@@ -749,7 +749,7 @@ service cloud.firestore {
     // -------------------------------------------------------------
     // Avaliação de desempenho (Seção 11) — processo anual com dois avaliadores.
     //
-    //   1. O Presidente abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
+    //   1. O Presidente ou o Admin abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
     //   2. Cada colaborador da tabela de avaliadores fixos (configuracoes/avaliadoresFixos,
     //      gravada só pelo script backend/scripts/avaliadores-fixos.mjs) cria o PRÓPRIO ciclo
     //      (ciclosAvaliacao/{ano}_{uid}) com o fixo da tabela e um colega que ele escolhe —
@@ -858,8 +858,8 @@ service cloud.firestore {
               'okPresidenteEm', 'media', 'conceito', 'criadoEm', 'atualizadoEm'];
     }
 
-    // Configuração do processo. O Presidente abre/fecha o ciclo e escolhe o ano; o Admin só edita
-    // o texto das perguntas (e, se for o primeiro a gravar, cria a configuração fechada).
+    // Configuração do processo. Presidente e Admin abrem/fecham o ciclo, escolhem o ano e editam
+    // o texto das perguntas.
     match /configuracoes/avaliacaoDesempenho {
       allow read: if emailVerificado();
       allow create, update: if operadorValido() && ehAdminOuPresidente()
@@ -871,11 +871,7 @@ service cloud.firestore {
         && request.resource.data.ano <= request.time.year() + 1
         && perguntasValidas(request.resource.data.perguntas)
         && request.resource.data.atualizadoPor == request.auth.uid
-        && request.resource.data.atualizadoEm == request.time
-        && (ehPresidente()
-            || (resource == null && request.resource.data.ativo == false)
-            || (resource != null && request.resource.data.diff(resource.data).affectedKeys()
-                  .hasOnly(['perguntas', 'atualizadoPor', 'atualizadoEm'])));
+        && request.resource.data.atualizadoEm == request.time;
       allow delete: if false;
     }
 
