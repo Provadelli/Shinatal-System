@@ -52,9 +52,23 @@ export function montarCabecalho(perfil, papel, painel, sair) {
   }
 
   agendarContadorAvaliacao(perfil.uid, papel);
+  agendarSincronizacaoFundo(perfil.uid, papel);
 
   sincronizarAlturaHeader();
   document.dispatchEvent(new CustomEvent("shinatal:pronto"));
+}
+
+/**
+ * Gestores ativos mantêm o fundo publicado em dia em qualquer página (fundo-sincronizador.js).
+ * Carregado depois da primeira pintura; colaboradores nem baixam o módulo.
+ */
+function agendarSincronizacaoFundo(uid, papel) {
+  if (!["dp", "rh", "admin", "presidente"].includes(papel)) return;
+  const iniciar = () => import("./fundo-sincronizador.js")
+    .then(({ iniciarSincronizacaoFundo }) => iniciarSincronizacaoFundo(uid, papel))
+    .catch((erro) => console.error("[Shinatal] Falha ao carregar a sincronização do fundo:", erro));
+  if ("requestIdleCallback" in window) requestIdleCallback(iniciar, { timeout: 4000 });
+  else setTimeout(iniciar, 1500);
 }
 
 /**
