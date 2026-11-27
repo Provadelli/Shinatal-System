@@ -972,7 +972,7 @@ async function semearCiclo(uid, fixo, escolhido, extra = {}) {
 function respostaDe(avaliadorUid, papel, avaliadoUid = "colabA", extra = {}) {
   return {
     ano: ANO, avaliadoUid, avaliadorUid, papel, perguntas: PERGUNTAS,
-    notas: [8, 8, 8, 8, 8], comentario: PARECER, criadoEm: serverTimestamp(), ...extra
+    notas: [4, 4, 4, 4, 4], comentario: PARECER, criadoEm: serverTimestamp(), ...extra
   };
 }
 /** Mesma escrita em lote de enviarResposta(): avaliação + marcação no ciclo. */
@@ -986,11 +986,11 @@ async function semearResposta(papel, avaliadorUid, notas, avaliadoUid = "colabA"
   await semRegras((db) => setDoc(doc(db, "respostasAvaliacao", `${ANO}_${avaliadoUid}_${papel}`),
     { ...respostaDe(avaliadorUid, papel, avaliadoUid, { notas }), criadoEm: Timestamp.now() }));
 }
-/** As duas avaliações feitas: médias 10 e 6 → média 8,0 → "bom". */
+/** As duas avaliações feitas (escala de 0 a 5): médias 5 e 3 → média 4,0 → "bom". */
 async function semearCicloConcluido(extra = {}) {
   await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: true }, ...extra });
-  await semearResposta("fixo", "fixoA", [10, 10, 10, 10, 10]);
-  await semearResposta("escolhido", "colabB", [6, 6, 6, 6, 6]);
+  await semearResposta("fixo", "fixoA", [5, 5, 5, 5, 5]);
+  await semearResposta("escolhido", "colabB", [3, 3, 3, 3, 3]);
 }
 /** Mesma escrita de enviarRespostaAoPresidente(). */
 function enviarAoPresidente(db, texto = "Concordo com as avaliações.", uid = "colabA") {
@@ -1116,7 +1116,7 @@ describe("ciclosAvaliacao: fixo da tabela e escolha do colega", () => {
     await assertFails(setDoc(doc(db, "ciclosAvaliacao", `${ANO}_colabP`), novoCiclo("colabP", "pres1", "colabB")));
     const ref = doc(db, "ciclosAvaliacao", `${ANO}_colabA`);
     await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: true } })));
-    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { media: 10, conceito: "excelente" })));
+    await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { media: 5, conceito: "excelente" })));
     await assertFails(setDoc(ref, novoCiclo("colabA", "fixoA", "colabB", { rhDispensado: false })));
   });
 
@@ -1129,6 +1129,37 @@ describe("ciclosAvaliacao: fixo da tabela e escolha do colega", () => {
     await assertSucceeds(updateDoc(ref, { avaliadorEscolhidoUid: "colabC", atualizadoEm: serverTimestamp() }));
     await semearCiclo("colabA", "fixoA", "colabC", { concluidas: { fixo: false, escolhido: true } });
     await assertFails(updateDoc(ref, { avaliadorEscolhidoUid: "colabB", atualizadoEm: serverTimestamp() }));
+  });
+});
+
+describe("Admin na avaliação: participa como qualquer colaborador", () => {
+  it("o Admin pode ser escolhido como colega e avalia", async () => {
+    await cenarioAvaliacao();
+    await seedUsuario("admin1", "admin");
+    await assertSucceeds(setDoc(doc(ctx("colabA").firestore(), "ciclosAvaliacao", `${ANO}_colabA`), novoCiclo("colabA", "fixoA", "admin1")));
+    await assertSucceeds(responder(ctx("admin1").firestore(), "escolhido", respostaDe("admin1", "escolhido")));
+  });
+
+  it("o Admin da tabela é avaliado; fora da tabela, não", async () => {
+    await cenarioAvaliacao();
+    await seedUsuario("admin1", "admin");
+    await seedUsuario("admin2", "admin");
+    await semRegras((db) => setDoc(doc(db, "configuracoes", "avaliadoresFixos"), { pares: { colabA: "fixoA", admin1: "pres1" } }));
+    await assertSucceeds(setDoc(doc(ctx("admin1").firestore(), "ciclosAvaliacao", `${ANO}_admin1`), novoCiclo("admin1", "pres1", "colabB")));
+    await assertFails(setDoc(doc(ctx("admin2").firestore(), "ciclosAvaliacao", `${ANO}_admin2`), novoCiclo("admin2", "pres1", "colabB")));
+  });
+
+  it("o Admin não lê ciclos, avaliações nem respostas de outras pessoas e não dá o ok", async () => {
+    await cenarioAvaliacao();
+    await seedUsuario("admin1", "admin");
+    await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
+    await semearRespostaAoPresidente();
+    const db = ctx("admin1").firestore();
+    await assertFails(getDoc(doc(db, "ciclosAvaliacao", `${ANO}_colabA`)));
+    await assertFails(getDoc(doc(db, "respostasAvaliacao", `${ANO}_colabA_fixo`)));
+    await assertFails(getDoc(doc(db, "respostasAoPresidente", `${ANO}_colabA`)));
+    await assertFails(getDocs(query(collection(db, "ciclosAvaliacao"), where("ano", "==", ANO))));
+    await assertFails(darOk(db, { media: 4, conceito: "bom" }));
   });
 });
 
@@ -1174,11 +1205,11 @@ describe("respostasAvaliacao: envio", () => {
     await assertFails(lote.commit());
   });
 
-  it("notas: exatamente 5 inteiros de 0 a 10", async () => {
+  it("notas: exatamente 5 inteiros de 0 a 5", async () => {
     await cenarioAvaliacao();
     await semearCiclo("colabA", "fixoA", "colabB");
     const db = ctx("colabB").firestore();
-    for (const notas of [[8, 8, 8, 8, 11], [8, 8, 8, 8, -1], [8, 8, 8, 8, 7.5], [8, 8, 8, 8], [8, 8, 8, 8, "8"]]) {
+    for (const notas of [[4, 4, 4, 4, 6], [4, 4, 4, 4, 10], [4, 4, 4, 4, -1], [4, 4, 4, 4, 3.5], [4, 4, 4, 4], [4, 4, 4, 4, "4"]]) {
       await assertFails(responder(db, "escolhido", respostaDe("colabB", "escolhido", "colabA", { notas })));
     }
   });
@@ -1206,7 +1237,7 @@ describe("respostasAvaliacao: envio", () => {
     await cenarioAvaliacao();
     await semearCicloConcluido();
     const ref = (uid) => doc(ctx(uid).firestore(), "respostasAvaliacao", `${ANO}_colabA_escolhido`);
-    await assertFails(updateDoc(ref("colabB"), { notas: [10, 10, 10, 10, 10] }));
+    await assertFails(updateDoc(ref("colabB"), { notas: [5, 5, 5, 5, 5] }));
     await assertFails(deleteDoc(ref("colabB")));
     await assertFails(deleteDoc(ref("pres1")));
   });
@@ -1216,7 +1247,7 @@ describe("respostasAvaliacao e ciclosAvaliacao: leitura", () => {
   it("o avaliado só lê as avaliações depois das duas", async () => {
     await cenarioAvaliacao();
     await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: false } });
-    await semearResposta("fixo", "fixoA", [9, 9, 9, 9, 9]);
+    await semearResposta("fixo", "fixoA", [4, 4, 4, 4, 4]);
     const db = ctx("colabA").firestore();
     await assertFails(getDoc(doc(db, "respostasAvaliacao", `${ANO}_colabA_fixo`)));
     await semearCicloConcluido();
@@ -1298,39 +1329,40 @@ describe("respostasAoPresidente e ok do Presidente", () => {
     await assertFails(deleteDoc(ref));
   });
 
-  it("ok do Presidente com a média e o conceito certos (8,0 → bom)", async () => {
+  it("ok do Presidente com a média e o conceito certos (4,0 → bom)", async () => {
     await cenarioAvaliacao();
     await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
-    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 8, conceito: "bom" }));
+    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 4, conceito: "bom" }));
   });
 
   it("ok com conceito ou média adulterados falha", async () => {
     await cenarioAvaliacao();
     await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
     const db = ctx("pres1").firestore();
-    await assertFails(darOk(db, { media: 8, conceito: "excelente" }));
-    await assertFails(darOk(db, { media: 9.5, conceito: "excelente" }));
+    await assertFails(darOk(db, { media: 4, conceito: "excelente" }));
+    await assertFails(darOk(db, { media: 4.8, conceito: "excelente" }));
   });
 
   it("sem a resposta do avaliado não há ok; só o Presidente dá o ok, e uma vez", async () => {
     await cenarioAvaliacao();
     await semearCicloConcluido();
-    await assertFails(darOk(ctx("pres1").firestore(), { media: 8, conceito: "bom" }));
+    await assertFails(darOk(ctx("pres1").firestore(), { media: 4, conceito: "bom" }));
     await semearCicloConcluido({ respostaEnviadaEm: Timestamp.now() });
-    await assertFails(darOk(ctx("fixoA").firestore(), { media: 8, conceito: "bom" }));
-    await assertFails(darOk(ctx("rh1").firestore(), { media: 8, conceito: "bom" }));
-    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 8, conceito: "bom" }));
+    await assertFails(darOk(ctx("fixoA").firestore(), { media: 4, conceito: "bom" }));
+    await assertFails(darOk(ctx("rh1").firestore(), { media: 4, conceito: "bom" }));
+    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 4, conceito: "bom" }));
     await assertFails(updateDoc(doc(ctx("pres1").firestore(), "ciclosAvaliacao", `${ANO}_colabA`),
-      { okPresidenteEm: serverTimestamp(), media: 10, conceito: "excelente", atualizadoEm: serverTimestamp() }));
+      { okPresidenteEm: serverTimestamp(), media: 5, conceito: "excelente", atualizadoEm: serverTimestamp() }));
   });
 
-  it("média com arredondamento: 89/10 = 8,9 → bom", async () => {
+  it("média perto da faixa: 44/10 = 4,4 → bom (não excelente)", async () => {
     await cenarioAvaliacao();
     await semearCiclo("colabA", "fixoA", "colabB", { concluidas: { fixo: true, escolhido: true }, respostaEnviadaEm: Timestamp.now() });
-    await semearResposta("fixo", "fixoA", [9, 9, 9, 9, 9]);
-    await semearResposta("escolhido", "colabB", [9, 9, 9, 9, 8]);
-    await assertFails(darOk(ctx("pres1").firestore(), { media: 9, conceito: "excelente" }));
-    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 8.9, conceito: "bom" }));
+    await semearResposta("fixo", "fixoA", [5, 5, 5, 5, 4]);
+    await semearResposta("escolhido", "colabB", [4, 4, 4, 4, 4]);
+    await assertFails(darOk(ctx("pres1").firestore(), { media: 4.5, conceito: "excelente" }));
+    await assertFails(darOk(ctx("pres1").firestore(), { media: 4.4, conceito: "excelente" }));
+    await assertSucceeds(darOk(ctx("pres1").firestore(), { media: 4.4, conceito: "bom" }));
   });
 });
 

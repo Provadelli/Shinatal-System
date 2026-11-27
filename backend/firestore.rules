@@ -754,7 +754,7 @@ service cloud.firestore {
     //      gravada só pelo script backend/scripts/avaliadores-fixos.mjs) cria o PRÓPRIO ciclo
     //      (ciclosAvaliacao/{ano}_{uid}) com o fixo da tabela e um colega que ele escolhe —
     //      pessoa ativa que não é Presidente, RH, ele mesmo nem o próprio avaliador fixo.
-    //   3. O fixo e o escolhido respondem 5 perguntas com notas inteiras de 0 a 10 e um parecer
+    //   3. O fixo e o escolhido respondem 5 perguntas com notas inteiras de 0 a 5 e um parecer
     //      (respostasAvaliacao/{ano}_{avaliado}_{papel}, papel fixo|escolhido, id determinístico,
     //      imutável). A resposta e a marcação em `ciclo.concluidas` andam juntas na mesma escrita
     //      em lote (getAfter/existsAfter amarram uma à outra).
@@ -797,7 +797,7 @@ service cloud.firestore {
         && textoPergunta(p[0]) && textoPergunta(p[1]) && textoPergunta(p[2])
         && textoPergunta(p[3]) && textoPergunta(p[4]);
     }
-    function notaValida(v) { return v is int && v >= 0 && v <= 10; }
+    function notaValida(v) { return v is int && v >= 0 && v <= 5; }
     function notasValidas(n) {
       return n is list && n.size() == 5
         && notaValida(n[0]) && notaValida(n[1]) && notaValida(n[2])
@@ -807,7 +807,7 @@ service cloud.firestore {
 
     // Mesmas faixas de conceitoPorMedia() em frontend/js/avaliacao-calculo.js.
     function conceitoDaMedia(m) {
-      return m >= 9 ? 'excelente' : m >= 7 ? 'bom' : m >= 5 ? 'regular' : 'insatisfatorio';
+      return m >= 4.5 ? 'excelente' : m >= 3.5 ? 'bom' : m >= 2.5 ? 'regular' : 'insatisfatorio';
     }
 
     // Média das 10 notas (2 avaliações × 5), arredondada a 1 casa — a mesma conta de

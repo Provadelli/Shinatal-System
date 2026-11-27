@@ -1,5 +1,7 @@
 # Avaliação de desempenho Shinatal — plano
 
+> **Revisão 4 (27/11/2026).** Notas de 0 a 5 (antes 0 a 10); faixas proporcionais: ≥ 4,5 / ≥ 3,5 / ≥ 2,5. O Admin edita as perguntas e abre/fecha o ciclo; no resto participa como qualquer colaborador (avalia se escolhido, é avaliado se estiver na tabela).
+>
 > **Situação (27/11/2026): implementado na branch `feat/avaliacao-desempenho`.** Regras, serviço, página,
 > script da tabela de fixos e testes já seguem as revisões 1 a 3. Testes das regras (emulador) e de
 > cálculo passando; build sem erros. Falta: rodar o script da tabela em produção, publicar as regras e
@@ -18,7 +20,7 @@ Hoje existem duas peças desconexas:
 
 As duas viram um processo único, a **Avaliação de desempenho**, que funciona assim:
 1. O colaborador é avaliado pelo avaliador fixo e por um colega que ele mesmo escolhe.
-2. Cada avaliador dá notas de 0 a 10 em 5 perguntas, mais um comentário.
+2. Cada avaliador dá notas de 0 a 5 em 5 perguntas, mais um comentário.
 3. O avaliado escreve um parecer.
 4. O Presidente dá o ok final.
 
@@ -44,7 +46,7 @@ A média final vira o conceito que o motor de cálculo já usa.
 - **A tabela fica fixa no código.** Quem não estiver nela (um novo contratado, por exemplo) não entra no processo até a tabela ser atualizada numa nova versão.
 
 ## Decisões do usuário
-- **Média → conceito por faixas**: ≥ 9 excelente (+2%), ≥ 7 bom (0%), ≥ 5 regular (−5%), < 5 insatisfatório (−15%). Reaproveita `TABELA_AVALIACAO` (`frontend/js/calculo-shinatal.js:799`) sem mexer no motor de cálculo.
+- **Média → conceito por faixas**: ≥ 4,5 excelente (+2%), ≥ 3,5 bom (0%), ≥ 2,5 regular (−5%), < 2,5 insatisfatório (−15%). Reaproveita `TABELA_AVALIACAO` (`frontend/js/calculo-shinatal.js:799`) sem mexer no motor de cálculo.
 - **Perguntas editáveis pelo Presidente e pelo Admin**, guardadas em configuração. Começam com textos provisórios até chegarem as definitivas.
 - **O Presidente ou o Admin abre o ciclo anual**, no lugar do interruptor da Conduta (o Admin entrou em 27/11/2026).
 - **Remover** os votos de conduta e o lançamento manual de "Avaliação" no painel de gestão. Os dados antigos continuam no Firestore e na exportação LGPD.
@@ -106,7 +108,7 @@ A média final vira o conceito que o motor de cálculo já usa.
   - "Ver respostas" e "Dar ok";
   - colaboradores ativos fora da tabela aparecem marcados como "Sem avaliador fixo".
   - O botão de dispensar o RH sai.
-- **Modal de avaliação**: as 5 perguntas com notas de 0 a 10 e o campo "Seu parecer", obrigatório para o fixo e para o colega escolhido.
+- **Modal de avaliação**: as 5 perguntas com notas de 0 a 5 e o campo "Seu parecer", obrigatório para o fixo e para o colega escolhido.
 - **Editor de perguntas**: não muda.
 
 ## O que muda no WIP (`ba4aff0`)
@@ -143,7 +145,7 @@ A média final vira o conceito que o motor de cálculo já usa.
 - Animações só em `transform`/`opacity`.
 - Skeleton durante o carregamento, para manter o CLS em 0.
 - Contador da navegação carregado com `requestIdleCallback`.
-- Layout mobile-first: linha do tempo vertical abaixo de 640 px, alvos de toque de 44 px e escala de 0 a 10 em duas linhas no celular.
+- Layout mobile-first: linha do tempo vertical abaixo de 640 px, alvos de toque de 44 px e escala de 0 a 5 numa linha só.
 
 ## Verificação
 1. `cd backend/tests/rules && npm test` no emulador, com o rascunho de testes já encaixado e os blocos antigos da conduta removidos.

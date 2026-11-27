@@ -22,7 +22,7 @@ const ROTULOS = {
   votosQueVoceDeu: "Votos que você deu", contagemRecebidaAnonima: "Contagem recebida (anônima)", id: "Código",
   uid: "Identificador", avaliadorUid: "Avaliador", avaliadoUid: "Avaliado", fotoBase64: "Foto cadastrada",
   ciclos: "Seus ciclos", respostasRecebidas: "Respostas recebidas", respostasQueVoceDeu: "Avaliações que você fez",
-  notas: "Notas (0 a 10)", comentario: "Parecer do avaliador", media: "Média", conceito: "Conceito",
+  notas: "Notas (0 a 5)", comentario: "Parecer do avaliador", media: "Média", conceito: "Conceito",
   papel: "Papel do avaliador", perguntas: "Perguntas", okPresidenteEm: "Ok do Presidente em",
   respostasAoPresidente: "Sua resposta ao Presidente", texto: "Texto", respostaEnviadaEm: "Resposta enviada em",
   avaliadorFixoUid: "Avaliador fixo", avaliadorEscolhidoUid: "Colega escolhido", concluidas: "Etapas concluídas",

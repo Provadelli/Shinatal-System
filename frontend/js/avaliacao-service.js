@@ -4,7 +4,7 @@
 //   1. O Presidente ou o Admin abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
 //   2. O colaborador escolhe um colega para avaliá-lo (cria ciclosAvaliacao/{ano}_{uid}); o
 //      avaliador fixo vem da tabela oficial (configuracoes/avaliadoresFixos).
-//   3. O avaliador fixo e o colega escolhido respondem 5 perguntas, notas de 0 a 10, mais um
+//   3. O avaliador fixo e o colega escolhido respondem 5 perguntas, notas de 0 a 5, mais um
 //      parecer (respostasAvaliacao/{ano}_{uid}_{papel}), junto com a marcação em ciclo.concluidas.
 //   4. Com as duas concluídas, o colaborador lê as avaliações e envia uma resposta que só o
 //      Presidente lê (respostasAoPresidente/{ano}_{uid}).
@@ -17,7 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   calcularMedia, conceitoPorMedia, formatarNota, avaliacoesConcluidas, passosDoCiclo,
-  progressoDosPassos, calcularPendencias
+  progressoDosPassos, calcularPendencias, NOTA_MAXIMA
 } from "./avaliacao-calculo.js";
 
 /** Textos provisórios até a definição das perguntas oficiais (editáveis por Presidente e Admin). */
@@ -226,7 +226,7 @@ function assinarPendencias(papel, uid, cb) {
 
 export {
   PERGUNTAS_PADRAO, PAPEIS_AVALIADOR, ROTULOS_PAPEL_AVALIADOR, ROTULOS_CONCEITO, PERCENTUAL_CONCEITO, COMENTARIO_MINIMO,
-  calcularMedia, conceitoPorMedia, formatarNota, avaliacoesConcluidas, passosDoCiclo, progressoDosPassos, calcularPendencias,
+  calcularMedia, conceitoPorMedia, formatarNota, avaliacoesConcluidas, passosDoCiclo, progressoDosPassos, calcularPendencias, NOTA_MAXIMA,
   assinarConfig, salvarConfig, assinarAvaliadoresFixos, assinarMeuCiclo, assinarCiclosVisiveis, escolherAvaliador,
   enviarResposta, buscarRespostas, buscarMinhaResposta, enviarRespostaAoPresidente, buscarRespostaAoPresidente,
   darOk, assinarPendencias

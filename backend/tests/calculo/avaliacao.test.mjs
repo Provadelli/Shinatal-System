@@ -5,37 +5,42 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  calcularMedia, conceitoPorMedia, passosDoCiclo, progressoDosPassos, calcularPendencias, avaliacoesConcluidas
+  calcularMedia, conceitoPorMedia, passosDoCiclo, progressoDosPassos, calcularPendencias, avaliacoesConcluidas, NOTA_MAXIMA
 } from "../../../frontend/js/avaliacao-calculo.js";
 import { resolverTabela, normalizarNome, TABELA_AVALIADORES_FIXOS } from "../../scripts/lib/avaliadores-fixos.mjs";
 
 const r = (...notas) => ({ notas });
 
+test("escala de 0 a 5", () => {
+  assert.equal(NOTA_MAXIMA, 5);
+});
+
 test("média de duas avaliações: as 10 notas pesam igual", () => {
-  assert.equal(calcularMedia([r(10, 10, 10, 10, 10), r(6, 6, 6, 6, 6)]), 8);
-  assert.equal(calcularMedia([r(10, 9, 8, 7, 6), r(0, 0, 0, 0, 0)]), 4); // 40/10
+  assert.equal(calcularMedia([r(5, 5, 5, 5, 5), r(3, 3, 3, 3, 3)]), 4); // 40/10
+  assert.equal(calcularMedia([r(5, 4, 3, 2, 1), r(0, 0, 0, 0, 0)]), 1.5); // 15/10
 });
 
 test("média arredonda a 1 casa (meio para cima)", () => {
-  assert.equal(calcularMedia([r(9, 9, 9, 9, 9), r(9, 9, 9, 9, 8)]), 8.9); // 89/10
-  assert.equal(calcularMedia([r(7, 7, 7, 7, 7), r(7, 7, 7, 7, 8)]), 7.1); // 71/10
-  assert.equal(calcularMedia([r(9, 9, 9, 9, 9)]), 9);
-  assert.equal(calcularMedia([r(8, 8, 8, 8, 9), r(9, 9, 9, 9, 9), r(9, 9, 9, 9, 9)]), 8.7); // 131/15 = 8,733…
+  assert.equal(calcularMedia([r(5, 5, 5, 5, 5), r(5, 5, 5, 5, 4)]), 4.9); // 49/10
+  assert.equal(calcularMedia([r(4, 4, 4, 4, 4), r(4, 4, 4, 4, 3)]), 3.9); // 39/10
+  assert.equal(calcularMedia([r(5, 5, 5, 5, 5)]), 5);
+  assert.equal(calcularMedia([r(4, 4, 4, 4, 5), r(5, 5, 5, 5, 5), r(5, 5, 5, 5, 5)]), 4.7); // 71/15 = 4,733…
+  assert.equal(calcularMedia([r(4, 4, 4, 4, 5), r(4, 4, 4, 4, 5), r(5, 5, 5, 5, 5)]), 4.5); // 67/15 = 4,466…
 });
 
 test("respostas ausentes são ignoradas; sem notas não há média", () => {
-  assert.equal(calcularMedia([r(10, 10, 10, 10, 10), null]), 10);
+  assert.equal(calcularMedia([r(5, 5, 5, 5, 5), null]), 5);
   assert.equal(calcularMedia([]), null);
 });
 
-test("faixas do conceito nos limites", () => {
-  assert.equal(conceitoPorMedia(10), "excelente");
-  assert.equal(conceitoPorMedia(9), "excelente");
-  assert.equal(conceitoPorMedia(8.9), "bom");
-  assert.equal(conceitoPorMedia(7), "bom");
-  assert.equal(conceitoPorMedia(6.9), "regular");
-  assert.equal(conceitoPorMedia(5), "regular");
-  assert.equal(conceitoPorMedia(4.9), "insatisfatorio");
+test("faixas do conceito nos limites (0 a 5)", () => {
+  assert.equal(conceitoPorMedia(5), "excelente");
+  assert.equal(conceitoPorMedia(4.5), "excelente");
+  assert.equal(conceitoPorMedia(4.4), "bom");
+  assert.equal(conceitoPorMedia(3.5), "bom");
+  assert.equal(conceitoPorMedia(3.4), "regular");
+  assert.equal(conceitoPorMedia(2.5), "regular");
+  assert.equal(conceitoPorMedia(2.4), "insatisfatorio");
   assert.equal(conceitoPorMedia(0), "insatisfatorio");
 });
 
