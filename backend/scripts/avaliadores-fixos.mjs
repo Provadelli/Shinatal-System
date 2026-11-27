@@ -31,11 +31,16 @@ const db = admin.firestore();
 
 const snap = await db.collection("usuarios").get();
 const usuarios = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
-const { pares, linhas, erros } = resolverTabela(TABELA_AVALIADORES_FIXOS, usuarios);
+const { pares, linhas, erros, semCadastro } = resolverTabela(TABELA_AVALIADORES_FIXOS, usuarios);
 
 console.log("Avaliado → avaliador fixo");
 for (const l of linhas) console.log(`  ${l.avaliado} → ${l.avaliador}${l.papelAvaliador === "presidente" ? " (Presidente)" : ""}`);
 console.log(`${linhas.length} de ${TABELA_AVALIADORES_FIXOS.length} linhas resolvidas.`);
+
+if (semCadastro.length) {
+  console.warn("\nSem cadastro ativo (ficam de fora; rode de novo depois que a pessoa tiver conta confirmada):");
+  for (const nome of semCadastro) console.warn(`  - ${nome}`);
+}
 
 if (erros.length) {
   console.error("\nProblemas (nada foi gravado):");

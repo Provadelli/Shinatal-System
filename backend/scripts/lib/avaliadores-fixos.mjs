@@ -41,13 +41,16 @@ export function candidatosPorNome(nome, usuarios) {
 }
 
 /**
- * Resolve a tabela para `{ pares: { uidAvaliado: uidAvaliadorFixo } }`. Nunca adivinha: nome
- * sem cadastro ou com mais de um cadastro vira erro, e o script não grava nada.
+ * Resolve a tabela para `{ pares: { uidAvaliado: uidAvaliadorFixo } }`. Nunca adivinha:
+ * - nome com mais de um cadastro, e-mail errado ou linha inválida → `erros` (o script não grava);
+ * - nome ainda sem cadastro ativo (pessoa sem conta ou com cadastro pendente) → `semCadastro`:
+ *   a linha fica de fora e a pessoa entra quando o script for rodado de novo depois do cadastro.
  * @param {{avaliado:string, avaliador:string, emailAvaliado?:string, emailAvaliador?:string}[]} tabela
  * @param {{uid:string, nome:string, email?:string, role?:string, status?:string}[]} usuarios
  */
 export function resolverTabela(tabela, usuarios) {
   const erros = [];
+  const semCadastro = [];
   const linhas = [];
   const resolver = (nome, email) => {
     if (email) {
@@ -56,9 +59,8 @@ export function resolverTabela(tabela, usuarios) {
     }
     const lista = candidatosPorNome(nome, usuarios);
     if (lista.length === 1) return lista[0];
-    erros.push(lista.length === 0
-      ? `"${nome}": nenhum cadastro ativo com esse nome`
-      : `"${nome}": ${lista.length} cadastros (${lista.map((u) => u.nome).join(", ")}) — informe o e-mail na tabela`);
+    if (lista.length === 0) semCadastro.push(nome);
+    else erros.push(`"${nome}": ${lista.length} cadastros (${lista.map((u) => u.nome).join(", ")}) — informe o e-mail na tabela`);
     return null;
   };
 
@@ -73,5 +75,5 @@ export function resolverTabela(tabela, usuarios) {
     pares[avaliado.uid] = avaliador.uid;
     linhas.push({ avaliado: avaliado.nome, avaliador: avaliador.nome, papelAvaliador: avaliador.role || "colaborador" });
   }
-  return { pares, linhas, erros };
+  return { pares, linhas, erros, semCadastro: [...new Set(semCadastro)] };
 }

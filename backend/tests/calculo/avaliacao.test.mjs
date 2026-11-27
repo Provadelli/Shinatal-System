@@ -104,12 +104,15 @@ test("tabela oficial resolve as 11 linhas, sem acento nem sobrenome", () => {
   assert.equal(pares.edu, undefined); // o Presidente não é avaliado
 });
 
-test("nome ausente, ambíguo ou desligado vira erro (nada é adivinhado)", () => {
-  assert.match(resolverTabela([{ avaliado: "Zé", avaliador: "Eduardo" }], CADASTROS).erros[0], /nenhum cadastro/);
+test("nome sem cadastro fica de fora sem bloquear; ambíguo bloqueia (nada é adivinhado)", () => {
+  const ausente = resolverTabela([{ avaliado: "Zé", avaliador: "Eduardo" }, { avaliado: "Guido", avaliador: "Marcelo" }], CADASTROS);
+  assert.deepEqual(ausente.erros, []);
+  assert.deepEqual(ausente.semCadastro, ["Zé"]);
+  assert.deepEqual(ausente.pares, { gui: "mar" });
   const duplicado = [...CADASTROS, u("gui2", "Guido Ramos")];
   assert.match(resolverTabela([{ avaliado: "Guido", avaliador: "Marcelo" }], duplicado).erros[0], /2 cadastros/);
   const desligado = CADASTROS.map((c) => (c.uid === "dav" ? { ...c, status: "demitido" } : c));
-  assert.match(resolverTabela([{ avaliado: "David", avaliador: "Marcelo" }], desligado).erros[0], /nenhum cadastro/);
+  assert.deepEqual(resolverTabela([{ avaliado: "David", avaliador: "Marcelo" }], desligado).semCadastro, ["David"]);
   // Desempate por e-mail.
   const comEmail = duplicado.map((c) => ({ ...c, email: `${c.uid}@shinerio.com` }));
   const ok = resolverTabela([{ avaliado: "Guido", emailAvaliado: "gui2@shinerio.com", avaliador: "Marcelo" }], comEmail);
