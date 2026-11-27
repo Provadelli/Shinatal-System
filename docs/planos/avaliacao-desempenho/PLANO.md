@@ -1,5 +1,7 @@
 # Avaliação de desempenho Shinatal — plano
 
+> **Revisão 3 (27/11/2026).** A resposta do avaliado vai apenas para o Presidente: os avaliadores não a leem.
+>
 > **Revisão 2 (27/11/2026).** O colega escolhido também escreve um parecer, obrigatório como o do avaliador fixo.
 >
 > **Revisão 1 (27/11/2026).** O processo passou a ter dois avaliadores: um **avaliador fixo**, definido pela tabela abaixo, e um **colega escolhido** pelo próprio avaliado. Presidente e RH deixam de avaliar por padrão. O Presidente continua lendo tudo e dando o ok final. O commit `ba4aff0` foi escrito para o esquema anterior (Presidente + RH + colega); a seção "O que muda no WIP" lista o que ajustar.
@@ -51,7 +53,7 @@ A média final vira o conceito que o motor de cálculo já usa.
   - o avaliador fixo dele, que já avalia.
 - Dá para trocar o colega enquanto ele ainda não avaliou.
 - **Parecer do avaliador** (revisão 2): os **dois** avaliadores, o fixo e o colega escolhido, têm o campo de parecer escrito, além das notas. O parecer é obrigatório para ambos, com no mínimo 20 caracteres, e o avaliado lê os dois.
-- **Parecer**: o avaliado responde ao texto do **avaliador fixo**. Para quem é avaliado pelo Eduardo, é o texto do Presidente, como no pedido original. *(Suposição. Confirmar.)*
+- **Resposta do avaliado** (revisão 3): depois de ler as duas avaliações, o avaliado escreve **uma** resposta, endereçada **apenas ao Presidente**. Só o avaliado e o Presidente a leem; o avaliador fixo e o colega escolhido não têm acesso (quando o fixo é o próprio Presidente, ele lê por ser o Presidente). A resposta é enviada uma vez e não pode ser editada.
 - Média = média das 10 notas (2 avaliações × 5). Respostas enviadas não podem ser editadas.
 - Só o Presidente lê todas as respostas. O avaliado lê as duas depois que ambas forem enviadas. Cada avaliador lê só a própria resposta.
 - O avaliador fixo só fica sabendo que tem uma avaliação a fazer depois que o avaliado escolhe o colega, porque é a escolha que cria o ciclo. O aviso de "escolha seu colega" aparece logo no início.
@@ -62,8 +64,13 @@ A média final vira o conceito que o motor de cálculo já usa.
   - Nenhum cliente grava (`allow write: if false`). Qualquer usuário verificado lê.
   - A fonte é `backend/scripts/avaliadores-fixos.mjs`, que guarda a tabela acima por nome e e-mail, resolve os uids com o Admin SDK e grava o documento, com os modos `--simular` e `--aplicar` do padrão do projeto.
   - Assim a tabela fica no código e as regras do Firestore conseguem conferir o avaliador fixo.
-- **`ciclosAvaliacao/{ano}_{uid}`**: `{ uid, ano, avaliadorFixoUid, avaliadorEscolhidoUid, concluidas: { fixo, escolhido }, parecer, parecerEm, okPresidenteEm, media, conceito, criadoEm, atualizadoEm }`.
+- **`ciclosAvaliacao/{ano}_{uid}`**: `{ uid, ano, avaliadorFixoUid, avaliadorEscolhidoUid, concluidas: { fixo, escolhido }, respostaEnviadaEm, okPresidenteEm, media, conceito, criadoEm, atualizadoEm }`.
   - O campo `rhDispensado` sai.
+  - O texto da resposta do avaliado **não** fica no ciclo, porque os avaliadores leem o ciclo. O ciclo guarda só `respostaEnviadaEm`, que marca a etapa.
+- **`respostasAoPresidente/{ano}_{uid}`** (novo): `{ uid, ano, texto, criadoEm }`.
+  - Só o avaliado e o Presidente leem.
+  - O avaliado cria o documento na mesma escrita em lote que marca `respostaEnviadaEm` no ciclo.
+  - Depois de criado, não muda mais.
   - O `avaliadorFixoUid` é copiado da tabela na criação, e a regra confere com `configuracoes/avaliadoresFixos`.
 - **`respostasAvaliacao/{ano}_{avaliadoUid}_{papel}`**: `papel ∈ fixo | escolhido`. As notas e a imutabilidade seguem iguais.
 
@@ -78,14 +85,15 @@ A média final vira o conceito que o motor de cálculo já usa.
 - **Resposta**: o papel é `fixo` quando quem grava é `avaliadorFixoUid` (inclusive se for o Presidente) e `escolhido` quando é `avaliadorEscolhidoUid`. A resposta e a marcação em `concluidas` vão na mesma escrita em lote. O parecer do avaliador (campo `comentario`) precisa ter no mínimo 20 caracteres nos dois papéis, `fixo` e `escolhido`.
 - **Leitura de respostas**: o Presidente lê todas; o avaliado lê depois de `concluidas.fixo && concluidas.escolhido`; cada avaliador lê a própria.
 - **Leitura de ciclos**: o dono, os dois avaliadores e o Presidente. O RH sai dessa leitura.
-- **Parecer** e **ok**: mesma lógica de antes. O ok recalcula a média com as 2 respostas.
+- **Resposta do avaliado**: só depois das duas avaliações, uma única vez, com 1 a 2000 caracteres, gravada junto com `respostaEnviadaEm`. A leitura de `respostasAoPresidente` fica restrita ao dono e ao Presidente.
+- **Ok**: exige `respostaEnviadaEm` e recalcula a média com as 2 avaliações.
 
 ## Frontend (página `/avaliacao`)
 - **Avisos**:
   - para o avaliador fixo e para o colega escolhido, "Avalie {nome}";
   - para o Presidente, os pareceres esperando o ok e, quando ele for o fixo, as avaliações dele;
   - o mesmo total aparece no contador da navegação.
-- **Meu processo**: linha do tempo com **5 marcos**: escolha do colega → avaliador fixo → colega escolhido → seu parecer → ok do Presidente.
+- **Meu processo**: linha do tempo com **5 marcos**: escolha do colega → avaliador fixo → colega escolhido → sua resposta ao Presidente → ok do Presidente.
   - No passo 1 aparece "Seu avaliador fixo: {nome}" e o seletor do colega.
   - Quem não está na tabela vê um estado vazio que explica a situação.
 - **Painel do Presidente**:
@@ -119,6 +127,7 @@ A média final vira o conceito que o motor de cálculo já usa.
     - colega escolhido sem parecer (ou com menos de 20 caracteres) é recusado;
     - pessoa fora da tabela;
     - média com 2 respostas;
+    - avaliador fixo e colega escolhido não leem a resposta ao Presidente;
   - ajustar `backend/tests/calculo/avaliacao.test.mjs`.
 - **Novo** `backend/scripts/avaliadores-fixos.mjs`, com a tabela acima.
 
