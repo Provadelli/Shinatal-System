@@ -26,11 +26,10 @@ function botaoExcluir(tipo, id, tiposExcluiveis) {
  *   somaPesos: number,
  *   anoExercicio: number,
  *   tiposExcluiveis?: string[],           // ex.: ['falta','atraso','advertencia','avaliacao']
- *   aoExcluir?: (tipo:string, id:string) => void,
- *   contagemConduta?: {excelente:number, bom:number, regular:number, insatisfatorio:number}|null
+ *   aoExcluir?: (tipo:string, id:string) => void
  * }} params
  */
-function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaPesos, anoExercicio, tiposExcluiveis = [], aoExcluir = null, contagemConduta = null }) {
+function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaPesos, anoExercicio, tiposExcluiveis = [], aoExcluir = null }) {
   const participacaoPct = somaPesos > 0 ? (resultado.pesoIndividual / somaPesos) * 100 : 0;
   const { porMes } = contarPontosAtraso(dados.atrasos, anoExercicio);
   const mesesComAtraso = Object.entries(porMes).filter(([, qtd]) => qtd > 0).sort(([a], [b]) => a.localeCompare(b));
@@ -116,9 +115,9 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         <p class="font-body font-semibold text-on-surface mb-1">Avaliação de desempenho (${anoExercicio})</p>
         ${avaliacaoDoAno ? `
         <div class="flex items-center justify-between gap-2 font-body text-label-sm bg-surface-container rounded-lg px-3 py-1.5">
-          <span>${escaparHTML(ROTULOS_CONCEITO[avaliacaoDoAno.conceito] || avaliacaoDoAno.conceito)}${avaliacaoDoAno.data ? " em " + formatarData(avaliacaoDoAno.data) : ""}</span>
+          <span>${escaparHTML(ROTULOS_CONCEITO[avaliacaoDoAno.conceito] || avaliacaoDoAno.conceito)}${avaliacaoDoAno.data ? " em " + formatarData(avaliacaoDoAno.data) : ""}${avaliacaoDoAno.justificativa ? ` · ${escaparHTML(avaliacaoDoAno.justificativa)}` : ""}</span>
           ${botaoExcluir("avaliacao", avaliacaoDoAno.id, tiposExcluiveis)}
-        </div>` : `<p class="font-body text-label-sm text-on-surface-variant">Ainda não avaliado(a) este ano.</p>`}
+        </div>` : `<p class="font-body text-label-sm text-on-surface-variant">Ainda não finalizada este ano. Acompanhe em <a href="/avaliacao" class="underline">Avaliação de desempenho</a>.</p>`}
       </div>
 
       <div class="border-t border-outline-variant/30 pt-4">
@@ -133,18 +132,6 @@ function renderizarPerfilDetalhado(container, { usuario, dados, resultado, somaP
         ${!resultado.elegivel ? `<p class="font-body text-label-sm text-christmas-red mt-2">${resultado.motivoInelegibilidade}</p>` : ""}
       </div>
 
-      ${usuario.role !== "presidente" && contagemConduta ? `
-      <div class="border-t border-outline-variant/30 pt-4">
-        <p class="font-body font-semibold text-on-surface mb-1">Avaliação de conduta entre colegas</p>
-        <p class="font-body text-label-sm text-on-surface-variant mb-2">Votos anônimos dos colegas — não afeta a cota nem o fundo do Shinatal.</p>
-        <div class="grid grid-cols-2 gap-2">
-          ${["excelente", "bom", "regular", "insatisfatorio"].map((c) => `
-            <div class="bg-surface-container rounded-lg px-3 py-2 flex justify-between items-center">
-              <span class="font-body text-label-sm text-on-surface-variant">${ROTULOS_CONCEITO[c]}</span>
-              <span class="font-display font-bold text-on-surface">${contagemConduta[c] || 0}</span>
-            </div>`).join("")}
-        </div>
-      </div>` : ""}
     </div>`;
 
   if (aoExcluir) {

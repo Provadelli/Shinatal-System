@@ -60,7 +60,7 @@ const CABECALHO_POR_PAGINA = {
   "contratos.html": ["sistema", "contratos"],
   "atividade.html": ["sistema", "atividade"],
   "solicitacoes.html": ["sistema", "solicitacoes"],
-  "conduta.html": ["sistema", "conduta"],
+  "avaliacao.html": ["sistema", "avaliacao"],
   "regulamento.html": ["sistema", "regulamento"],
   "perfil.html": ["sistema", "perfil"]
 };

@@ -3,6 +3,9 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/conduta", "destination": "/avaliacao", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

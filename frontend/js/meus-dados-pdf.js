@@ -20,7 +20,10 @@ const ROTULOS = {
   aceiteTermos: "Aceite dos Termos", aceitoEm: "Aceito em", versao: "Versão", data: "Data", motivo: "Motivo",
   descricao: "Descrição", status: "Situação", nota: "Nota", cnpj: "CNPJ", razaoSocial: "Razão social",
   votosQueVoceDeu: "Votos que você deu", contagemRecebidaAnonima: "Contagem recebida (anônima)", id: "Código",
-  uid: "Identificador", avaliadorUid: "Avaliador", avaliadoUid: "Avaliado", fotoBase64: "Foto cadastrada"
+  uid: "Identificador", avaliadorUid: "Avaliador", avaliadoUid: "Avaliado", fotoBase64: "Foto cadastrada",
+  ciclos: "Seus ciclos", respostasRecebidas: "Respostas recebidas", respostasQueVoceDeu: "Avaliações que você fez",
+  notas: "Notas (0 a 10)", comentario: "Comentário", parecer: "Seu parecer", media: "Média", conceito: "Conceito",
+  papel: "Papel do avaliador", perguntas: "Perguntas", okPresidenteEm: "Ok do Presidente em", parecerEm: "Parecer em"
 };
 
 const SECOES = [
@@ -30,7 +33,8 @@ const SECOES = [
   ["advertencias", "Advertências"],
   ["avaliacoesDeDesempenho", "Avaliações de desempenho"],
   ["contratosIndividuais", "Contratos individuais"],
-  ["avaliacaoDeConduta", "Avaliação de conduta"]
+  ["processoDeAvaliacao", "Processo de avaliação de desempenho"],
+  ["avaliacaoDeConduta", "Avaliação de conduta (histórico, encerrada em 11/2026)"]
 ];
 
 function rotulo(chave) {

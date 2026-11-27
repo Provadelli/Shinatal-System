@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Shinatal · Avaliação de conduta</title>
+<title>Shinatal · Avaliação de desempenho</title>
 <meta name="robots" content="noindex" />
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
 <!-- fontes:inicio -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-14f5f3ec3d.woff2" crossorigin />
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/material-symbols-outlined-a059654803.woff2" crossorigin />
 <link rel="stylesheet" href="css/fontes.css" />
 <!-- fontes:fim -->
 <link rel="stylesheet" href="/css/tailwind.css" />
@@ -46,7 +46,7 @@
       <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Contratos</a>
       <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Atividade</a>
       <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
-      <a href="/conduta" data-item="conduta" aria-current="page" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Conduta</a>
+      <a href="/avaliacao" data-item="avaliacao" aria-current="page" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Avaliação<span data-contador-avaliacao class="nav-contador" hidden>0</span></a>
       <a href="/regulamento" data-item="regulamento" class="nav-link nav-link-tecnico py-1 whitespace-nowrap">Regulamento</a>
     </nav>
 
@@ -74,7 +74,7 @@
     <a href="/contratos" data-item="contratos" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">apartment</span>Contratos</a>
     <a href="/atividade" data-item="atividade" data-papeis="admin presidente"><span class="material-symbols-outlined" aria-hidden="true">history</span>Atividade</a>
     <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente"><span class="material-symbols-outlined" aria-hidden="true">inbox</span>Solicitações<span data-contador-solicitacoes class="nav-contador" hidden>0</span></a>
-    <a href="/conduta" data-item="conduta" aria-current="page"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span>Conduta</a>
+    <a href="/avaliacao" data-item="avaliacao" aria-current="page"><span class="material-symbols-outlined" aria-hidden="true">grading</span>Avaliação de desempenho<span data-contador-avaliacao class="nav-contador" hidden>0</span></a>
     <a href="/regulamento" data-item="regulamento"><span class="material-symbols-outlined" aria-hidden="true">gavel</span>Regulamento</a>
     <a href="/perfil" data-item="perfil"><span class="material-symbols-outlined" aria-hidden="true">person</span>Meu perfil</a>
     <button type="button" data-sair class="menu-sistema-sair"><span class="material-symbols-outlined" aria-hidden="true">logout</span>Sair da conta</button>
@@ -89,7 +89,7 @@
   <a href="/contratos" data-item="contratos" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">apartment</span><span>Contratos</span></a>
   <a href="/atividade" data-item="atividade" data-papeis="admin presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">history</span><span>Atividade</span></a>
   <a href="/solicitacoes" data-item="solicitacoes" data-papeis="presidente" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">inbox</span><span>Pedidos</span><span data-contador-solicitacoes class="nav-contador dock-contador" hidden>0</span></a>
-  <a href="/conduta" data-item="conduta" aria-current="page" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span><span>Conduta</span></a>
+  <a href="/avaliacao" data-item="avaliacao" aria-current="page" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">grading</span><span>Avaliação</span><span data-contador-avaliacao class="nav-contador dock-contador" hidden>0</span></a>
   <a href="/regulamento" data-item="regulamento" data-papeis="colaborador dp rh" class="dock-item"><span class="material-symbols-outlined" aria-hidden="true">gavel</span><span>Regras</span></a>
 </nav>
 <!-- cabecalho:fim -->
@@ -97,30 +97,111 @@
 <main id="conteudo" class="pagina-interna pagina-interna--estreita flex-1 relative z-10" tabindex="-1">
   <header class="titulo-pagina">
     <div>
-      <p class="rotulo"><span class="rotulo-numero" aria-hidden="true">04</span><span class="fio-natal" aria-hidden="true"></span><span>Entre colegas</span></p>
-      <h1>Avaliação de conduta</h1>
-      <p class="titulo-pagina-texto">Votos anônimos sobre a conduta dos colegas. É puramente social: não altera a cota nem o fundo do Shinatal.</p>
+      <p class="rotulo"><span class="rotulo-numero" aria-hidden="true">04</span><span class="fio-natal" aria-hidden="true"></span><span>Desempenho</span></p>
+      <h1>Avaliação de desempenho</h1>
+      <p class="titulo-pagina-texto">O Presidente, o RH e um colega escolhido por você avaliam o seu ano em 5 perguntas, com notas de 0 a 10. A média final define o percentual da Seção 11 no seu Shinatal.</p>
     </div>
+    <span id="selo-ciclo" class="badge badge-neutro" hidden></span>
   </header>
 
-  <div id="conduta-toggle-area" hidden class="mb-6"></div>
-  <section class="cartao" aria-labelledby="conduta-titulo">
-    <div class="cartao-cabecalho">
-      <h2 id="conduta-titulo" class="cartao-titulo"><span class="material-symbols-outlined" aria-hidden="true">diversity_3</span>Colegas</h2>
-      <div class="relative w-full max-w-xs">
-        <span class="material-symbols-outlined campo-icone" aria-hidden="true">search</span>
-        <input id="busca-conduta" type="search" class="input-shinatal !py-2" placeholder="Buscar colega" aria-label="Buscar colega por nome ou cargo" />
+  <div class="avaliacao-pilha">
+    <section id="secao-avisos" class="cartao aviso-avaliacao" aria-labelledby="avisos-titulo" hidden>
+      <div class="cartao-cabecalho">
+        <h2 id="avisos-titulo" class="cartao-titulo"><span class="material-symbols-outlined" aria-hidden="true">notifications_active</span>Avisos</h2>
+        <span id="avisos-total" class="badge badge-atencao"></span>
       </div>
-    </div>
-    <ul id="conteudo-conduta" class="lista-registros" aria-live="polite">
-      <li class="estado-vazio">Carregando...</li>
-    </ul>
-  </section>
+      <ul id="lista-avisos" class="lista-registros" aria-live="polite"></ul>
+    </section>
+
+    <section id="secao-processo" class="cartao" aria-labelledby="processo-titulo" hidden>
+      <div class="cartao-cabecalho">
+        <h2 id="processo-titulo" class="cartao-titulo"><span class="material-symbols-outlined" aria-hidden="true">timeline</span>Meu processo</h2>
+        <span id="processo-ano" class="registro-data"></span>
+      </div>
+      <div class="cartao-corpo">
+        <ol id="linha-processo" class="linha-processo" aria-label="Etapas da sua avaliação"></ol>
+        <div id="processo-conteudo" class="processo-conteudo" aria-live="polite">
+          <div class="skeleton h-5 w-2/3"></div>
+          <div class="skeleton h-11 w-full mt-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="secao-gestao" class="cartao" aria-labelledby="gestao-titulo" hidden>
+      <div class="cartao-cabecalho flex-wrap">
+        <h2 id="gestao-titulo" class="cartao-titulo"><span class="material-symbols-outlined" aria-hidden="true">groups</span>Colaboradores</h2>
+        <div class="relative w-full sm:max-w-xs">
+          <span class="material-symbols-outlined campo-icone" aria-hidden="true">search</span>
+          <input id="busca-gestao" type="search" class="input-shinatal !py-2" placeholder="Buscar colaborador" aria-label="Buscar colaborador por nome ou cargo" />
+        </div>
+      </div>
+      <div id="gestao-ciclo" class="cartao-corpo gestao-ciclo"></div>
+      <div class="overflow-x-auto">
+        <table class="tabela tabela-empilhada">
+          <caption class="sr-only">Situação da avaliação de cada colaborador</caption>
+          <thead><tr><th scope="col">Colaborador</th><th scope="col">Etapa</th><th scope="col" class="num">Média</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+          <tbody id="corpo-gestao"><tr><td colspan="4"><div class="skeleton h-5 w-full"></div></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="secao-perguntas" class="cartao" aria-labelledby="perguntas-titulo" hidden>
+      <div class="cartao-cabecalho">
+        <h2 id="perguntas-titulo" class="cartao-titulo"><span class="material-symbols-outlined" aria-hidden="true">edit_note</span>Perguntas da avaliação</h2>
+      </div>
+      <form id="form-perguntas" class="cartao-corpo space-y-4" novalidate>
+        <p class="registro-detalhe !mt-0">Cada resposta guarda o texto da pergunta no momento do envio: editar aqui não altera avaliações já feitas.</p>
+        <ol id="lista-perguntas" class="space-y-3"></ol>
+        <div class="flex justify-end">
+          <button type="submit" class="btn-pilula btn-pilula--solido btn-pilula--compacto"><span class="material-symbols-outlined" aria-hidden="true">save</span>Salvar perguntas</button>
+        </div>
+      </form>
+    </section>
+  </div>
 </main>
+
+<!-- ===== Modal: responder a avaliação ===== -->
+<div id="modal-avaliar" role="dialog" aria-modal="true" aria-labelledby="avaliar-titulo" class="hidden fixed inset-0 z-50 items-center justify-center p-4" data-fundo>
+  <div class="glass-card-active !bg-white rounded-xl w-full max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden">
+    <div class="flex justify-between items-start gap-4 p-5 border-b border-outline-variant/30 shrink-0">
+      <div class="min-w-0">
+        <p id="avaliar-papel" class="rotulo"></p>
+        <h2 id="avaliar-titulo" class="font-display text-headline-md text-on-surface mt-2">Avaliar</h2>
+      </div>
+      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+    </div>
+    <form id="form-avaliar" class="flex flex-col min-h-0 flex-1" novalidate>
+      <div id="avaliar-perguntas" class="p-5 overflow-y-auto space-y-6 flex-1"></div>
+      <div class="p-5 border-t border-outline-variant/30 shrink-0 space-y-4 avaliar-rodape">
+        <div>
+          <label for="avaliar-comentario" id="avaliar-comentario-rotulo" class="label-shinatal">Comentário</label>
+          <textarea id="avaliar-comentario" class="input-shinatal !pl-3" rows="3" maxlength="2000" aria-describedby="avaliar-comentario-ajuda"></textarea>
+          <p id="avaliar-comentario-ajuda" class="registro-detalhe"></p>
+        </div>
+        <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p id="avaliar-media-previa" class="registro-detalhe !mt-0" aria-live="polite"></p>
+          <button type="submit" class="btn-pilula btn-pilula--solido"><span class="material-symbols-outlined" aria-hidden="true">send</span>Enviar avaliação</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Painel lateral: respostas sobre um colaborador (Presidente) ===== -->
+<div id="modal-respostas" role="dialog" aria-modal="true" aria-labelledby="respostas-titulo" class="hidden fixed inset-0 z-50" data-painel-lateral data-fundo>
+  <div class="painel-lateral">
+    <div class="painel-lateral-cabecalho">
+      <h2 id="respostas-titulo" class="font-display text-headline-md text-on-surface">Respostas</h2>
+      <button type="button" data-fechar-modal aria-label="Fechar" class="text-on-surface-variant"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+    </div>
+    <div id="respostas-corpo" class="painel-lateral-corpo"></div>
+    <div id="respostas-rodape" class="painel-lateral-rodape" hidden></div>
+  </div>
+</div>
 
 <!-- rodape:inicio -->
 <!-- rodape:fim -->
 
-<script type="module" src="/js/paginas/conduta.js"></script>
+<script type="module" src="/js/paginas/avaliacao.js"></script>
 </body>
 </html>
