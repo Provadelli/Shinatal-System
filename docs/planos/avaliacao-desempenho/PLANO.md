@@ -1,5 +1,7 @@
 # Avaliação de desempenho Shinatal — plano
 
+> **Revisão 2 (27/11/2026).** O colega escolhido também escreve um parecer, obrigatório como o do avaliador fixo.
+>
 > **Revisão 1 (27/11/2026).** O processo passou a ter dois avaliadores: um **avaliador fixo**, definido pela tabela abaixo, e um **colega escolhido** pelo próprio avaliado. Presidente e RH deixam de avaliar por padrão. O Presidente continua lendo tudo e dando o ok final. O commit `ba4aff0` foi escrito para o esquema anterior (Presidente + RH + colega); a seção "O que muda no WIP" lista o que ajustar.
 
 ## Contexto
@@ -48,7 +50,7 @@ A média final vira o conceito que o motor de cálculo já usa.
   - o próprio avaliado;
   - o avaliador fixo dele, que já avalia.
 - Dá para trocar o colega enquanto ele ainda não avaliou.
-- **Comentário**: obrigatório para o avaliador fixo e opcional para o colega escolhido. *(Suposição: herda a obrigatoriedade que antes era do Presidente e do RH. Confirmar.)*
+- **Parecer do avaliador** (revisão 2): os **dois** avaliadores, o fixo e o colega escolhido, têm o campo de parecer escrito, além das notas. O parecer é obrigatório para ambos, com no mínimo 20 caracteres, e o avaliado lê os dois.
 - **Parecer**: o avaliado responde ao texto do **avaliador fixo**. Para quem é avaliado pelo Eduardo, é o texto do Presidente, como no pedido original. *(Suposição. Confirmar.)*
 - Média = média das 10 notas (2 avaliações × 5). Respostas enviadas não podem ser editadas.
 - Só o Presidente lê todas as respostas. O avaliado lê as duas depois que ambas forem enviadas. Cada avaliador lê só a própria resposta.
@@ -73,7 +75,7 @@ A média final vira o conceito que o motor de cálculo já usa.
   - `avaliadorFixoUid` tem de ser igual ao valor de `pares[uid]`;
   - o colega escolhido tem de estar ativo e não pode ser Presidente, RH, o próprio avaliado nem o avaliador fixo;
   - o ciclo tem de estar aberto.
-- **Resposta**: o papel é `fixo` quando quem grava é `avaliadorFixoUid` (inclusive se for o Presidente) e `escolhido` quando é `avaliadorEscolhidoUid`. A resposta e a marcação em `concluidas` vão na mesma escrita em lote. O comentário precisa ter no mínimo 20 caracteres no papel `fixo`.
+- **Resposta**: o papel é `fixo` quando quem grava é `avaliadorFixoUid` (inclusive se for o Presidente) e `escolhido` quando é `avaliadorEscolhidoUid`. A resposta e a marcação em `concluidas` vão na mesma escrita em lote. O parecer do avaliador (campo `comentario`) precisa ter no mínimo 20 caracteres nos dois papéis, `fixo` e `escolhido`.
 - **Leitura de respostas**: o Presidente lê todas; o avaliado lê depois de `concluidas.fixo && concluidas.escolhido`; cada avaliador lê a própria.
 - **Leitura de ciclos**: o dono, os dois avaliadores e o Presidente. O RH sai dessa leitura.
 - **Parecer** e **ok**: mesma lógica de antes. O ok recalcula a média com as 2 respostas.
@@ -91,7 +93,8 @@ A média final vira o conceito que o motor de cálculo já usa.
   - "Ver respostas" e "Dar ok";
   - colaboradores ativos fora da tabela aparecem marcados como "Sem avaliador fixo".
   - O botão de dispensar o RH sai.
-- **Modal de avaliação** e **editor de perguntas**: não mudam.
+- **Modal de avaliação**: as 5 perguntas com notas de 0 a 10 e o campo "Seu parecer", obrigatório para o fixo e para o colega escolhido.
+- **Editor de perguntas**: não muda.
 
 ## O que muda no WIP (`ba4aff0`)
 - **`backend/firestore.rules`**:
@@ -113,6 +116,7 @@ A média final vira o conceito que o motor de cálculo já usa.
     - fixo errado na criação;
     - escolher o próprio avaliador fixo;
     - fixo = Presidente;
+    - colega escolhido sem parecer (ou com menos de 20 caracteres) é recusado;
     - pessoa fora da tabela;
     - média com 2 respostas;
   - ajustar `backend/tests/calculo/avaliacao.test.mjs`.
