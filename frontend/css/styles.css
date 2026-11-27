@@ -781,6 +781,8 @@ html.aparelho-fraco .header-home:not(.header-transparente) { -webkit-backdrop-fi
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+/* Sem pendência, nada aparece: o display acima anularia o atributo hidden. */
+.nav-contador[hidden] { display: none; }
 
 /* ---------- Menu do celular (home) ----------
    No celular as seções da página ficam atrás de um botão "Menu" (texto, sem ícone); o painel
