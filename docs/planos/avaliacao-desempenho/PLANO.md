@@ -1,111 +1,143 @@
 # Avaliação de desempenho Shinatal — plano
 
+> **Revisão 1 (27/11/2026).** O processo passou a ter dois avaliadores: um **avaliador fixo**, definido pela tabela abaixo, e um **colega escolhido** pelo próprio avaliado. Presidente e RH deixam de avaliar por padrão. O Presidente continua lendo tudo e dando o ok final. O commit `ba4aff0` foi escrito para o esquema anterior (Presidente + RH + colega); a seção "O que muda no WIP" lista o que ajustar.
+
 ## Contexto
-Hoje existem duas peças desconexas: a aba **Conduta** (`/conduta`, votos de conceito entre colegas, só contagem bruta) e a **avaliação formal** lançada à mão no painel de gestão (coleção `avaliacoes`, Seção 11 do cálculo). O pedido é substituir as duas por um processo único, a **Avaliação de desempenho**: três avaliadores (Presidente, RH e um colega escolhido pelo avaliado), 5 perguntas com notas de 0 a 10, parecer do avaliado sobre o texto do Presidente e "ok" final do Presidente. A média final vira o conceito que já alimenta o motor de cálculo.
+Hoje existem duas peças desconexas:
+- a aba **Conduta** (`/conduta`, votos de conceito entre colegas, só contagem bruta);
+- a **avaliação formal** lançada à mão no painel de gestão (coleção `avaliacoes`, Seção 11 do cálculo).
 
-Decisões já tomadas com o usuário:
-- **Média → conceito por faixas**: ≥ 9 excelente (+2%), ≥ 7 bom (0%), ≥ 5 regular (−5%), < 5 insatisfatório (−15%). Reaproveita `TABELA_AVALIACAO` (`frontend/js/calculo-shinatal.js:799`) sem mexer no motor.
-- **Perguntas editáveis pelo Presidente e admin**, guardadas em configuração, com textos provisórios até chegarem as definitivas.
-- **O Presidente abre o ciclo anual** (substitui o interruptor da Conduta).
-- **Remover** os votos de conduta e o lançamento manual de "Avaliação" na gestão. Os dados antigos continuam no Firestore e na exportação LGPD.
+As duas viram um processo único, a **Avaliação de desempenho**, que funciona assim:
+1. O colaborador é avaliado pelo avaliador fixo e por um colega que ele mesmo escolhe.
+2. Cada avaliador dá notas de 0 a 10 em 5 perguntas, mais um comentário.
+3. O avaliado escreve um parecer.
+4. O Presidente dá o ok final.
 
-Regras de negócio assumidas (documentadas na página):
-- O Presidente não é avaliado. Ninguém avalia a si mesmo.
-- O colega escolhido pode ser qualquer pessoa ativa, exceto o Presidente, quem tem papel RH e o próprio avaliado. A escolha é feita uma vez por ciclo e não pode ser trocada depois que ele começar a avaliar.
-- Se o avaliado for RH, a vaga "RH" é preenchida por outra pessoa com papel RH. Se não existir outra, essa etapa é dispensada e a média usa 2 avaliações.
-- O comentário final é obrigatório para Presidente e RH e opcional para o colega. Respostas enviadas não podem ser editadas.
+A média final vira o conceito que o motor de cálculo já usa.
+
+## Avaliadores fixos (tabela oficial)
+
+| Avaliado | Avaliador fixo |
+|---|---|
+| Natalia | Eduardo (Presidente) |
+| Guido | Marcelo |
+| Danilo | Dayane |
+| Pedro Lucas | Eduardo (Presidente) |
+| Marcelo | Eduardo (Presidente) |
+| David | Marcelo |
+| Dayane | Eduardo (Presidente) |
+| Erickson | Marcelo |
+| Juliana | Eduardo (Presidente) |
+| Kleber | Erickson |
+| Ana Julia | Dayane |
+
+- O Eduardo é o Presidente e não é avaliado.
+- **A tabela fica fixa no código.** Quem não estiver nela (um novo contratado, por exemplo) não entra no processo até a tabela ser atualizada numa nova versão.
+
+## Decisões do usuário
+- **Média → conceito por faixas**: ≥ 9 excelente (+2%), ≥ 7 bom (0%), ≥ 5 regular (−5%), < 5 insatisfatório (−15%). Reaproveita `TABELA_AVALIACAO` (`frontend/js/calculo-shinatal.js:799`) sem mexer no motor de cálculo.
+- **Perguntas editáveis pelo Presidente e pelo Admin**, guardadas em configuração. Começam com textos provisórios até chegarem as definitivas.
+- **O Presidente abre o ciclo anual**, no lugar do interruptor da Conduta.
+- **Remover** os votos de conduta e o lançamento manual de "Avaliação" no painel de gestão. Os dados antigos continuam no Firestore e na exportação LGPD.
+- **Avaliadores** (revisão 1): só o fixo e o colega escolhido. Presidente e RH não avaliam por padrão. O Presidente só avalia quando é o avaliador fixo da pessoa (caso do Eduardo).
+
+## Regras de negócio
+- Cada colaborador da tabela tem um avaliador fixo e escolhe **um** colega para também avaliá-lo.
+- O colega escolhido pode ser qualquer pessoa ativa, menos:
+  - o Presidente e o RH (restrição do pedido original);
+  - o próprio avaliado;
+  - o avaliador fixo dele, que já avalia.
+- Dá para trocar o colega enquanto ele ainda não avaliou.
+- **Comentário**: obrigatório para o avaliador fixo e opcional para o colega escolhido. *(Suposição: herda a obrigatoriedade que antes era do Presidente e do RH. Confirmar.)*
+- **Parecer**: o avaliado responde ao texto do **avaliador fixo**. Para quem é avaliado pelo Eduardo, é o texto do Presidente, como no pedido original. *(Suposição. Confirmar.)*
+- Média = média das 10 notas (2 avaliações × 5). Respostas enviadas não podem ser editadas.
+- Só o Presidente lê todas as respostas. O avaliado lê as duas depois que ambas forem enviadas. Cada avaliador lê só a própria resposta.
+- O avaliador fixo só fica sabendo que tem uma avaliação a fazer depois que o avaliado escolhe o colega, porque é a escolha que cria o ciclo. O aviso de "escolha seu colega" aparece logo no início.
 
 ## Modelo de dados (Firestore, sem Cloud Functions)
-- `configuracoes/avaliacaoDesempenho` `{ ativo, ano, perguntas: [5 strings], atualizadoPor, atualizadoEm }`
-- `ciclosAvaliacao/{ano}_{uid}`: um documento por colaborador por ano.
-  `{ uid, ano, avaliadorUid, concluidas: {presidente, rh, par}, rhDispensado, parecer, parecerEm, okPresidenteEm, media, conceito, criadoEm, atualizadoEm }`
-  A etapa é **derivada** desses campos, sem campo de status duplicado: escolha → avaliações → parecer → aguardando ok → finalizada.
-- `respostasAvaliacao/{ano}_{avaliadoUid}_{papel}`, com `papel ∈ presidente|rh|par` e ID determinístico.
-  `{ ano, avaliadoUid, avaliadorUid, papel, notas: [5 inteiros 0–10], comentario, criadoEm }`. Nunca pode ser atualizado nem apagado.
+- **`configuracoes/avaliacaoDesempenho`**: `{ ativo, ano, perguntas: [5], atualizadoPor, atualizadoEm }`. Não muda.
+- **`configuracoes/avaliadoresFixos`** (novo): `{ pares: { <uidAvaliado>: <uidAvaliadorFixo> } }`.
+  - Nenhum cliente grava (`allow write: if false`). Qualquer usuário verificado lê.
+  - A fonte é `backend/scripts/avaliadores-fixos.mjs`, que guarda a tabela acima por nome e e-mail, resolve os uids com o Admin SDK e grava o documento, com os modos `--simular` e `--aplicar` do padrão do projeto.
+  - Assim a tabela fica no código e as regras do Firestore conseguem conferir o avaliador fixo.
+- **`ciclosAvaliacao/{ano}_{uid}`**: `{ uid, ano, avaliadorFixoUid, avaliadorEscolhidoUid, concluidas: { fixo, escolhido }, parecer, parecerEm, okPresidenteEm, media, conceito, criadoEm, atualizadoEm }`.
+  - O campo `rhDispensado` sai.
+  - O `avaliadorFixoUid` é copiado da tabela na criação, e a regra confere com `configuracoes/avaliadoresFixos`.
+- **`respostasAvaliacao/{ano}_{avaliadoUid}_{papel}`**: `papel ∈ fixo | escolhido`. As notas e a imutabilidade seguem iguais.
 
-**Cálculo**: média = (Σ notas) / (5 × nº de avaliações), arredondada para 1 casa. A banda vira o conceito. No "ok", o Presidente grava numa única transação `ciclo.okPresidenteEm/media/conceito` e cria um documento em `avaliacoes` (`validadoRH: true`, `justificativa: "Média X,X — avaliação de desempenho {ano}"`). Assim o motor de cálculo continua lendo a mesma fonte.
+**Cálculo**: média = Σ das 10 notas / 10, arredondada a 1 casa, e a faixa define o conceito. No ok, o Presidente grava numa transação o fechamento do ciclo e o documento em `avaliacoes/desempenho_{ano}_{uid}`.
 
 ## Regras de segurança (`backend/firestore.rules`)
-- Seguir o padrão de schema fechado já usado (`hasOnly`, enums, `avaliacaoValida` nas linhas 514-525).
-- **Ciclo**:
-  - O avaliado cria o próprio ciclo, se `configuracoes.ativo` estiver ligado e o `ano` for o vigente, escolhendo um `avaliadorUid` válido. A regra faz `get` em `usuarios`: o escolhido não pode ser presidente, rh ou o próprio avaliado, e precisa estar ativo.
-  - Cada avaliador só pode mudar a própria flag em `concluidas` para `true`, e `getAfter` exige que a resposta correspondente exista (mesmo padrão de `contagemAcompanhaVoto`, linhas 787-802).
-  - O avaliado grava `parecer` uma única vez, e só depois de todas as avaliações concluídas.
-  - O Presidente grava o "ok" só se o parecer existir. A **regra recalcula a média** lendo as 3 respostas e confere se o conceito bate com a faixa, o que impede gravar um conceito adulterado.
-- **Resposta**: só é criada pelo avaliador correto daquele papel (presidente, rh ou o `avaliadorUid` do ciclo), com 5 notas inteiras entre 0 e 10 e comentário obrigatório (≥ 20 caracteres) quando o papel não é `par`.
-  - **Leitura**: o próprio avaliador lê a sua; o Presidente lê todas; o avaliado lê **apenas quando as 3 existirem**, verificado com `exists()` nos IDs determinísticos.
-- Remover as regras de `votosConduta` e `condutaContagem` para escrita, mantendo a leitura do próprio dono por causa da LGPD. Remover `avaliacaoConduta`.
-- `backend/firestore.indexes.json`: índice `ciclosAvaliacao(ano, avaliadorUid)`.
+- **Criar o ciclo**:
+  - o avaliado precisa constar em `avaliadoresFixos.pares`;
+  - `avaliadorFixoUid` tem de ser igual ao valor de `pares[uid]`;
+  - o colega escolhido tem de estar ativo e não pode ser Presidente, RH, o próprio avaliado nem o avaliador fixo;
+  - o ciclo tem de estar aberto.
+- **Resposta**: o papel é `fixo` quando quem grava é `avaliadorFixoUid` (inclusive se for o Presidente) e `escolhido` quando é `avaliadorEscolhidoUid`. A resposta e a marcação em `concluidas` vão na mesma escrita em lote. O comentário precisa ter no mínimo 20 caracteres no papel `fixo`.
+- **Leitura de respostas**: o Presidente lê todas; o avaliado lê depois de `concluidas.fixo && concluidas.escolhido`; cada avaliador lê a própria.
+- **Leitura de ciclos**: o dono, os dois avaliadores e o Presidente. O RH sai dessa leitura.
+- **Parecer** e **ok**: mesma lógica de antes. O ok recalcula a média com as 2 respostas.
 
-## Frontend
+## Frontend (página `/avaliacao`)
+- **Avisos**:
+  - para o avaliador fixo e para o colega escolhido, "Avalie {nome}";
+  - para o Presidente, os pareceres esperando o ok e, quando ele for o fixo, as avaliações dele;
+  - o mesmo total aparece no contador da navegação.
+- **Meu processo**: linha do tempo com **5 marcos**: escolha do colega → avaliador fixo → colega escolhido → seu parecer → ok do Presidente.
+  - No passo 1 aparece "Seu avaliador fixo: {nome}" e o seletor do colega.
+  - Quem não está na tabela vê um estado vazio que explica a situação.
+- **Painel do Presidente**:
+  - tabela com avaliado, avaliador fixo, colega escolhido, etapa e média;
+  - "Ver respostas" e "Dar ok";
+  - colaboradores ativos fora da tabela aparecem marcados como "Sem avaliador fixo".
+  - O botão de dispensar o RH sai.
+- **Modal de avaliação** e **editor de perguntas**: não mudam.
 
-### Página
-- `frontend/conduta.html` passa a ser `frontend/avaliacao.html`, com título "Avaliação de desempenho".
-  - `vercel.json` ganha um redirect 301 de `/conduta` para `/avaliacao`.
-  - `scripts/layout.mjs` (`CABECALHO_POR_PAGINA`) e `scripts/partials/cabecalho-sistema.html` (linhas 18, 46 e 61: desktop, menu mobile e dock) ganham o novo rótulo e o ícone `grading`.
-- Conteúdo da página, em seções `data-reveal` com as entradas `anim-entrada-*` já existentes:
-  1. **Avisos**, no topo, só quando houver pendência:
-     - Para todos: os ciclos em que sou o `avaliadorUid` e a resposta `par` ainda falta.
-     - Para RH: ciclos sem resposta `rh`.
-     - Para o Presidente: ciclos sem resposta `presidente` e ciclos aguardando ok.
-     - Cada aviso é um `.cartao` com botão `.btn-pilula--solido` "Avaliar", que abre um modal.
-     - O mesmo total aparece como contador na navegação, reaproveitando `[data-contador-solicitacoes]`/`.nav-contador` (`cabecalho-sistema.js:43-51`).
-  2. **Meu processo** (não aparece para o Presidente):
-     - Linha do tempo horizontal no desktop e vertical no mobile, com 6 marcos: escolha → Presidente → RH → colega → parecer → ok.
-     - O fio preenchido é um único elemento com `transform: scaleX/scaleY(k/n)` e transição em `--transicao`. Usa só compositor, sem layout shift, e tem fallback para `prefers-reduced-motion`.
-     - Gradiente ouro→vinho igual ao de `.tela-carregamento-fio`.
-     - No passo 1 aparece o seletor do colega, com busca no `diretorioPublico` já filtrado.
-     - Ao fim das avaliações: as 3 respostas (notas + comentários), a média animada com `animarNumero` (`ui-utils.js:303`) e o formulário de parecer.
-  3. **Painel do Presidente**:
-     - Ligar e desligar o ciclo do ano.
-     - Editar as 5 perguntas.
-     - Tabela de todos os colaboradores, com a etapa e um botão "Ver respostas", que abre um `.painel-lateral` com as 3 respostas e o parecer.
-     - Botão "Dar ok", que passa por `confirmarAcao()` antes de gravar.
-- **Modal de avaliação**: as 5 perguntas, cada uma com um seletor segmentado de 0 a 10 (`radiogroup`, navegável por teclado). Reaproveita o CSS órfão de "seletor segmentado" (`styles.css:2443-2467`). Abaixo, um textarea, obrigatório conforme o papel. No mobile o modal vira a folha que sobe de baixo, que já existe.
-
-### Código
-- Novo `frontend/js/avaliacao-service.js`, no lugar de `conduta-service.js`:
-  - `assinarConfig`, `salvarConfig`, `assinarMeuCiclo`, `escolherAvaliador`, `assinarPendencias(perfil)`, `enviarResposta` (transação resposta + flag), `buscarRespostas`, `enviarParecer`, `darOk` (transação ciclo + `avaliacoes` + `registrarLog`).
-  - Funções puras exportadas e testáveis: `calcularMedia(respostas)` e `conceitoPorMedia(media)`.
-  - Mantém `sincronizarDiretorio` (usado em `dashboard.js:29` e `gestao.js:35,53`).
-- Novo `frontend/js/paginas/avaliacao.js`, no lugar de `paginas/conduta.js`, usando `exigirAutenticacao`, `mostrarToast`, `abrirModal`/`fecharModal`, `confirmarAcao` e `ativarRevelacaoAoRolar`.
-- Estilos novos em `frontend/css/styles.css`: `.linha-processo` e `.aviso-avaliacao`, usando as variáveis `--shinatal-*` e Fraunces só nos números da média.
-- `scripts/fonte-icones.mjs` passa a varrer também `frontend/js/paginas/`, porque hoje não varre. Depois, rodar `npm run icones`.
-
-### Remoções
-- Os votos de conduta: `paginas/conduta.js` e as funções de voto e flag em `conduta-service.js`.
-- Os imports mortos em `gestao.js:19-20`.
-- A ação rápida "Avaliação" (`gestao.html:137-139`), a opção no `#modal-nova-acao` (linhas 346 e 412-426) e o ramo correspondente em `gestao.js:699-714`. O botão de excluir avaliação no perfil continua.
-- `perfil-view.js:136-147`: troca o grid de contagem de conduta pela última média e conceito da avaliação de desempenho.
-- `perfil.js:150-176` / `meus-dados-pdf.js:33`: a exportação LGPD passa a incluir o próprio ciclo e as respostas visíveis, e mantém os votos antigos.
-- `regulamento.html:158-162`: descrever o novo processo da Seção 11 e as faixas de nota.
+## O que muda no WIP (`ba4aff0`)
+- **`backend/firestore.rules`**:
+  - trocar os papéis `presidente`/`rh`/`par` por `fixo`/`escolhido`;
+  - acrescentar `configuracoes/avaliadoresFixos`;
+  - tirar `rhDispensado` e a dispensa do RH;
+  - fazer `mediaConfere` usar 2 respostas;
+  - tirar o RH da leitura de ciclos.
+- **`frontend/js/avaliacao-calculo.js`**: atualizar `passosDoCiclo` (5 marcos), `avaliacoesConcluidas` e `calcularPendencias`, que passa a ver fixo, escolhido e o ok do Presidente.
+- **`frontend/js/avaliacao-service.js`**:
+  - `PAPEIS_AVALIADOR = ["fixo", "escolhido"]`;
+  - novo `assinarAvaliadoresFixos`;
+  - `escolherAvaliador` passa a gravar `avaliadorFixoUid`;
+  - `assinarCiclosVisiveis` faz a consulta por `avaliadorFixoUid` e por `avaliadorEscolhidoUid`, ou todos os ciclos para o Presidente;
+  - tirar `dispensarRH`.
+- **`frontend/js/paginas/avaliacao.js`**: textos e etapas, mostrar o avaliador fixo, filtrar o seletor de colegas e as colunas novas no painel.
+- **Testes**:
+  - reescrever `docs/planos/avaliacao-desempenho/rascunho-testes-regras.mjs` para o novo esquema, cobrindo:
+    - fixo errado na criação;
+    - escolher o próprio avaliador fixo;
+    - fixo = Presidente;
+    - pessoa fora da tabela;
+    - média com 2 respostas;
+  - ajustar `backend/tests/calculo/avaliacao.test.mjs`.
+- **Novo** `backend/scripts/avaliadores-fixos.mjs`, com a tabela acima.
 
 ## Desempenho e responsividade
-- Sem bibliotecas novas. A página continua sendo um módulo ES estático.
-- Uma assinatura `onSnapshot` por bloco, com consultas limitadas ao ano vigente.
-- As respostas só são buscadas sob demanda, ao abrir o painel.
-- Animações apenas em `transform`/`opacity`. Skeleton durante o carregamento, para manter o CLS em 0.
-- Layout mobile-first: a linha do tempo fica vertical abaixo de 640px, os alvos de toque têm pelo menos 44px, e o seletor 0-10 quebra em 2 linhas no mobile.
+- Sem bibliotecas novas.
+- Uma assinatura `onSnapshot` por bloco.
+- As respostas só são buscadas quando a pessoa abre o painel.
+- Animações só em `transform`/`opacity`.
+- Skeleton durante o carregamento, para manter o CLS em 0.
+- Contador da navegação carregado com `requestIdleCallback`.
+- Layout mobile-first: linha do tempo vertical abaixo de 640 px, alvos de toque de 44 px e escala de 0 a 10 em duas linhas no celular.
 
 ## Verificação
-1. `cd backend/tests/rules && npm test`, com casos novos para:
-   - escolha inválida (presidente, rh, a si mesmo);
-   - nota fora de 0–10;
-   - comentário ausente para Presidente ou RH;
-   - avaliado lendo antes e depois das 3 respostas;
-   - RH lendo resposta alheia (deve ser negado);
-   - parecer antes da hora;
-   - ok com conceito adulterado;
-   - resposta imutável.
-2. `npm run test:calculo`, mais um teste novo para `calcularMedia`/`conceitoPorMedia` nos limites 4,9 / 5 / 6,9 / 7 / 8,9 / 9.
-3. `npm run build`, para garantir que layout, CSS, tsc e vite passam.
-4. Fluxo completo no emulador com `npm run dev`:
-   - O Presidente abre o ciclo.
-   - O colaborador escolhe um colega.
-   - Presidente, RH e colega avaliam, conferindo os avisos e o contador.
-   - O colaborador vê as respostas e envia o parecer.
-   - O Presidente dá o ok.
-   - Conferir o documento em `avaliacoes` e o efeito no cálculo.
-   - Repetir em 360px, 768px e desktop.
-5. `backend/tests/a11y/auditar.mjs`, incluindo `/avaliacao` e atualizando a semente da linha 216: zero violações no axe e Lighthouse ≥ 95 em todas as categorias.
-6. Lembrete de deploy: `firebase deploy --only firestore:rules,firestore:indexes` antes do merge na `main`.
+1. `cd backend/tests/rules && npm test` no emulador, com o rascunho de testes já encaixado e os blocos antigos da conduta removidos.
+2. `npm run test:calculo`.
+3. `npm run build`.
+4. `node backend/scripts/avaliadores-fixos.mjs --simular`, conferindo que os 11 nomes foram resolvidos para um uid.
+5. Fluxo completo no emulador, em 360 px, 768 px e desktop:
+   - o Presidente abre o ciclo;
+   - a Natalia escolhe um colega;
+   - o Eduardo (fixo) e o colega avaliam;
+   - a Natalia envia o parecer;
+   - o Presidente dá o ok.
+   - Repetir com o Kleber, cujo fixo é o Erickson, que não é gestor.
+6. `backend/tests/a11y/auditar.mjs`, trocando `/conduta` por `/avaliacao`.
+7. Antes do merge: `firebase deploy --only firestore:rules`, depois o script `--aplicar` em produção.
