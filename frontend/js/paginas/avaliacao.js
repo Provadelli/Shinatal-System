@@ -22,6 +22,8 @@ import {
 const perfil = await exigirAutenticacao(null);
 const papel = document.documentElement.dataset.papel || perfil.role;
 const EH_PRESIDENTE = papel === "presidente";
+// Presidente e Admin editam as perguntas e abrem/fecham o ciclo (o Admin não vê o painel de
+// gestão, que mostra as notas de todos — só o Presidente lê; o botão dele fica no cartão de perguntas).
 const PODE_EDITAR_PERGUNTAS = papel === "presidente" || papel === "admin";
 const ANO_CORRENTE = new Date().getFullYear();
 const reduzMovimento = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -301,7 +303,7 @@ async function renderProcesso() {
       ? vazio(icones.ninguem, "Você ainda não está na tabela de avaliadores", "A tabela de avaliadores fixos é definida pela direção. Se você acha que deveria participar, fale com o RH.")
       : cicloAberto()
         ? formEscolha(null, fixo)
-        : vazio(icones.espera, "A avaliação ainda não foi aberta", "Quando o Presidente abrir o ciclo do ano, você escolhe aqui o colega que vai avaliar você.");
+        : vazio(icones.espera, "A avaliação ainda não foi aberta", "Quando o ciclo do ano for aberto, você escolhe aqui o colega que vai avaliar você.");
     ligarFormEscolha(null, fixo);
     return;
   }
@@ -523,7 +525,6 @@ function renderGestao() {
   const secao = el("secao-gestao");
   if (!EH_PRESIDENTE || estado.config === undefined) { secao.hidden = true; return; }
   secao.hidden = false;
-  const ano = anoDoCiclo();
   const pessoas = avaliaveis();
   const porUid = new Map(estado.ciclos.map((c) => [c.uid, c]));
   const naTabela = pessoas.filter((u) => fixoDe(u.uid)).length;
@@ -536,9 +537,7 @@ function renderGestao() {
         <div><p class="stat-rotulo">Escolheram o colega</p><p class="stat-valor">${escolheram}</p></div>
         <div><p class="stat-rotulo">Finalizadas</p><p class="stat-valor">${finalizadas}</p></div>
       </div>
-      <button type="button" id="btn-ciclo" class="btn-pilula ${cicloAberto() ? "btn-pilula--vidro" : "btn-pilula--solido"} btn-pilula--compacto shrink-0">
-        <span class="material-symbols-outlined" aria-hidden="true">${cicloAberto() ? icones.fechar : icones.abrir}</span>${cicloAberto() ? `Fechar ciclo ${ano}` : `Abrir ciclo ${ANO_CORRENTE}`}
-      </button>
+      ${botaoCiclo("btn-ciclo")}
     </div>`;
   el("btn-ciclo").addEventListener("click", alternarCiclo);
 
@@ -585,6 +584,13 @@ el("corpo-gestao").addEventListener("click", (e) => {
   const ver = e.target.closest("[data-respostas]");
   if (ver) abrirRespostas(ver.dataset.respostas);
 });
+
+/** Botão de abrir/fechar o ciclo (painel do Presidente e cartão de perguntas do Admin). */
+function botaoCiclo(id) {
+  return `<button type="button" id="${id}" class="btn-pilula ${cicloAberto() ? "btn-pilula--vidro" : "btn-pilula--solido"} btn-pilula--compacto shrink-0">
+    <span class="material-symbols-outlined" aria-hidden="true">${cicloAberto() ? icones.fechar : icones.abrir}</span>${cicloAberto() ? `Fechar ciclo ${anoDoCiclo()}` : `Abrir ciclo ${ANO_CORRENTE}`}
+  </button>`;
+}
 
 async function alternarCiclo(e) {
   const botao = e.currentTarget; // capturado antes do await: depois dele o evento já não tem currentTarget
@@ -680,6 +686,10 @@ function renderPerguntas() {
   const secao = el("secao-perguntas");
   if (!PODE_EDITAR_PERGUNTAS || estado.config === undefined) { secao.hidden = true; return; }
   secao.hidden = false;
+  if (!EH_PRESIDENTE) {
+    el("ciclo-admin").innerHTML = botaoCiclo("btn-ciclo-admin");
+    el("btn-ciclo-admin").addEventListener("click", alternarCiclo);
+  }
   // Não reescreve os campos a cada atualização do Firestore: apagaria o que a pessoa digita.
   if (perguntasRenderizadas && el("form-perguntas").contains(document.activeElement)) return;
   perguntasRenderizadas = true;

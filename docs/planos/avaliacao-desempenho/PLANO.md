@@ -46,7 +46,7 @@ A média final vira o conceito que o motor de cálculo já usa.
 ## Decisões do usuário
 - **Média → conceito por faixas**: ≥ 9 excelente (+2%), ≥ 7 bom (0%), ≥ 5 regular (−5%), < 5 insatisfatório (−15%). Reaproveita `TABELA_AVALIACAO` (`frontend/js/calculo-shinatal.js:799`) sem mexer no motor de cálculo.
 - **Perguntas editáveis pelo Presidente e pelo Admin**, guardadas em configuração. Começam com textos provisórios até chegarem as definitivas.
-- **O Presidente abre o ciclo anual**, no lugar do interruptor da Conduta.
+- **O Presidente ou o Admin abre o ciclo anual**, no lugar do interruptor da Conduta (o Admin entrou em 27/11/2026).
 - **Remover** os votos de conduta e o lançamento manual de "Avaliação" no painel de gestão. Os dados antigos continuam no Firestore e na exportação LGPD.
 - **Avaliadores** (revisão 1): só o fixo e o colega escolhido. Presidente e RH não avaliam por padrão. O Presidente só avalia quando é o avaliador fixo da pessoa (caso do Eduardo).
 

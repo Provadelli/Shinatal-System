@@ -1026,14 +1026,16 @@ describe("configuracoes/avaliacaoDesempenho", () => {
     await assertSucceeds(setDoc(ref, config("pres1", { ativo: false })));
   });
 
-  it("Admin edita só as perguntas: cria fechado, não abre o ciclo nem troca o ano", async () => {
+  it("Admin também abre e fecha o ciclo, troca o ano e edita as perguntas", async () => {
     await seedUsuario("admin1", "admin");
     const ref = doc(ctx("admin1").firestore(), "configuracoes", "avaliacaoDesempenho");
-    await assertFails(setDoc(ref, config("admin1")));
+    await assertSucceeds(setDoc(ref, config("admin1")));
     await assertSucceeds(setDoc(ref, config("admin1", { ativo: false })));
     await assertSucceeds(setDoc(ref, config("admin1", { ativo: false, perguntas: [...PERGUNTAS.slice(0, 4), "Nova pergunta"] })));
-    await assertFails(setDoc(ref, config("admin1", { ativo: true })));
-    await assertFails(setDoc(ref, config("admin1", { ativo: false, ano: ANO + 1 })));
+    await assertSucceeds(setDoc(ref, config("admin1", { ativo: true, ano: ANO + 1 })));
+    // Admin desligado não mexe mais.
+    await seedUsuario("admin1", "admin", { status: "demitido", motivoPerdaIntegral: "demitido" });
+    await assertFails(setDoc(ref, config("admin1", { ativo: false })));
   });
 
   it("colaborador, DP e RH não gravam; todos leem", async () => {

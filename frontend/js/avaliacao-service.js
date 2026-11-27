@@ -1,7 +1,7 @@
 // Shinatal — Avaliação de desempenho (Seção 11): acesso ao Firestore e as contas do processo.
 //
 // Fluxo (cada passo é validado de verdade em backend/firestore.rules):
-//   1. O Presidente abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
+//   1. O Presidente ou o Admin abre o ciclo do ano (configuracoes/avaliacaoDesempenho).
 //   2. O colaborador escolhe um colega para avaliá-lo (cria ciclosAvaliacao/{ano}_{uid}); o
 //      avaliador fixo vem da tabela oficial (configuracoes/avaliadoresFixos).
 //   3. O avaliador fixo e o colega escolhido respondem 5 perguntas, notas de 0 a 10, mais um
