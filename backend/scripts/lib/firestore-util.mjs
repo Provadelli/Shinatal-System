@@ -54,14 +54,30 @@ export async function carregar(db) {
   };
 }
 
+/** Lançamentos de todos agrupados por uid (o peso ajustado de cada um depende deles). */
+export async function carregarMapaDados(db) {
+  const colecoes = ["faltas", "atrasos", "advertencias", "avaliacoes"];
+  const snaps = await Promise.all(colecoes.map((c) => db.collection(c).get()));
+  const mapa = {};
+  snaps.forEach((snap, i) => {
+    for (const d of snap.docs) {
+      const dado = { id: d.id, ...d.data() };
+      mapa[dado.uid] ??= { faltas: [], atrasos: [], advertencias: [], avaliacoes: [] };
+      mapa[dado.uid][colecoes[i]].push(dado);
+    }
+  });
+  return mapa;
+}
+
 /** Republica `fundo/{ano}` (todos os anos com movimento ou já publicados) e `estatisticas/publico`. */
 export async function republicarAgregados(db, FieldValue, autor, contratos, usuarios, anosExistentes, hojeISO) {
   const anoAtual = Number(hojeISO.slice(0, 4));
+  const mapaDados = await carregarMapaDados(db);
   const anos = [...new Set([...motor.anosComMovimento(contratos, hojeISO), ...anosExistentes.map(Number), anoAtual])]
     .filter(Number.isFinite).sort((a, b) => a - b);
   const publicados = {};
   for (const ano of anos) {
-    const { fundo } = motor.montarAgregadosFundo(contratos, usuarios, ano, hojeISO);
+    const { fundo } = motor.montarAgregadosFundo(contratos, usuarios, ano, hojeISO, mapaDados);
     await db.collection("fundo").doc(String(ano)).set({
       ...fundo, atualizadoEm: FieldValue.serverTimestamp(), atualizadoPor: autor
     });

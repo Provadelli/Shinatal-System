@@ -1906,7 +1906,15 @@ describe("fundo/{ano}: validação", () => {
     await assertSucceeds(setDoc(doc(db, "fundo", "2026"), novoFundo("dp1")));
   });
 
+  it("DP publica o fundo com a soma dos pesos ajustados (divisor do rateio)", async () => {
+    await seedUsuario("dp1", "dp");
+    const db = ctx("dp1").firestore();
+    await assertSucceeds(setDoc(doc(db, "fundo", "2026"), novoFundo("dp1", { somaPesosAjustados: 12.81 })));
+  });
+
   for (const [rotulo, campos] of Object.entries({
+    "somaPesosAjustados negativa": { somaPesosAjustados: -1 },
+    "somaPesosAjustados que não é número": { somaPesosAjustados: "12" },
     "saldo negativo": { saldoDisponivel: -1 },
     "somaPesos negativa": { somaPesos: -0.5 },
     "saldo que não é número": { saldoDisponivel: "99999999" },

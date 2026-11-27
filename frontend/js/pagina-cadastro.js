@@ -6,7 +6,7 @@ import { traduzirErroAuth, gravarCadastroPendente } from "./auth.js";
 import { mostrarToast, ativarRevelacaoAoRolar, sincronizarAlturaHeader, montarTurnstile, tokenTurnstile, resetarTurnstile } from "./ui-utils.js";
 import { TURNSTILE_SITE_KEY, TURNSTILE_WORKER_URL, TURNSTILE_CONFIGURADO } from "./turnstile-config.js";
 import { VERSAO_TERMOS } from "./lgpd-config.js";
-import { hojeISOLocal } from "./calculo-shinatal.js?v=v2-2026-11b";
+import { hojeISOLocal } from "./calculo-shinatal.js?v=v2-2026-11c";
 
 ativarRevelacaoAoRolar();
 sincronizarAlturaHeader();

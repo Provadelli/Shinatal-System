@@ -624,9 +624,13 @@ service cloud.firestore {
     // -------------------------------------------------------------
     function fundoValido() {
       let d = request.resource.data;
+      // somaPesosAjustados: soma dos pesos já com redutores, faltas e adicionais — é o divisor que
+      // faz a soma das cotas de todos fechar com o saldo (calcularDistribuicaoFundo).
       return d.keys().hasOnly(['arrecadado', 'estornos', 'saldoDisponivel', 'somaPesos',
+                               'somaPesosAjustados',
                                'totalContratosAtivos', 'totalContratosEncerrados',
                                'atualizadoEm', 'atualizadoPor'])
+        && d.get('somaPesosAjustados', 0) is number && d.get('somaPesosAjustados', 0) >= 0
         && d.keys().hasAll(['arrecadado', 'estornos', 'saldoDisponivel', 'somaPesos'])
         && d.arrecadado is number && d.arrecadado >= 0
         && d.estornos is number && d.estornos >= 0

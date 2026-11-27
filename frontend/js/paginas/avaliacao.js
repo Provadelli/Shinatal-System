@@ -669,6 +669,12 @@ async function abrirRespostas(uid) {
       const resultado = await darOk(ciclo, perfil, nomeDe(uid));
       mostrarToast(`Avaliação finalizada: ${ROTULOS_CONCEITO[resultado.conceito]} (${formatarNota(resultado.media)}).`, "sucesso");
       fecharModal("modal-respostas");
+      // O conceito muda o peso ajustado da pessoa: refaz a divisão do fundo daquele exercício.
+      import("../fundo-service.js")
+        .then(({ recalcularEPublicarFundo }) => recalcularEPublicarFundo({
+          anoExercicio: ciclo.ano, atualizadoPorUid: perfil.uid, soSeMudou: true
+        }))
+        .catch((erro) => console.error("[Shinatal] Falha ao republicar o fundo após o ok:", erro));
     } catch (erro) {
       console.error(erro);
       mostrarToast(traduzirErro(erro, "Não foi possível finalizar a avaliação."), "erro");

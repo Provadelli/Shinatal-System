@@ -9,7 +9,7 @@ import {
   alternarAccordion, animarNumero, ativarRevelacaoAoRolar, escaparHTML, sincronizarAlturaHeader,
 
 } from "./ui-utils.js";
-import { calcularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11b";
+import { calcularCotaColaborador, simularCotaColaborador } from "./calculo-shinatal.js?v=v2-2026-11c";
 import { sincronizarDiretorio } from "./diretorio-service.js";
 
 // Sem onclick inline no HTML (a CSP proíbe) — os gatilhos são ligados aqui, antes de qualquer await.
@@ -37,7 +37,7 @@ let fundoAtual = { saldoDisponivel: 0, somaPesos: 0 };
 onSnapshot(doc(db, "fundo", String(ANO_EXERCICIO)), (snap) => {
   fundoAtual = snap.exists() ? snap.data() : { saldoDisponivel: 0, somaPesos: 0 };
   const resultado = calcularCotaColaborador(
-    perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO
+    perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO, fundoAtual.somaPesosAjustados || 0
   );
   renderizarCota(resultado);
   document.getElementById("qtd-contratos-ativos").textContent = fundoAtual.totalContratosAtivos ?? 0;
@@ -141,8 +141,9 @@ function simular() {
     dadosSimulados.atrasos.push({ mesAno: `${ANO_EXERCICIO}-${mm}`, quantidadeAtrasos: 6 });
   }
 
-  const atual = calcularCotaColaborador(perfil, dados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO);
-  const simulado = calcularCotaColaborador(perfil, dadosSimulados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO);
+  const { atual, simulado } = simularCotaColaborador(
+    perfil, dados, dadosSimulados, fundoAtual.saldoDisponivel || 0, fundoAtual.somaPesos || 0, ANO_EXERCICIO, fundoAtual.somaPesosAjustados || 0
+  );
 
   document.getElementById("sim-atual").textContent = formatarMoeda(atual.cotaFinal);
   document.getElementById("sim-simulada").textContent = formatarMoeda(simulado.cotaFinal);
